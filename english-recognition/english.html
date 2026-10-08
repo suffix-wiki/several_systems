@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>カメラ英語学習アプリ</title>
+  <!-- TensorFlow.js & MobileNet (画像識別モデル) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0/dist/mobilenet.min.js"></script>
+  <style>
+    :root {
+      --primary-color: #4a90e2;
+      --bg-color: #f4f7f6;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding: 16px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      text-align: center;
+      margin-bottom: 12px;
+      color: var(--primary-color);
+    }
+
+    .camera-container {
+      position: relative;
+      width: 100%;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      aspect-ratio: 4 / 3;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background-color: var(--primary-color);
+      color: white;
+      font-weight: bold;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background-color 0.2s;
+    }
+
+    button:active {
+      opacity: 0.8;
+    }
+
+    button:disabled {
+      background-color: #ccc;
+    }
+
+    .btn-secondary {
+      background-color: #6c757d;
+    }
+
+    .btn-voice {
+      background-color: #28a745;
+    }
+
+    .loading-status {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .results-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-left: 4px solid var(--primary-color);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: #888;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .label-tag {
+      font-size: 0.8rem;
+      font-weight: bold;
+      width: 30px;
+      color: #555;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+
+    .action-btn {
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      flex: none;
+    }
+
+    .speech-active {
+      animation: pulse 1.2s infinite;
+      background-color: #dc3545 !important;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📷 カメラ英語学習アプリ</h1>
+  <div id="status" class="loading-status">AIモデルを読み込み中...</div>
+
+  <div class="camera-container">
+    <video id="video" autoplay playsinline muted></video>
+  </div>
+
+  <div class="controls">
+    <button id="scanBtn" disabled>🔍 写っているものを識別</button>
+  </div>
+
+  <div id="results" class="results-container"></div>
+
+  <script>
+    let model = null;
+    const video = document.getElementById('video');
+    const scanBtn = document.getElementById('scanBtn');
+    const statusText = document.getElementById('status');
+    const resultsContainer = document.getElementById('results');
+
+    // 1. カメラとAIモデルの初期化
+    async function init() {
+      try {
+        // カメラ設定 (背面カメラ優先)
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+          audio: false
+        });
+        video.srcObject = stream;
+
+        // MobileNetモデル読み込み
+        model = await mobilenet.load();
+        statusText.innerText = "準備完了！物体をカメラに写して識別ボタンを押してください。";
+        scanBtn.disabled = false;
+      } catch (err) {
+        console.error(err);
+        statusText.innerText = "エラー: カメラの起動またはモデルの読み込みに失敗しました。";
+      }
+    }
+
+    // 2. 画像識別処理
+    scanBtn.addEventListener('click', async () => {
+      if (!model) return;
+      
+      statusText.innerText = "識別中...";
+      scanBtn.disabled = true;
+
+      try {
+        // 上位3つの推論結果を取得
+        const predictions = await model.classify(video, 3);
+        resultsContainer.innerHTML = '';
+
+        for (let i = 0; i < predictions.length; i++) {
+          const item = predictions[i];
+          // MobileNetはカンマ区切りで複数の英単語を返すため、最初の単語を抽出
+          const rawEnglish = item.className.split(',')[0].trim();
+          const probability = Math.round(item.probability * 100);
+
+          // カードを作成して追加
+          const card = createResultCard(rawEnglish, probability, i);
+          resultsContainer.appendChild(card);
+          
+          // 初期翻訳を実行 (英語 -> 日本語)
+          translateAndSet(i, rawEnglish, 'en2ja');
+        }
+        statusText.innerText = "識別完了！用語の編集や発音確認が可能です。";
+      } catch (err) {
+        console.error(err);
+        statusText.innerText = "識別処理中にエラーが発生しました。";
+      } finally {
+        scanBtn.disabled = false;
+      }
+    });
+
+    // 3. 結果カードのHTML動的生成
+    function createResultCard(englishText, probability, index) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.id = `card-${index}`;
+
+      card.innerHTML = `
+        <div class="card-header">
+          <span>候補 ${index + 1} (確信度: ${probability}%)</span>
+        </div>
+        
+        <!-- 英語入力 & 操作 -->
+        <div class="input-group">
+          <span class="label-tag">英</span>
+          <input type="text" id="en-input-${index}" value="${englishText}">
+          <button class="action-btn" onclick="speakText('en-input-${index}', 'en-US')">🔊</button>
+          <button class="action-btn btn-voice" id="mic-en-${index}" onclick="startSpeechRecognition('${index}', 'en-US')">🎙️</button>
+        </div>
+
+        <!-- 日本語入力 & 操作 -->
+        <div class="input-group">
+          <span class="label-tag">日</span>
+          <input type="text" id="ja-input-${index}" value="翻訳中...">
+          <button class="action-btn" onclick="speakText('ja-input-${index}', 'ja-JP')">🔊</button>
+          <button class="action-btn btn-voice" id="mic-ja-${index}" onclick="startSpeechRecognition('${index}', 'ja-JP')">🎙️</button>
+        </div>
+      `;
+
+      // 編集時のリアルタイム自動翻訳イベントイベント付与
+      setTimeout(() => {
+        const enInput = document.getElementById(`en-input-${index}`);
+        const jaInput = document.getElementById(`ja-input-${index}`);
+
+        enInput.addEventListener('change', () => {
+          translateAndSet(index, enInput.value, 'en2ja');
+        });
+
+        jaInput.addEventListener('change', () => {
+          translateAndSet(index, jaInput.value, 'ja2en');
+        });
+      }, 0);
+
+      return card;
+    }
+
+    // 4. 翻訳処理 (無料の MyMemory API を使用)
+    async function translateAndSet(index, text, direction) {
+      if (!text.trim()) return;
+
+      const jaInput = document.getElementById(`ja-input-${index}`);
+      const enInput = document.getElementById(`en-input-${index}`);
+
+      let langPair = direction === 'en2ja' ? 'en|ja' : 'ja|en';
+
+      try {
+        const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${langPair}`);
+        const data = await res.json();
+        const translatedText = data.responseData.translatedText;
+
+        if (direction === 'en2ja') {
+          jaInput.value = translatedText;
+        } else {
+          enInput.value = translatedText;
+        }
+      } catch (err) {
+        console.error("翻訳エラー:", err);
+      }
+    }
+
+    // 5. 音声合成 (Text-to-Speech)
+    function speakText(inputId, lang) {
+      const text = document.getElementById(inputId).value;
+      if (!text) return;
+
+      window.speechSynthesis.cancel(); // 連続再生防止
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = lang;
+      utterance.rate = 0.9; // 読み上げ速度調整（学習用に少しゆっくり）
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // 6. 音声入力 (Web Speech API)
+    function startSpeechRecognition(index, lang) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("お使いのブラウザは音声入力に対応していません。キーボードをご利用ください。");
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = lang;
+      recognition.interimResults = false;
+
+      const micBtnId = lang === 'en-US' ? `mic-en-${index}` : `mic-ja-${index}`;
+      const micBtn = document.getElementById(micBtnId);
+      
+      micBtn.classList.add('speech-active');
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        if (lang === 'en-US') {
+          document.getElementById(`en-input-${index}`).value = transcript;
+          translateAndSet(index, transcript, 'en2ja');
+        } else {
+          document.getElementById(`ja-input-${index}`).value = transcript;
+          translateAndSet(index, transcript, 'ja2en');
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error("音声認識エラー:", event.error);
+        micBtn.classList.remove('speech-active');
+      };
+
+      recognition.onend = () => {
+        micBtn.classList.remove('speech-active');
+      };
+
+      recognition.start();
+    }
+
+    // アプリ初期化
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
