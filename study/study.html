@@ -1,0 +1,1725 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>学習マスター - 自作問題＆アナリティクス学習Webアプリ</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js (グラフ表示用) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Canvas Confetti (お祝い演出用) -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .screen { display: none; }
+    .screen.active { display: block; }
+    input, select, textarea, button { touch-action: manipulation; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased">
+
+  <!-- ヘッダー -->
+  <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+      <h1 class="text-lg sm:text-xl font-bold flex items-center gap-2 cursor-pointer" onclick="showScreen('list-screen')">
+        <i class="fa-solid fa-graduation-cap text-2xl text-amber-300"></i>
+        <span>学習マスター</span>
+      </h1>
+
+      <!-- プレイヤーレベルステータス -->
+      <button onclick="openStatusModal()" class="flex items-center gap-2 sm:gap-3 bg-indigo-700/90 hover:bg-indigo-800 px-3 py-1.5 rounded-full border border-indigo-400/40 transition text-left shadow-inner">
+        <div class="flex items-center gap-1">
+          <i class="fa-solid fa-shield-halved text-amber-300 text-xs sm:text-sm"></i>
+          <span class="text-xs font-bold text-amber-200">Lv.<span id="user-level">1</span></span>
+        </div>
+        <div class="w-16 sm:w-20 bg-indigo-950 rounded-full h-2 overflow-hidden hidden xs:block">
+          <div id="user-exp-bar" class="bg-amber-400 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+        <span id="user-title" class="text-xs font-medium text-indigo-100 hidden sm:inline">見習いチャレンジャー</span>
+        <i class="fa-solid fa-id-card text-xs text-indigo-300"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main class="max-w-6xl w-full mx-auto p-3 sm:p-4 flex-grow">
+
+    <!-- 1. 設問一覧画面 & ダッシュボード -->
+    <section id="list-screen" class="screen active space-y-6">
+      
+      <!-- ダッシュボードカード -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <!-- 連続学習日数 -->
+        <div onclick="openCalendarModal()" class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-indigo-400 transition cursor-pointer flex items-center gap-3">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
+            <i class="fa-solid fa-calendar-days"></i>
+          </div>
+          <div class="overflow-hidden">
+            <p class="text-[11px] sm:text-xs text-slate-400 font-medium">連続学習日数 <i class="fa-solid fa-magnifying-glass text-[9px]"></i></p>
+            <p class="text-lg sm:text-xl font-extrabold text-slate-800"><span id="dash-streak">0</span> <span class="text-xs font-normal">日</span></p>
+          </div>
+        </div>
+
+        <!-- 累計解いた問題 -->
+        <div onclick="openQuizStatsModal()" class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-emerald-400 transition cursor-pointer flex items-center gap-3">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
+            <i class="fa-solid fa-book-open"></i>
+          </div>
+          <div class="overflow-hidden">
+            <p class="text-[11px] sm:text-xs text-slate-400 font-medium">累計解いた問題 <i class="fa-solid fa-magnifying-glass text-[9px]"></i></p>
+            <p class="text-lg sm:text-xl font-extrabold text-slate-800"><span id="dash-total-q">0</span> <span class="text-xs font-normal">問</span></p>
+          </div>
+        </div>
+
+        <!-- 総学習時間 -->
+        <div onclick="openTimeStatsModal()" class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-amber-400 transition cursor-pointer flex items-center gap-3">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
+            <i class="fa-solid fa-clock"></i>
+          </div>
+          <div class="overflow-hidden">
+            <p class="text-[11px] sm:text-xs text-slate-400 font-medium">総学習時間 <i class="fa-solid fa-magnifying-glass text-[9px]"></i></p>
+            <p class="text-lg sm:text-xl font-extrabold text-slate-800"><span id="dash-study-time">0</span> <span class="text-xs font-normal">分</span></p>
+          </div>
+        </div>
+
+        <!-- 解放した称号 -->
+        <div onclick="openBadgesModal()" class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-purple-400 transition cursor-pointer flex items-center gap-3">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
+            <i class="fa-solid fa-award"></i>
+          </div>
+          <div class="overflow-hidden">
+            <p class="text-[11px] sm:text-xs text-slate-400 font-medium">解放した称号 <i class="fa-solid fa-magnifying-glass text-[9px]"></i></p>
+            <p class="text-lg sm:text-xl font-extrabold text-slate-800"><span id="dash-badge-count">0</span> <span class="text-xs font-normal">個</span></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 操作エリア -->
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-slate-800">問題集一覧</h2>
+          <p class="text-xs sm:text-sm text-slate-500">問題を選択してすぐ挑戦できます。</p>
+        </div>
+        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+          <button onclick="openCreateForm()" class="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg font-medium shadow flex items-center justify-center gap-1.5 transition text-xs sm:text-sm">
+            <i class="fa-solid fa-plus"></i> 新規問題集を作成
+          </button>
+          <button onclick="exportData()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-medium shadow flex items-center gap-1 transition">
+            <i class="fa-solid fa-download"></i> 保存
+          </button>
+          <label class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-medium shadow flex items-center gap-1 cursor-pointer transition">
+            <i class="fa-solid fa-upload"></i> 読込
+            <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
+          </label>
+          <!-- リセット機能（要望1） -->
+          <button onclick="confirmResetAllData()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium shadow flex items-center gap-1 transition" title="全データと実績を初期化">
+            <i class="fa-solid fa-rotate-right"></i> 全リセット
+          </button>
+        </div>
+      </div>
+
+      <!-- テーブル表示 -->
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse min-w-[650px]">
+            <thead>
+              <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 text-xs uppercase">
+                <th class="p-3.5 font-semibold">タイトル</th>
+                <th class="p-3.5 font-semibold text-center w-16">設問</th>
+                <th class="p-3.5 font-semibold text-center w-24">合格基準</th>
+                <th class="p-3.5 font-semibold text-center w-24">制限時間</th>
+                <th class="p-3.5 font-semibold text-center w-28">順序シャッフル</th>
+                <th class="p-3.5 font-semibold text-center w-64">操作</th>
+              </tr>
+            </thead>
+            <tbody id="quiz-table-body" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. 設問作成・編集画面 (合格基準設定の追加) -->
+    <section id="edit-screen" class="screen">
+      <div class="flex justify-between items-center mb-4 sm:mb-6">
+        <h2 id="edit-screen-title" class="text-xl sm:text-2xl font-bold text-slate-800">問題集の作成・編集</h2>
+        <button onclick="showScreen('list-screen')" class="text-slate-500 hover:text-slate-700 px-3 py-1 rounded-md border border-slate-300 bg-white text-xs sm:text-sm">
+          <i class="fa-solid fa-arrow-left"></i> キャンセル
+        </button>
+      </div>
+
+      <form id="quiz-edit-form" onsubmit="saveQuiz(event)" class="space-y-5">
+        <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div class="sm:col-span-2">
+              <label class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">問題集タイトル <span class="text-red-500">*</span></label>
+              <input type="text" id="quiz-title" required placeholder="例：英単語マスター / IT資格 過去問" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <!-- 合格基準（目標正解率 %）設定 (要望2) -->
+            <div>
+              <label class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">合格基準 (正解率%)</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="quiz-pass-ratio" min="10" max="100" value="80" required class="w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500">
+                <span class="text-xs font-bold text-slate-500">%</span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">制限時間 (分)</label>
+              <div class="flex gap-2">
+                <select id="quiz-time-limit-select" onchange="toggleCustomTimeInput(this.value)" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm">
+                  <option value="0">なし (無制限)</option>
+                  <option value="5">5分</option>
+                  <option value="10">10分</option>
+                  <option value="15">15分</option>
+                  <option value="30">30分</option>
+                  <option value="60">60分</option>
+                  <option value="custom">カスタム指定...</option>
+                </select>
+                <input type="number" id="quiz-time-limit-custom" min="1" max="300" placeholder="分" class="hidden w-24 border border-slate-300 rounded-lg p-2 text-xs sm:text-sm">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="questions-container" class="space-y-4 sm:space-y-6"></div>
+
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
+          <button type="button" onclick="addQuestionCard()" class="w-full sm:w-auto bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-5 py-2.5 rounded-lg border border-slate-300 flex items-center justify-center gap-2 transition text-xs sm:text-sm">
+            <i class="fa-solid fa-plus"></i> 設問を追加する
+          </button>
+          <button type="submit" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-8 py-2.5 rounded-lg shadow transition flex items-center justify-center gap-2 text-xs sm:text-sm">
+            <i class="fa-solid fa-cloud-arrow-up"></i> 問題を保存する
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 3. 設問回答画面 -->
+    <section id="answer-screen" class="screen">
+      <div class="max-w-2xl mx-auto space-y-4 sm:space-y-5">
+        
+        <div class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between gap-2">
+          <div class="text-xs font-semibold text-slate-700 truncate max-w-[200px]" id="answer-quiz-title-display">問題集</div>
+
+          <div id="timer-container" class="hidden flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs font-bold">
+            <i class="fa-solid fa-stopwatch animate-pulse"></i>
+            <span>残り: <span id="timer-display">00:00</span></span>
+          </div>
+
+          <div class="text-xs text-slate-400">
+            配点: <span id="answer-score-info" class="font-bold text-slate-700">10点</span>
+          </div>
+        </div>
+
+        <!-- ダイレクトジャンプ用パレット -->
+        <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 space-y-1.5">
+          <div class="flex justify-between items-center text-[11px] text-slate-500">
+            <span>設問ジャンプ:</span>
+            <span id="answer-progress-text">問題 1 / 10</span>
+          </div>
+          <div id="question-jump-palette" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pt-1"></div>
+        </div>
+
+        <!-- 問題カード -->
+        <div class="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+          <div class="flex items-start justify-between gap-2">
+            <span id="question-type-badge" class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-md border border-indigo-200">4択問題</span>
+          </div>
+
+          <h3 id="answer-question-text" class="text-base sm:text-lg font-bold text-slate-800 whitespace-pre-line leading-relaxed"></h3>
+
+          <div id="answer-input-area" class="space-y-2.5 pt-1"></div>
+        </div>
+
+        <!-- ボタンエリア -->
+        <div class="flex flex-wrap sm:flex-nowrap justify-between items-center gap-2 pt-1">
+          <button onclick="confirmExitAnswer()" class="order-3 sm:order-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-medium px-4 py-2.5 rounded-lg text-xs sm:text-sm transition flex items-center gap-1">
+            <i class="fa-solid fa-right-from-bracket"></i> 中断して一覧へ
+          </button>
+
+          <div class="order-1 sm:order-2 flex gap-2 w-full sm:w-auto justify-end">
+            <button id="btn-prev-q" onclick="prevQuestion()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-4 py-2.5 rounded-lg text-xs sm:text-sm transition">
+              <i class="fa-solid fa-chevron-left"></i> 前へ
+            </button>
+            <button id="btn-next-q" onclick="nextQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 rounded-lg text-xs sm:text-sm shadow transition">
+              次へ <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            <button id="btn-finish-q" onclick="gradeCurrentSession()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-6 py-2.5 rounded-lg text-xs sm:text-sm shadow transition">
+              <i class="fa-solid fa-check"></i> 採点する
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. 採点結果画面 -->
+    <section id="result-screen" class="screen">
+      <div class="max-w-3xl mx-auto space-y-5 sm:space-y-6">
+        
+        <div id="result-header-card" class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border text-center space-y-3 sm:space-y-4 transition-all">
+          <div id="result-icon-container" class="text-5xl sm:text-6xl mb-1">🎉</div>
+          <h2 id="result-title" class="text-2xl sm:text-3xl font-extrabold text-slate-800">成績結果</h2>
+          <p id="result-subtitle" class="text-xs sm:text-sm text-slate-500">成果を確認して復習に活かしましょう。</p>
+
+          <div class="py-3 my-2 border-y border-slate-100 flex justify-around items-center">
+            <div>
+              <p class="text-[10px] sm:text-xs text-slate-400">獲得スコア</p>
+              <p class="text-2xl sm:text-3xl font-black text-indigo-600"><span id="res-score">0</span> <span class="text-xs sm:text-sm font-normal text-slate-500">/ <span id="res-max-score">100</span>点</span></p>
+            </div>
+            <div class="border-r border-slate-200 h-8"></div>
+            <div>
+              <p class="text-[10px] sm:text-xs text-slate-400">正解率 (目標:<span id="res-target-ratio">80</span>%)</p>
+              <p id="res-accuracy" class="text-2xl sm:text-3xl font-black text-indigo-600">0%</p>
+            </div>
+            <div class="border-r border-slate-200 h-8"></div>
+            <div>
+              <p class="text-[10px] sm:text-xs text-slate-400">獲得EXP</p>
+              <p class="text-2xl sm:text-3xl font-black text-amber-500">+<span id="res-exp">0</span></p>
+            </div>
+          </div>
+
+          <div class="flex justify-center gap-3 pt-1">
+            <button onclick="showScreen('list-screen')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-5 py-2.5 rounded-lg text-xs sm:text-sm transition">
+              問題集一覧に戻る
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+          <h3 class="text-base sm:text-lg font-bold text-slate-800 border-b pb-3">回答詳細と解説</h3>
+          <div id="result-detail-list" class="space-y-4"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. 学習アナリティクス画面 (合格基準ラインのグラフ連動) -->
+    <section id="history-screen" class="screen space-y-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-slate-800">学習アナリティクス & 履歴</h2>
+          <p id="history-quiz-title" class="text-xs sm:text-sm text-indigo-600 font-medium"></p>
+        </div>
+        <button onclick="showScreen('list-screen')" class="text-slate-500 hover:text-slate-700 px-3 py-1 rounded-md border border-slate-300 bg-white text-xs sm:text-sm">
+          <i class="fa-solid fa-arrow-left"></i> 一覧に戻る
+        </button>
+      </div>
+
+      <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-3">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-chart-line text-indigo-600"></i> 回答正解率（%）の推移
+          </h3>
+          <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+            合格基準: <span id="analytics-target-ratio">80</span>%
+          </span>
+        </div>
+        <div class="h-56 sm:h-64 w-full">
+          <canvas id="accuracyChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-3">
+        <h3 class="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-list-check text-emerald-600"></i> 設問ごとの全正解率・苦手分析
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="bg-slate-100 border-b border-slate-200 text-slate-600">
+                <th class="p-2.5 font-semibold">設問</th>
+                <th class="p-2.5 font-semibold text-center w-20">回答回数</th>
+                <th class="p-2.5 font-semibold text-center w-20">正解回数</th>
+                <th class="p-2.5 font-semibold text-center w-24">累計正解率</th>
+              </tr>
+            </thead>
+            <tbody id="question-analytics-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200 space-y-3 p-4">
+        <div class="flex justify-between items-center">
+          <h3 class="text-sm sm:text-base font-bold text-slate-800">実施履歴ログ</h3>
+          <button onclick="clearQuizHistory()" class="text-xs text-red-500 hover:text-red-700 border border-red-200 bg-red-50 px-2.5 py-1 rounded">
+            この問題の履歴を全削除
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse min-w-[500px]">
+            <thead>
+              <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 text-xs uppercase">
+                <th class="p-3 font-semibold">実施日時</th>
+                <th class="p-3 font-semibold text-center">スコア</th>
+                <th class="p-3 font-semibold text-center">正解率</th>
+                <th class="p-3 font-semibold text-center">時間</th>
+                <th class="p-3 font-semibold text-center w-24">操作</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- モーダルダイアログ群 -->
+
+  <!-- プレイヤーステータスモーダル -->
+  <div id="status-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-sm w-full shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-id-card text-indigo-600"></i> プレイヤーステータス
+        </h3>
+        <button onclick="closeModal('status-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="bg-gradient-to-br from-indigo-900 to-slate-900 text-white p-5 rounded-xl space-y-4 shadow-inner">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-amber-400 text-xs font-semibold" id="st-user-title">見習いチャレンジャー</p>
+            <p class="text-2xl font-black tracking-wide">Level <span id="st-user-level" class="text-amber-300">1</span></p>
+          </div>
+          <div class="w-12 h-12 rounded-full bg-indigo-700/80 border-2 border-amber-300 flex items-center justify-center text-xl text-amber-300 shadow">
+            <i class="fa-solid fa-crown"></i>
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs text-indigo-200">
+            <span>Next Level まで:</span>
+            <span class="font-bold text-amber-300"><span id="st-need-exp">100</span> EXP</span>
+          </div>
+          <div class="w-full bg-indigo-950 rounded-full h-3 p-0.5 border border-indigo-700">
+            <div id="st-exp-bar" class="bg-amber-400 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <p class="text-[10px] text-right text-indigo-300">現在のレベル内EXP: <span id="st-curr-exp">0</span> / 100</p>
+        </div>
+
+        <div class="border-t border-indigo-800/80 pt-3 grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <p class="text-indigo-300 text-[10px]">累計獲得EXP</p>
+            <p class="font-bold text-white text-sm" id="st-total-exp">0 pt</p>
+          </div>
+          <div>
+            <p class="text-indigo-300 text-[10px]">解放称号数</p>
+            <p class="font-bold text-white text-sm" id="st-badge-count">0 個</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-1">
+        <button onclick="closeModal('status-modal'); openBadgesModal();" class="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition">
+          <i class="fa-solid fa-award"></i> 称号コレクションを見る
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 学習カレンダーモーダル -->
+  <div id="calendar-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-calendar-days text-indigo-600"></i> 学習カレンダー
+        </h3>
+        <button onclick="closeModal('calendar-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="flex justify-between items-center px-1">
+        <button onclick="changeCalMonth(-1)" class="p-1 text-slate-500 hover:text-indigo-600"><i class="fa-solid fa-chevron-left"></i> 前月</button>
+        <span id="cal-month-title" class="font-bold text-slate-800 text-sm">2026年10月</span>
+        <button onclick="changeCalMonth(1)" class="p-1 text-slate-500 hover:text-indigo-600">翌月 <i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+
+      <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center text-xs"></div>
+
+      <div id="cal-date-detail" class="p-3 bg-indigo-50/60 border border-indigo-100 rounded-xl text-xs space-y-1">
+        <p class="font-bold text-indigo-900 flex items-center gap-1"><i class="fa-solid fa-circle-info"></i> カレンダーのマークを押すと詳細が表示されます</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 問題集ごとの集計モーダル -->
+  <div id="quiz-stats-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-book-open text-emerald-600"></i> 問題集ごとの回答実績
+        </h3>
+        <button onclick="closeModal('quiz-stats-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div id="quiz-stats-container" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <!-- 学習時間統計モーダル -->
+  <div id="time-stats-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-clock text-amber-500"></i> 学習時間の詳細分析
+        </h3>
+        <button onclick="closeModal('time-stats-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div id="time-stats-container" class="space-y-4 text-xs sm:text-sm"></div>
+    </div>
+  </div>
+
+  <!-- 称号一覧モーダル -->
+  <div id="badges-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-award text-amber-500"></i> 獲得した称号・実績一覧
+        </h3>
+        <button onclick="closeModal('badges-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div id="modal-badges-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V5';
+    let appData = {
+      quizzes: [],
+      histories: [],
+      user: {
+        level: 1,
+        exp: 0,
+        totalQuestionsSolved: 0,
+        totalStudySeconds: 0,
+        lastStudyDate: null,
+        streakDays: 0,
+        unlockedBadges: [],
+        dailyStudyLogs: {}
+      }
+    };
+
+    let currentEditingQuizId = null;
+    let activeSession = null;
+    let timerInterval = null;
+    let chartInstance = null;
+    let calDisplayDate = new Date();
+
+    const BADGES = [
+      { id: 'b1', title: '初めの一歩', desc: '初めて問題集を完走した', icon: 'fa-seedling', check: u => u.totalQuestionsSolved > 0 },
+      { id: 'b2', title: '継続の力', desc: '3日連続で学習を行った', icon: 'fa-fire', check: u => u.streakDays >= 3 },
+      { id: 'b3', title: '習慣化達成', desc: '7日連続で学習を行った', icon: 'fa-calendar-check', check: u => u.streakDays >= 7 },
+      { id: 'b4', title: '問題ハンター', desc: '累計50問以上回答した', icon: 'fa-bullseye', check: u => u.totalQuestionsSolved >= 50 },
+      { id: 'b5', title: '学習マニア', desc: '累計総学習時間が180分を超えた', icon: 'fa-hourglass-high', check: u => u.totalStudySeconds >= 10800 },
+      { id: 'b6', title: '月間目標達成', desc: '今月の学習時間が5時間を突破した', icon: 'fa-trophy', check: u => getCurrentMonthStudySeconds(u) >= 18000 },
+      { id: 'b7', title: '学習マスター', desc: 'プレイヤーレベルが5に到達', icon: 'fa-crown', check: u => u.level >= 5 }
+    ];
+
+    const sampleData = {
+      quizzes: [
+        {
+          id: 'sample-1',
+          title: '【サンプル】IT・ビジネス基本用語',
+          passRatio: 80,
+          timeLimit: 10,
+          isRandom: true,
+          updatedAt: new Date().toISOString(),
+          questions: [
+            {
+              id: 'q1',
+              type: 'choice4',
+              text: '「Webページのレイアウトやスタイル装飾を指定するための言語」はどれですか？',
+              score: 10,
+              explanation: 'CSS (Cascading Style Sheets) はWebページの見た目やレイアウトを飾る言語です。',
+              options: ['HTML', 'CSS', 'JavaScript', 'SQL'],
+              answer: '1'
+            },
+            {
+              id: 'q2',
+              type: 'multi',
+              text: 'プログラミング言語に分類されるものを全て選んでください。',
+              score: 20,
+              explanation: 'PythonとJavaがプログラミング言語です。',
+              options: ['Python', 'HTML', 'Java', 'PNG'],
+              answer: ['0', '2']
+            },
+            {
+              id: 'q3',
+              type: 'tf',
+              text: 'HTTP通信の標準ポート番号は「443」である。',
+              score: 10,
+              explanation: '誤りです。標準のHTTPポートは「80」です。',
+              options: ['○（正しい）', '×（誤り）'],
+              answer: '1'
+            },
+            {
+              id: 'q4',
+              type: 'text',
+              text: 'データベースを操作・定義するための標準的な記述言語（略称3文字）を入力してください。',
+              score: 10,
+              explanation: 'SQL (Structured Query Language) です。',
+              options: [],
+              answer: 'SQL'
+            }
+          ]
+        }
+      ],
+      histories: [],
+      user: {
+        level: 1,
+        exp: 0,
+        totalQuestionsSolved: 0,
+        totalStudySeconds: 0,
+        lastStudyDate: null,
+        streakDays: 0,
+        unlockedBadges: [],
+        dailyStudyLogs: {}
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadLocalStorage();
+      renderDashboard();
+      renderQuizList();
+    });
+
+    function loadLocalStorage() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          appData = JSON.parse(stored);
+          if (!appData.user) appData.user = sampleData.user;
+          if (!appData.user.dailyStudyLogs) appData.user.dailyStudyLogs = {};
+        } catch (e) {
+          appData = sampleData;
+        }
+      } else {
+        appData = sampleData;
+        saveLocalStorage();
+      }
+    }
+
+    function saveLocalStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    }
+
+    // 全データ初期化（リセット機能要望1）
+    function confirmResetAllData() {
+      if (confirm('【注意】これまでの回答履歴、総学習時間、称号、レベルなど全てのデータを完全に初期化しますか？')) {
+        if (confirm('本当によろしいですか？この操作は取り消せません。')) {
+          localStorage.removeItem(STORAGE_KEY);
+          appData = JSON.parse(JSON.stringify(sampleData));
+          saveLocalStorage();
+          renderDashboard();
+          renderQuizList();
+          alert('全ての学習データを初期化しました。');
+        }
+      }
+    }
+
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+      window.scrollTo(0, 0);
+
+      if (screenId === 'list-screen') {
+        renderDashboard();
+        renderQuizList();
+      }
+    }
+
+    function getCurrentMonthStudySeconds(u) {
+      const now = new Date();
+      const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      let total = 0;
+      Object.keys(u.dailyStudyLogs || {}).forEach(dateStr => {
+        if (dateStr.startsWith(prefix)) {
+          const log = u.dailyStudyLogs[dateStr];
+          total += (typeof log === 'object') ? log.seconds : log;
+        }
+      });
+      return total;
+    }
+
+    function renderDashboard() {
+      const u = appData.user;
+      u.level = Math.floor(u.exp / 100) + 1;
+      const expInLevel = u.exp % 100;
+
+      document.getElementById('user-level').innerText = u.level;
+      document.getElementById('user-exp-bar').style.width = `${expInLevel}%`;
+
+      BADGES.forEach(b => {
+        if (!u.unlockedBadges.includes(b.id) && b.check(u)) {
+          u.unlockedBadges.push(b.id);
+        }
+      });
+
+      const titles = ['見習いチャレンジャー', '知識の探究者', '資格ハンター', '学問の達人', '学習マスター'];
+      document.getElementById('user-title').innerText = titles[Math.min(u.level - 1, titles.length - 1)];
+
+      document.getElementById('dash-streak').innerText = u.streakDays || 0;
+      document.getElementById('dash-total-q').innerText = u.totalQuestionsSolved || 0;
+      document.getElementById('dash-study-time').innerText = Math.floor((u.totalStudySeconds || 0) / 60);
+      document.getElementById('dash-badge-count').innerText = u.unlockedBadges.length;
+    }
+
+    function renderQuizList() {
+      const tbody = document.getElementById('quiz-table-body');
+      tbody.innerHTML = '';
+
+      if (appData.quizzes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center p-8 text-slate-400">問題集がありません。「新規問題集を作成」から登録してください。</td></tr>`;
+        return;
+      }
+
+      appData.quizzes.forEach(quiz => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition';
+        const timeLimitText = quiz.timeLimit ? `${quiz.timeLimit}分` : 'なし';
+        const passRatioText = `${quiz.passRatio || 80}%`;
+        const weakCount = getWeakQuestions(quiz.id).length;
+
+        tr.innerHTML = `
+          <td class="p-3.5 font-semibold text-slate-800">${escapeHtml(quiz.title)}</td>
+          <td class="p-3.5 text-center text-slate-600">${quiz.questions.length}</td>
+          <td class="p-3.5 text-center font-bold text-emerald-600 text-xs">${passRatioText}</td>
+          <td class="p-3.5 text-center text-slate-500 text-xs">${timeLimitText}</td>
+          <td class="p-3.5 text-center">
+            <label class="inline-flex items-center cursor-pointer">
+              <input type="checkbox" ${quiz.isRandom ? 'checked' : ''} onchange="toggleQuizRandom('${quiz.id}', this.checked)" class="sr-only peer">
+              <div class="relative w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+          </td>
+          <td class="p-3.5 text-center">
+            <div class="flex items-center justify-center gap-1.5">
+              <button onclick="startQuizDirect('${quiz.id}', false)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-medium transition flex items-center gap-1">
+                <i class="fa-solid fa-play"></i> 回答
+              </button>
+
+              ${weakCount > 0 ? `
+                <button onclick="startQuizDirect('${quiz.id}', true)" class="bg-red-500 hover:bg-red-600 text-white px-2.5 py-1.5 rounded text-xs font-medium transition flex items-center gap-1">
+                  <i class="fa-solid fa-bolt"></i> 弱点(${weakCount})
+                </button>
+              ` : ''}
+
+              <button onclick="openEditForm('${quiz.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2 py-1.5 rounded text-xs font-medium transition">
+                編集
+              </button>
+              <button onclick="viewHistoryList('${quiz.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2 py-1.5 rounded text-xs font-medium transition">
+                分析
+              </button>
+              <button onclick="deleteQuiz('${quiz.id}')" class="text-slate-400 hover:text-red-600 p-1 rounded transition">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function toggleQuizRandom(quizId, checked) {
+      const quiz = appData.quizzes.find(q => q.id === quizId);
+      if (quiz) {
+        quiz.isRandom = checked;
+        saveLocalStorage();
+      }
+    }
+
+    function getWeakQuestions(quizId) {
+      const quiz = appData.quizzes.find(q => q.id === quizId);
+      if (!quiz) return [];
+
+      const latestHist = appData.histories.find(h => h.quizId === quizId);
+      if (!latestHist || !latestHist.details) return [];
+
+      const wrongQIds = latestHist.details.filter(d => !d.isCorrect).map(d => d.question.id);
+      return quiz.questions.filter(q => wrongQIds.includes(q.id));
+    }
+
+    function toggleCustomTimeInput(val) {
+      const customInput = document.getElementById('quiz-time-limit-custom');
+      if (val === 'custom') {
+        customInput.classList.remove('hidden');
+        customInput.required = true;
+      } else {
+        customInput.classList.add('hidden');
+        customInput.required = false;
+      }
+    }
+
+    // --- 問題編集機能 ---
+    function openCreateForm() {
+      currentEditingQuizId = null;
+      document.getElementById('edit-screen-title').innerText = '新規問題集の作成';
+      document.getElementById('quiz-title').value = '';
+      document.getElementById('quiz-pass-ratio').value = '80';
+      document.getElementById('quiz-time-limit-select').value = '0';
+      toggleCustomTimeInput('0');
+      document.getElementById('questions-container').innerHTML = '';
+      addQuestionCard();
+      showScreen('edit-screen');
+    }
+
+    function openEditForm(quizId) {
+      const quiz = appData.quizzes.find(q => q.id === quizId);
+      if (!quiz) return;
+
+      currentEditingQuizId = quizId;
+      document.getElementById('edit-screen-title').innerText = '問題集の編集';
+      document.getElementById('quiz-title').value = quiz.title;
+      document.getElementById('quiz-pass-ratio').value = quiz.passRatio || 80;
+
+      const timeSelect = document.getElementById('quiz-time-limit-select');
+      const timeCustom = document.getElementById('quiz-time-limit-custom');
+
+      const presetValues = ['0', '5', '10', '15', '30', '60'];
+      if (presetValues.includes(String(quiz.timeLimit || 0))) {
+        timeSelect.value = String(quiz.timeLimit || 0);
+        toggleCustomTimeInput(String(quiz.timeLimit || 0));
+      } else {
+        timeSelect.value = 'custom';
+        toggleCustomTimeInput('custom');
+        timeCustom.value = quiz.timeLimit;
+      }
+
+      const container = document.getElementById('questions-container');
+      container.innerHTML = '';
+      quiz.questions.forEach(q => addQuestionCard(q));
+
+      showScreen('edit-screen');
+    }
+
+    function addQuestionCard(qData = null) {
+      const container = document.getElementById('questions-container');
+      const qIndex = container.children.length;
+      const card = document.createElement('div');
+      card.className = 'q-card bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-4 relative';
+      
+      const type = qData ? qData.type : 'choice4';
+      const text = qData ? qData.text : '';
+      const score = qData ? qData.score : 10;
+      const explanation = qData ? (qData.explanation || '') : '';
+      const cardId = 'card_' + Math.random().toString(36).substring(2, 9);
+      card.dataset.cardId = cardId;
+
+      card.innerHTML = `
+        <button type="button" onclick="this.closest('.q-card').remove(); reindexQuestionCards();" class="absolute top-4 right-4 text-slate-400 hover:text-red-500">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+
+        <div class="flex items-center gap-2 mb-1">
+          <span class="q-number bg-slate-200 text-slate-700 font-bold px-2.5 py-0.5 rounded text-xs">設問 ${qIndex + 1}</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium text-slate-600 mb-1">設問タイプ</label>
+            <select onchange="renderOptionsInput(this.closest('.q-card'))" class="q-type w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm bg-slate-50">
+              <option value="choice4" ${type==='choice4'?'selected':''}>4択問題（単一選択）</option>
+              <option value="multi" ${type==='multi'?'selected':''}>複数選択問題（チェックボックス）</option>
+              <option value="tf" ${type==='tf'?'selected':''}>○×問題</option>
+              <option value="text" ${type==='text'?'selected':''}>自由記述問題</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">配点</label>
+            <input type="number" min="1" value="${score}" class="q-score w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">問題文 <span class="text-red-500">*</span></label>
+          <textarea rows="2" required placeholder="問題文を入力" class="q-text w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm">${escapeHtml(text)}</textarea>
+        </div>
+
+        <div class="q-options-area bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-2"></div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">解説（任意）</label>
+          <textarea rows="2" placeholder="正解の理由や補足解説" class="q-explanation w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm text-slate-700">${escapeHtml(explanation)}</textarea>
+        </div>
+      `;
+
+      container.appendChild(card);
+      renderOptionsInput(card, qData);
+    }
+
+    function reindexQuestionCards() {
+      document.querySelectorAll('#questions-container .q-card').forEach((card, idx) => {
+        card.querySelector('.q-number').innerText = `設問 ${idx + 1}`;
+      });
+    }
+
+    function renderOptionsInput(card, qData = null) {
+      const type = card.querySelector('.q-type').value;
+      const area = card.querySelector('.q-options-area');
+      const cardId = card.dataset.cardId;
+      area.innerHTML = '';
+
+      if (type === 'choice4' || type === 'multi') {
+        const isMulti = type === 'multi';
+        const options = qData ? qData.options : ['選択肢 1', '選択肢 2', '選択肢 3', '選択肢 4'];
+        const answer = qData ? qData.answer : (isMulti ? ['0'] : '0');
+
+        area.innerHTML = `<label class="block text-xs font-semibold text-slate-600 mb-1">選択肢と正解チェック</label>`;
+        options.forEach((opt, idx) => {
+          const isChecked = isMulti 
+            ? (Array.isArray(answer) && answer.includes(String(idx)))
+            : String(answer) === String(idx);
+
+          const inputType = isMulti ? 'checkbox' : 'radio';
+          const nameAttr = `q-radio-${cardId}`;
+
+          area.innerHTML += `
+            <div class="flex items-center gap-2">
+              <input type="${inputType}" name="${nameAttr}" value="${idx}" class="q-ans-check w-4 h-4 text-indigo-600" ${isChecked ? 'checked' : ''}>
+              <input type="text" value="${escapeHtml(opt)}" required placeholder="選択肢${idx+1}" class="q-opt-text flex-grow border border-slate-300 rounded px-2.5 py-1 text-xs sm:text-sm">
+            </div>
+          `;
+        });
+      } else if (type === 'tf') {
+        const answer = qData ? qData.answer : '0';
+        const nameAttr = `q-tf-${cardId}`;
+
+        area.innerHTML = `
+          <label class="block text-xs font-semibold text-slate-600 mb-1">正解を選択</label>
+          <div class="flex gap-6">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="${nameAttr}" value="0" class="q-ans-check w-4 h-4 text-indigo-600" ${String(answer)==='0'?'checked':''}>
+              <span class="text-xs sm:text-sm">○（正しい）</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="${nameAttr}" value="1" class="q-ans-check w-4 h-4 text-indigo-600" ${String(answer)==='1'?'checked':''}>
+              <span class="text-xs sm:text-sm">×（誤り）</span>
+            </label>
+          </div>
+        `;
+      } else if (type === 'text') {
+        const answer = qData ? qData.answer : '';
+        area.innerHTML = `
+          <label class="block text-xs font-semibold text-slate-600 mb-1">正解キーワード</label>
+          <input type="text" value="${escapeHtml(answer)}" required placeholder="正解を入力" class="q-text-ans w-full border border-slate-300 rounded px-3 py-1.5 text-xs sm:text-sm bg-white">
+        `;
+      }
+    }
+
+    function saveQuiz(e) {
+      e.preventDefault();
+      const title = document.getElementById('quiz-title').value.trim();
+      const passRatio = parseInt(document.getElementById('quiz-pass-ratio').value) || 80;
+
+      const timeSelectVal = document.getElementById('quiz-time-limit-select').value;
+      let timeLimit = (timeSelectVal === 'custom') ? (parseInt(document.getElementById('quiz-time-limit-custom').value) || 0) : (parseInt(timeSelectVal) || 0);
+
+      const cardNodes = document.querySelectorAll('#questions-container .q-card');
+      if (cardNodes.length === 0) {
+        alert('最低1つの設問を追加してください。');
+        return;
+      }
+
+      const questions = [];
+      let isValid = true;
+
+      cardNodes.forEach((card, idx) => {
+        const type = card.querySelector('.q-type').value;
+        const text = card.querySelector('.q-text').value.trim();
+        const score = parseInt(card.querySelector('.q-score').value) || 10;
+        const explanation = card.querySelector('.q-explanation').value.trim();
+
+        let options = [];
+        let answer = null;
+
+        if (type === 'choice4' || type === 'multi') {
+          const optInputs = card.querySelectorAll('.q-opt-text');
+          optInputs.forEach(i => options.push(i.value.trim()));
+
+          const checked = card.querySelectorAll('.q-ans-check:checked');
+          if (checked.length === 0) {
+            alert(`設問 ${idx + 1} の正解が選択されていません。`);
+            isValid = false;
+            return;
+          }
+
+          if (type === 'multi') answer = Array.from(checked).map(c => c.value);
+          else answer = checked[0].value;
+        } else if (type === 'tf') {
+          options = ['○（正しい）', '×（誤り）'];
+          const checked = card.querySelector('.q-ans-check:checked');
+          answer = checked ? checked.value : '0';
+        } else if (type === 'text') {
+          options = [];
+          answer = card.querySelector('.q-text-ans').value.trim();
+        }
+
+        questions.push({
+          id: 'q_' + Math.random().toString(36).substr(2, 9),
+          type, text, score, explanation, options, answer
+        });
+      });
+
+      if (!isValid) return;
+
+      if (currentEditingQuizId) {
+        const quiz = appData.quizzes.find(q => q.id === currentEditingQuizId);
+        if (quiz) {
+          quiz.title = title;
+          quiz.passRatio = passRatio;
+          quiz.timeLimit = timeLimit;
+          quiz.questions = questions;
+          quiz.updatedAt = new Date().toISOString();
+        }
+      } else {
+        const newQuiz = {
+          id: 'quiz_' + Math.random().toString(36).substr(2, 9),
+          title, passRatio, timeLimit, isRandom: true,
+          updatedAt: new Date().toISOString(),
+          questions
+        };
+        appData.quizzes.unshift(newQuiz);
+      }
+
+      saveLocalStorage();
+      showScreen('list-screen');
+    }
+
+    function deleteQuiz(quizId) {
+      if (!confirm('この問題集を削除しますか？')) return;
+      appData.quizzes = appData.quizzes.filter(q => q.id !== quizId);
+      appData.histories = appData.histories.filter(h => h.quizId !== quizId);
+      saveLocalStorage();
+      renderQuizList();
+    }
+
+    // --- 回答セッション開始 ---
+    function startQuizDirect(quizId, isWeakOnly = false) {
+      const quiz = appData.quizzes.find(q => q.id === quizId);
+      if (!quiz) return;
+
+      let questions = isWeakOnly ? getWeakQuestions(quiz.id) : [...quiz.questions];
+      if (questions.length === 0) {
+        alert('対象問題がありません。');
+        return;
+      }
+
+      if (quiz.isRandom) {
+        questions.sort(() => Math.random() - 0.5);
+      }
+
+      activeSession = {
+        quizId: quiz.id,
+        quizTitle: quiz.title + (isWeakOnly ? ' (弱点復習)' : ''),
+        passRatio: quiz.passRatio || 80,
+        questions: questions,
+        currentIndex: 0,
+        userAnswers: {},
+        timeLimitMinutes: quiz.timeLimit || 0,
+        remainingSeconds: (quiz.timeLimit || 0) * 60,
+        startTime: Date.now()
+      };
+
+      document.getElementById('answer-quiz-title-display').innerText = activeSession.quizTitle;
+
+      if (activeSession.timeLimitMinutes > 0) {
+        document.getElementById('timer-container').classList.remove('hidden');
+        updateTimerDisplay();
+        timerInterval = setInterval(() => {
+          activeSession.remainingSeconds--;
+          updateTimerDisplay();
+          if (activeSession.remainingSeconds <= 0) {
+            clearInterval(timerInterval);
+            alert('制限時間となりました。採点します。');
+            gradeCurrentSession();
+          }
+        }, 1000);
+      } else {
+        document.getElementById('timer-container').classList.add('hidden');
+      }
+
+      renderAnswerCard();
+      showScreen('answer-screen');
+    }
+
+    function updateTimerDisplay() {
+      const sec = Math.max(0, activeSession.remainingSeconds);
+      const m = Math.floor(sec / 60).toString().padStart(2, '0');
+      const s = (sec % 60).toString().padStart(2, '0');
+      document.getElementById('timer-display').innerText = `${m}:${s}`;
+    }
+
+    function renderAnswerCard() {
+      const q = activeSession.questions[activeSession.currentIndex];
+      const total = activeSession.questions.length;
+      const curr = activeSession.currentIndex + 1;
+
+      document.getElementById('answer-progress-text').innerText = `設問 ${curr} / ${total}`;
+      document.getElementById('answer-score-info').innerText = `${q.score}点`;
+
+      const palette = document.getElementById('question-jump-palette');
+      palette.innerHTML = '';
+      activeSession.questions.forEach((item, idx) => {
+        const isCurrent = idx === activeSession.currentIndex;
+        const hasAnswered = activeSession.userAnswers[item.id] !== undefined && activeSession.userAnswers[item.id] !== '' && (!Array.isArray(activeSession.userAnswers[item.id]) || activeSession.userAnswers[item.id].length > 0);
+
+        let btnStyle = "bg-slate-100 border-slate-300 text-slate-600";
+        if (hasAnswered) btnStyle = "bg-indigo-100 border-indigo-300 text-indigo-700 font-bold";
+        if (isCurrent) btnStyle = "bg-indigo-600 border-indigo-600 text-white font-bold shadow-md ring-2 ring-indigo-300";
+
+        palette.innerHTML += `
+          <button onclick="jumpToQuestion(${idx})" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border text-xs flex items-center justify-center transition ${btnStyle}">
+            ${idx + 1}
+          </button>
+        `;
+      });
+
+      const badgeMap = { choice4: '4択問題', multi: '複数選択問題', tf: '○×問題', text: '自由記述問題' };
+      document.getElementById('question-type-badge').innerText = badgeMap[q.type] || '問題';
+      document.getElementById('answer-question-text').innerText = q.text;
+
+      const area = document.getElementById('answer-input-area');
+      area.innerHTML = '';
+      const savedAns = activeSession.userAnswers[q.id];
+
+      if (q.type === 'choice4' || q.type === 'tf') {
+        q.options.forEach((opt, idx) => {
+          const isChecked = savedAns === String(idx);
+          area.innerHTML += `
+            <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-indigo-50/50 cursor-pointer transition">
+              <input type="radio" name="ans-group" value="${idx}" onchange="saveCurrentAnswer('${q.id}', '${idx}')" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-indigo-600">
+              <span class="text-xs sm:text-sm font-medium text-slate-700">${escapeHtml(opt)}</span>
+            </label>
+          `;
+        });
+      } else if (q.type === 'multi') {
+        q.options.forEach((opt, idx) => {
+          const isChecked = Array.isArray(savedAns) && savedAns.includes(String(idx));
+          area.innerHTML += `
+            <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-indigo-50/50 cursor-pointer transition">
+              <input type="checkbox" value="${idx}" onchange="saveMultiAnswer('${q.id}')" ${isChecked ? 'checked' : ''} class="q-multi-check w-4 h-4 text-indigo-600 rounded">
+              <span class="text-xs sm:text-sm font-medium text-slate-700">${escapeHtml(opt)}</span>
+            </label>
+          `;
+        });
+      } else if (q.type === 'text') {
+        const val = savedAns || '';
+        area.innerHTML = `
+          <input type="text" value="${escapeHtml(val)}" oninput="saveCurrentAnswer('${q.id}', this.value)" placeholder="回答を入力" class="w-full border border-slate-300 rounded-lg p-3 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500">
+        `;
+      }
+
+      const btnPrev = document.getElementById('btn-prev-q');
+      const btnNext = document.getElementById('btn-next-q');
+      const btnFinish = document.getElementById('btn-finish-q');
+
+      btnPrev.style.visibility = curr === 1 ? 'hidden' : 'visible';
+      if (curr === total) {
+        btnNext.classList.add('hidden');
+        btnFinish.classList.remove('hidden');
+      } else {
+        btnNext.classList.remove('hidden');
+        btnFinish.classList.add('hidden');
+      }
+    }
+
+    function jumpToQuestion(idx) {
+      activeSession.currentIndex = idx;
+      renderAnswerCard();
+    }
+
+    function saveCurrentAnswer(qId, val) {
+      activeSession.userAnswers[qId] = val;
+      renderAnswerCard();
+    }
+
+    function saveMultiAnswer(qId) {
+      const checked = document.querySelectorAll('.q-multi-check:checked');
+      activeSession.userAnswers[qId] = Array.from(checked).map(c => c.value);
+      renderAnswerCard();
+    }
+
+    function prevQuestion() {
+      if (activeSession.currentIndex > 0) {
+        activeSession.currentIndex--;
+        renderAnswerCard();
+      }
+    }
+
+    function nextQuestion() {
+      if (activeSession.currentIndex < activeSession.questions.length - 1) {
+        activeSession.currentIndex++;
+        renderAnswerCard();
+      }
+    }
+
+    function confirmExitAnswer() {
+      if (confirm('回答を中断して一覧に戻りますか？')) {
+        if (timerInterval) clearInterval(timerInterval);
+        showScreen('list-screen');
+      }
+    }
+
+    // --- 採点＆学習時間・ログ記録 ---
+    function gradeCurrentSession() {
+      if (timerInterval) clearInterval(timerInterval);
+
+      const elapsedSeconds = Math.max(1, Math.round((Date.now() - activeSession.startTime) / 1000));
+      let obtainedScore = 0;
+      let totalMaxScore = 0;
+      const details = [];
+
+      activeSession.questions.forEach(q => {
+        const userAns = activeSession.userAnswers[q.id];
+        totalMaxScore += q.score;
+
+        let isCorrect = false;
+
+        if (q.type === 'choice4' || q.type === 'tf') {
+          isCorrect = String(userAns) === String(q.answer);
+        } else if (q.type === 'multi') {
+          const uArr = Array.isArray(userAns) ? [...userAns].sort() : [];
+          const aArr = Array.isArray(q.answer) ? [...q.answer].sort() : [];
+          isCorrect = JSON.stringify(uArr) === JSON.stringify(aArr);
+        } else if (q.type === 'text') {
+          const uStr = (userAns || '').trim().toLowerCase();
+          const aStr = (q.answer || '').trim().toLowerCase();
+          isCorrect = uStr === aStr && uStr !== '';
+        }
+
+        if (isCorrect) obtainedScore += q.score;
+
+        details.push({ question: q, userAns: userAns, isCorrect: isCorrect });
+      });
+
+      const ratio = totalMaxScore > 0 ? Math.round((obtainedScore / totalMaxScore) * 100) : 0;
+      const passTarget = activeSession.passRatio || 80;
+
+      const correctCount = details.filter(d => d.isCorrect).length;
+      let earnedExp = correctCount * 10;
+      if (ratio === 100) earnedExp += 50;
+
+      const u = appData.user;
+      u.exp += earnedExp;
+      u.totalQuestionsSolved += activeSession.questions.length;
+      u.totalStudySeconds += elapsedSeconds;
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (!u.dailyStudyLogs) u.dailyStudyLogs = {};
+
+      const currentLog = u.dailyStudyLogs[todayStr];
+      if (typeof currentLog === 'object') {
+        currentLog.seconds += elapsedSeconds;
+        currentLog.questionsSolved += activeSession.questions.length;
+      } else {
+        const oldSec = currentLog || 0;
+        u.dailyStudyLogs[todayStr] = { seconds: oldSec + elapsedSeconds, questionsSolved: activeSession.questions.length };
+      }
+
+      if (u.lastStudyDate) {
+        const lastDate = new Date(u.lastStudyDate);
+        const diffDays = Math.round((new Date(todayStr) - lastDate) / (1000 * 60 * 60 * 24));
+        if (diffDays === 1) u.streakDays++;
+        else if (diffDays > 1) u.streakDays = 1;
+      } else {
+        u.streakDays = 1;
+      }
+      u.lastStudyDate = todayStr;
+
+      const historyRecord = {
+        id: 'hist_' + Math.random().toString(36).substr(2, 9),
+        quizId: activeSession.quizId,
+        quizTitle: activeSession.quizTitle,
+        passRatio: passTarget,
+        date: new Date().toISOString(),
+        score: obtainedScore,
+        maxScore: totalMaxScore,
+        ratio: ratio,
+        elapsedSeconds: elapsedSeconds,
+        earnedExp: earnedExp,
+        details: details
+      };
+
+      appData.histories.unshift(historyRecord);
+      saveLocalStorage();
+
+      renderResultView(historyRecord);
+    }
+
+    // 採点結果画面描画 (目標合格基準に応じた判定演出)
+    function renderResultView(record) {
+      document.getElementById('res-score').innerText = record.score;
+      document.getElementById('res-max-score').innerText = record.maxScore;
+      document.getElementById('res-accuracy').innerText = `${record.ratio}%`;
+      document.getElementById('res-target-ratio').innerText = record.passRatio || 80;
+      document.getElementById('res-exp').innerText = record.earnedExp || 0;
+
+      const headerCard = document.getElementById('result-header-card');
+      const icon = document.getElementById('result-icon-container');
+      const title = document.getElementById('result-title');
+      const subtitle = document.getElementById('result-subtitle');
+
+      const passTarget = record.passRatio || 80;
+
+      if (record.ratio === 100) {
+        icon.innerText = '🌟';
+        title.innerText = 'パーフェクト！素晴らしい！';
+        title.className = 'text-2xl sm:text-3xl font-extrabold text-amber-500';
+        subtitle.innerText = '全問正解です！完全制覇達成！';
+        headerCard.className = 'bg-white p-6 sm:p-8 rounded-2xl shadow-xl border-2 border-amber-400 text-center space-y-3 sm:space-y-4';
+        confetti({ particleCount: 180, spread: 100, origin: { y: 0.5 } });
+      } else if (record.ratio >= passTarget) {
+        icon.innerText = '🎉';
+        title.innerText = '合格おめでとうございます！';
+        title.className = 'text-2xl sm:text-3xl font-extrabold text-emerald-600';
+        subtitle.innerText = `目標合格基準 (${passTarget}%) をクリアしました！`;
+        headerCard.className = 'bg-white p-6 sm:p-8 rounded-2xl shadow-lg border-2 border-emerald-400 text-center space-y-3 sm:space-y-4';
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      } else if (record.ratio >= 50) {
+        icon.innerText = '💡';
+        title.innerText = 'あと一歩！惜しい！';
+        title.className = 'text-2xl sm:text-3xl font-extrabold text-indigo-600';
+        subtitle.innerText = `合格基準 (${passTarget}%) まであと少し。復習を行いましょう。`;
+        headerCard.className = 'bg-white p-6 sm:p-8 rounded-2xl shadow border-2 border-indigo-200 text-center space-y-3 sm:space-y-4';
+      } else {
+        icon.innerText = '✍️';
+        title.innerText = 'じっくり復習しましょう';
+        title.className = 'text-2xl sm:text-3xl font-extrabold text-slate-700';
+        subtitle.innerText = '復習こそが成長の鍵です。解説を確認して再挑戦しましょう！';
+        headerCard.className = 'bg-white p-6 sm:p-8 rounded-2xl shadow border border-slate-200 text-center space-y-3 sm:space-y-4';
+      }
+
+      const listContainer = document.getElementById('result-detail-list');
+      listContainer.innerHTML = '';
+
+      record.details.forEach((item, idx) => {
+        const q = item.question;
+        const div = document.createElement('div');
+        div.className = `p-3.5 sm:p-4 rounded-xl border ${item.isCorrect ? 'border-emerald-200 bg-emerald-50/30' : 'border-red-200 bg-red-50/30'} space-y-2`;
+
+        const userAnsText = formatAnsDisplay(q, item.userAns);
+        const correctAnsText = formatAnsDisplay(q, q.answer);
+
+        div.innerHTML = `
+          <div class="flex items-center justify-between text-xs sm:text-sm">
+            <span class="font-bold ${item.isCorrect ? 'text-emerald-700' : 'text-red-600'}">
+              <i class="fa-solid ${item.isCorrect ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> 問${idx + 1} (${item.isCorrect ? '+' + q.score : '0'}点)
+            </span>
+          </div>
+          <p class="font-semibold text-slate-800 text-xs sm:text-sm">${escapeHtml(q.text)}</p>
+          <div class="text-xs space-y-0.5 text-slate-600">
+            <p><span class="font-semibold">回答:</span> <span class="${item.isCorrect ? 'text-emerald-700' : 'text-red-600'} font-medium">${userAnsText}</span></p>
+            <p><span class="font-semibold">正解:</span> <span class="text-slate-800 font-medium">${correctAnsText}</span></p>
+          </div>
+          ${q.explanation ? `
+            <div class="mt-2 p-2.5 bg-white/80 rounded border border-slate-200 text-xs text-slate-700 space-y-1">
+              <p class="font-bold text-indigo-600 flex items-center gap-1"><i class="fa-solid fa-lightbulb"></i> 解説</p>
+              <p class="whitespace-pre-line">${escapeHtml(q.explanation)}</p>
+            </div>
+          ` : ''}
+        `;
+        listContainer.appendChild(div);
+      });
+
+      showScreen('result-screen');
+    }
+
+    function formatAnsDisplay(q, ans) {
+      if (ans === undefined || ans === null || ans === '' || (Array.isArray(ans) && ans.length === 0)) return '(未回答)';
+      if (q.type === 'choice4' || q.type === 'tf') return escapeHtml(q.options[parseInt(ans)] || ans);
+      if (q.type === 'multi') return (Array.isArray(ans) ? ans : [ans]).map(i => escapeHtml(q.options[parseInt(i)])).join(', ');
+      return escapeHtml(ans);
+    }
+
+    // --- 分析画面 (合格基準ライン反映) ---
+    let currentAnalyticsQuizId = null;
+
+    function viewHistoryList(quizId) {
+      currentAnalyticsQuizId = quizId;
+      const quiz = appData.quizzes.find(q => q.id === quizId);
+      document.getElementById('history-quiz-title').innerText = quiz ? quiz.title : '';
+
+      const targetPassRatio = quiz ? (quiz.passRatio || 80) : 80;
+      document.getElementById('analytics-target-ratio').innerText = targetPassRatio;
+
+      const histories = appData.histories.filter(h => h.quizId === quizId);
+      renderChart(histories, targetPassRatio);
+      renderQuestionAnalytics(quiz, histories);
+      renderHistoryTable(histories);
+
+      showScreen('history-screen');
+    }
+
+    function renderQuestionAnalytics(quiz, histories) {
+      const tbody = document.getElementById('question-analytics-body');
+      tbody.innerHTML = '';
+
+      if (!quiz || !quiz.questions || quiz.questions.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-slate-400">設問情報がありません。</td></tr>`;
+        return;
+      }
+
+      const targetRatio = quiz.passRatio || 80;
+
+      quiz.questions.forEach((q, idx) => {
+        let totalAnsCount = 0;
+        let correctAnsCount = 0;
+
+        histories.forEach(h => {
+          if (h.details) {
+            const detail = h.details.find(d => d.question.id === q.id);
+            if (detail) {
+              totalAnsCount++;
+              if (detail.isCorrect) correctAnsCount++;
+            }
+          }
+        });
+
+        const ratio = totalAnsCount > 0 ? Math.round((correctAnsCount / totalAnsCount) * 100) : 0;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2.5 font-medium text-slate-800">問${idx + 1}. ${escapeHtml(q.text)}</td>
+          <td class="p-2.5 text-center text-slate-600">${totalAnsCount}回</td>
+          <td class="p-2.5 text-center text-slate-600">${correctAnsCount}回</td>
+          <td class="p-2.5 text-center font-bold ${ratio >= targetRatio ? 'text-emerald-600' : (totalAnsCount === 0 ? 'text-slate-400' : 'text-red-500')}">${totalAnsCount > 0 ? ratio + '%' : '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderHistoryTable(histories) {
+      const tbody = document.getElementById('history-table-body');
+      tbody.innerHTML = '';
+
+      if (histories.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-slate-400">実施履歴はありません。</td></tr>`;
+        return;
+      }
+
+      histories.forEach(h => {
+        const tr = document.createElement('tr');
+        const dateStr = new Date(h.date).toLocaleString('ja-JP');
+        const timeText = h.elapsedSeconds ? `${Math.floor(h.elapsedSeconds/60)}分${h.elapsedSeconds%60}秒` : '-';
+        const targetPass = h.passRatio || 80;
+
+        tr.innerHTML = `
+          <td class="p-3 text-slate-600">${dateStr}</td>
+          <td class="p-3 text-center font-bold text-slate-800">${h.score} / ${h.maxScore}</td>
+          <td class="p-3 text-center">
+            <span class="px-2 py-0.5 rounded text-xs font-bold ${h.ratio >= targetPass ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${h.ratio}%</span>
+          </td>
+          <td class="p-3 text-center text-slate-500 text-xs">${timeText}</td>
+          <td class="p-3 text-center">
+            <button onclick="deleteSingleHistory('${h.id}')" class="text-red-400 hover:text-red-600 p-1 text-xs" title="削除">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function deleteSingleHistory(histId) {
+      if (!confirm('この履歴ログを削除しますか？')) return;
+      appData.histories = appData.histories.filter(h => h.id !== histId);
+      saveLocalStorage();
+      viewHistoryList(currentAnalyticsQuizId);
+    }
+
+    function clearQuizHistory() {
+      if (!confirm('この問題集の過去回答履歴を全て削除しますか？')) return;
+      appData.histories = appData.histories.filter(h => h.quizId === currentAnalyticsQuizId);
+      saveLocalStorage();
+      viewHistoryList(currentAnalyticsQuizId);
+    }
+
+    function renderChart(histories, targetRatio = 80) {
+      const ctx = document.getElementById('accuracyChart').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      const sorted = [...histories].reverse();
+      const labels = sorted.map((h, i) => `${i + 1}回目`);
+      const data = sorted.map(h => h.ratio);
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: '正解率 (%)',
+              data: data,
+              borderColor: '#4f46e5',
+              backgroundColor: 'rgba(79, 70, 229, 0.1)',
+              fill: true,
+              tension: 0.2,
+              pointRadius: 4
+            },
+            {
+              label: `合格目標 (${targetRatio}%)`,
+              data: Array(labels.length).fill(targetRatio),
+              borderColor: '#10b981',
+              borderDash: [4, 4],
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { min: 0, max: 100 } }
+        }
+      });
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function openStatusModal() {
+      const u = appData.user;
+      const level = u.level || 1;
+      const currExp = u.exp % 100;
+      const needExp = 100 - currExp;
+
+      const titles = ['見習いチャレンジャー', '知識の探究者', '資格ハンター', '学問の達人', '学習マスター'];
+      const titleStr = titles[Math.min(level - 1, titles.length - 1)];
+
+      document.getElementById('st-user-title').innerText = titleStr;
+      document.getElementById('st-user-level').innerText = level;
+      document.getElementById('st-need-exp').innerText = needExp;
+      document.getElementById('st-curr-exp').innerText = currExp;
+      document.getElementById('st-exp-bar').style.width = `${currExp}%`;
+      document.getElementById('st-total-exp').innerText = `${u.exp} pt`;
+      document.getElementById('st-badge-count').innerText = `${u.unlockedBadges.length} 個`;
+
+      document.getElementById('status-modal').classList.remove('hidden');
+    }
+
+    function openCalendarModal() {
+      calDisplayDate = new Date();
+      renderCalendar();
+      document.getElementById('calendar-modal').classList.remove('hidden');
+    }
+
+    function changeCalMonth(delta) {
+      calDisplayDate.setMonth(calDisplayDate.getMonth() + delta);
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      const year = calDisplayDate.getFullYear();
+      const month = calDisplayDate.getMonth();
+      document.getElementById('cal-month-title').innerText = `${year}年${month + 1}月`;
+
+      const grid = document.getElementById('calendar-grid');
+      grid.innerHTML = '';
+
+      const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+      dayNames.forEach(d => {
+        grid.innerHTML += `<div class="font-bold text-slate-400 py-1">${d}</div>`;
+      });
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const lastDate = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 0; i < firstDay; i++) {
+        grid.innerHTML += `<div></div>`;
+      }
+
+      const logs = appData.user.dailyStudyLogs || {};
+
+      for (let date = 1; date <= lastDate; date++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+        const logData = logs[dateStr];
+        const hasLog = !!logData;
+
+        let markHtml = '';
+        if (hasLog) {
+          markHtml = `<div class="mt-0.5 text-xs text-amber-500 font-bold">🔥</div>`;
+        }
+
+        grid.innerHTML += `
+          <div onclick="showCalDateDetail('${dateStr}')" class="p-1 min-h-[44px] rounded-lg border ${hasLog ? 'bg-amber-50/80 border-amber-300 font-bold cursor-pointer hover:scale-105 transition' : 'border-slate-100 text-slate-400'} flex flex-col items-center justify-between">
+            <span class="text-xs">${date}</span>
+            ${markHtml}
+          </div>
+        `;
+      }
+    }
+
+    function showCalDateDetail(dateStr) {
+      const logData = (appData.user.dailyStudyLogs || {})[dateStr];
+      const detailEl = document.getElementById('cal-date-detail');
+
+      if (!logData) {
+        detailEl.innerHTML = `<p class="font-bold text-slate-600">${dateStr}</p><p class="text-slate-400">学習記録はありません。</p>`;
+        return;
+      }
+
+      let sec = (typeof logData === 'object') ? logData.seconds : logData;
+      let qSolved = (typeof logData === 'object') ? logData.questionsSolved : '-';
+      let min = Math.floor(sec / 60);
+
+      detailEl.innerHTML = `
+        <p class="font-bold text-indigo-900 border-b border-indigo-200 pb-1 flex items-center gap-1.5"><i class="fa-solid fa-fire text-amber-500"></i> ${dateStr} の学習実績</p>
+        <div class="grid grid-cols-2 gap-2 pt-1 text-slate-700">
+          <div><span class="text-slate-400">学習時間:</span> <strong>${min}分 ${sec % 60}秒</strong></div>
+          <div><span class="text-slate-400">解いた問題:</span> <strong>${qSolved} 問</strong></div>
+        </div>
+      `;
+    }
+
+    function openQuizStatsModal() {
+      const container = document.getElementById('quiz-stats-container');
+      container.innerHTML = '';
+
+      if (appData.quizzes.length === 0) {
+        container.innerHTML = `<p class="text-center text-xs text-slate-400 p-4">問題集が登録されていません。</p>`;
+      } else {
+        appData.quizzes.forEach(quiz => {
+          const histories = appData.histories.filter(h => h.quizId === quiz.id);
+          const totalRunCount = histories.length;
+
+          let totalQuestionsSolved = 0;
+          let totalScore = 0;
+          let totalMax = 0;
+
+          histories.forEach(h => {
+            totalQuestionsSolved += (h.details ? h.details.length : 0);
+            totalScore += h.score;
+            totalMax += h.maxScore;
+          });
+
+          const avgRatio = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+          const targetRatio = quiz.passRatio || 80;
+
+          container.innerHTML += `
+            <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
+              <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                <span class="font-bold text-slate-800 text-sm">${escapeHtml(quiz.title)}</span>
+                <span class="text-xs bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-semibold">解いた回数: ${totalRunCount}回</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-xs text-slate-600">
+                <div>解いた総問題数: <strong class="text-slate-800">${totalQuestionsSolved} 問</strong></div>
+                <div>平均正解率: <strong class="${avgRatio >= targetRatio ? 'text-emerald-600' : 'text-slate-800'}">${totalRunCount > 0 ? avgRatio + '%' : '-'}</strong> (目標:${targetRatio}%)</div>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      document.getElementById('quiz-stats-modal').classList.remove('hidden');
+    }
+
+    function openTimeStatsModal() {
+      const u = appData.user;
+      const logs = u.dailyStudyLogs || {};
+      const container = document.getElementById('time-stats-container');
+      
+      const totalMin = Math.floor((u.totalStudySeconds || 0) / 60);
+      const daysCount = Object.keys(logs).length || 1;
+      const avgMinPerDay = Math.round((totalMin / daysCount) * 10) / 10;
+
+      const monthMap = {};
+      Object.keys(logs).forEach(d => {
+        const m = d.slice(0, 7);
+        const sec = (typeof logs[d] === 'object') ? logs[d].seconds : logs[d];
+        monthMap[m] = (monthMap[m] || 0) + sec;
+      });
+
+      let monthHtml = '';
+      Object.keys(monthMap).sort().reverse().forEach(m => {
+        const mMin = Math.floor(monthMap[m] / 60);
+        monthHtml += `<div class="flex justify-between p-2 bg-slate-50 rounded border text-xs"><span>${m}</span><span class="font-bold text-slate-700">${mMin}分</span></div>`;
+      });
+
+      container.innerHTML = `
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-center">
+            <p class="text-[10px] text-slate-500">学習実施日 平均</p>
+            <p class="text-lg font-black text-amber-600">${avgMinPerDay} <span class="text-xs font-normal">分/日</span></p>
+          </div>
+          <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-200 text-center">
+            <p class="text-[10px] text-slate-500">累計学習時間</p>
+            <p class="text-lg font-black text-indigo-600">${totalMin} <span class="text-xs font-normal">分</span></p>
+          </div>
+        </div>
+
+        <h4 class="font-bold text-slate-700 mb-2">月別学習時間実績</h4>
+        <div class="space-y-1.5 max-h-48 overflow-y-auto">
+          ${monthHtml || '<p class="text-xs text-slate-400">データがありません。</p>'}
+        </div>
+      `;
+
+      document.getElementById('time-stats-modal').classList.remove('hidden');
+    }
+
+    function openBadgesModal() {
+      const u = appData.user;
+      const container = document.getElementById('modal-badges-container');
+      container.innerHTML = '';
+
+      BADGES.forEach(b => {
+        const isUnlocked = u.unlockedBadges.includes(b.id);
+        container.innerHTML += `
+          <div class="p-3 rounded-xl border ${isUnlocked ? 'bg-amber-50/70 border-amber-300 text-amber-950 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-400 opacity-50'} flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full ${isUnlocked ? 'bg-amber-400 text-white' : 'bg-slate-300 text-slate-500'} flex items-center justify-center text-lg flex-shrink-0">
+              <i class="fa-solid ${b.icon}"></i>
+            </div>
+            <div>
+              <p class="text-xs font-bold">${escapeHtml(b.title)}</p>
+              <p class="text-[10px] text-slate-500">${escapeHtml(b.desc)}</p>
+            </div>
+          </div>
+        `;
+      });
+
+      document.getElementById('badges-modal').classList.remove('hidden');
+    }
+
+    function exportData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+      const a = document.createElement('a');
+      a.href = dataStr;
+      a.download = `learning_master_backup_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    function importData(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const imported = JSON.parse(evt.target.result);
+          if (imported.quizzes && Array.isArray(imported.quizzes)) {
+            appData = imported;
+            saveLocalStorage();
+            renderDashboard();
+            renderQuizList();
+            alert('データを正常に読み込みました。');
+          } else {
+            alert('無効なデータ形式です。');
+          }
+        } catch (err) {
+          alert('JSONファイルの読み込みに失敗しました。');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>

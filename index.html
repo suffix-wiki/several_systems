@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Web Playground</title>
+  <style>
+    /* ==========================================================================
+       ベース・全体設定
+       ========================================================================== */
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --card-hover-border: rgba(56, 189, 248, 0.5);
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --accent-color: #38bdf8;
+      --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1.5rem;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(129, 140, 248, 0.12) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    /* ==========================================================================
+       ヘッダー領域
+       ========================================================================== */
+    header {
+      text-align: center;
+      max-width: 600px;
+      margin-bottom: 3.5rem;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.75rem;
+    }
+
+    header p {
+      color: var(--text-sub);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    /* ==========================================================================
+       コンテンツ・グリッドレイアウト
+       ========================================================================== */
+    main {
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* ==========================================================================
+       カードスタイル (追加・編集対象)
+       ========================================================================== */
+    .card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      text-decoration: none;
+      color: inherit;
+      backdrop-filter: blur(12px);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ホバー時の光彩・移動アニメーション */
+    .card:hover {
+      transform: translateY(-5px);
+      border-color: var(--card-hover-border);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(56, 189, 248, 0.1);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .card-icon {
+      font-size: 1.75rem;
+      background: rgba(255, 255, 255, 0.05);
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .card-arrow {
+      color: var(--text-sub);
+      font-size: 1.25rem;
+      transition: transform 0.3s ease, color 0.3s ease;
+    }
+
+    .card:hover .card-arrow {
+      transform: translateX(4px);
+      color: var(--accent-color);
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+    }
+
+    .card-description {
+      font-size: 0.875rem;
+      color: var(--text-sub);
+      line-height: 1.5;
+    }
+
+    /* ==========================================================================
+       フッター
+       ========================================================================== */
+    footer {
+      margin-top: auto;
+      padding-top: 4rem;
+      color: var(--text-sub);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ヘッダーエリア -->
+  <header>
+    <h1>My Web Playground</h1>
+    <p>自作したHTMLアプリやWebページをまとめたポータルサイトです。</p>
+  </header>
+
+  <!-- メインコンテンツ（リンクカードの並び） -->
+  <main>
+    <div class="grid">
+
+      <!-- ▼▼▼ リンクを追加するときは、ここから ▼▼▼ -->
+      <a href="./study/study.html" class="card">
+        <div>
+          <div class="card-header">
+            <span class="card-icon">📚</span>
+            <span class="card-arrow">→</span>
+          </div>
+          <h2 class="card-title">資格学習アプリ</h2>
+          <p class="card-description">資格取得に向けた問題集や学習管理を行うページです。</p>
+        </div>
+      </a>
+      <!-- ▲▲▲ ここまでをコピペして追加します ▲▲▲ -->
+
+      <!-- ※例：今後新しいツールを追加したくなった時のサンプル（必要に応じて解除・追加してください）
+      <a href="tool.html" class="card">
+        <div>
+          <div class="card-header">
+            <span class="card-icon">🛠️</span>
+            <span class="card-arrow">→</span>
+          </div>
+          <h2 class="card-title">便利な便利ツール</h2>
+          <p class="card-description">日常生活や作業効率化のために作ったスクリプト集。</p>
+        </div>
+      </a>
+      -->
+
+    </div>
+  </main>
+
+  <!-- フッターエリア -->
+  <footer>
+    <p>&copy; 2026 My GitHub Pages Portal</p>
+  </footer>
+
+</body>
+</html>
