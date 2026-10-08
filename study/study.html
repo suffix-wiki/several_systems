@@ -485,7 +485,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V7';
+    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V8';
     let appData = {
       quizzes: [],
       histories: [],
@@ -605,7 +605,8 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
     }
 
-    function startSpeechRecognition(targetInputId) {
+    // --- 音声入力Web Speech API対応 (バグ修正: 音声入力時の回答保存連動) ---
+    function startSpeechRecognition(targetInputId, questionId = null) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
         alert('お使いのブラウザは音声入力に対応していません。Google ChromeやEdgeなどでお試しください。');
@@ -625,8 +626,16 @@
       recognition.onresult = function(event) {
         const transcript = event.results[0][0].transcript;
         if (targetEl) {
-          if (targetEl.tagName === 'TEXTAREA' || targetEl.tagName === 'INPUT') {
-            targetEl.value = (targetEl.value ? targetEl.value + ' ' : '') + transcript;
+          const newVal = (targetEl.value ? targetEl.value + ' ' : '') + transcript;
+          targetEl.value = newVal;
+
+          // イベントを明示的にトリガー
+          targetEl.dispatchEvent(new Event('input', { bubbles: true }));
+          targetEl.dispatchEvent(new Event('change', { bubbles: true }));
+
+          // 回答画面での音声入力時、内部のアクティブセッション状態も即座に更新
+          if (questionId && activeSession) {
+            saveCurrentAnswer(questionId, newVal, false);
           }
         }
       };
@@ -899,7 +908,6 @@
       });
     }
 
-    // 選択肢入力エリアの描画 (【改善点】新規時はvalueを空にし、placeholderのみ設定)
     function renderOptionsInput(card, qData = null) {
       const type = card.querySelector('.q-type').value;
       const area = card.querySelector('.q-options-area');
@@ -1162,7 +1170,7 @@
         area.innerHTML = `
           <div class="flex gap-2">
             <input type="text" id="${userTextAnswerId}" value="${escapeHtml(val)}" oninput="saveCurrentAnswer('${q.id}', this.value, false)" placeholder="回答を入力してください" class="w-full border border-slate-300 rounded-lg p-3 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500">
-            <button type="button" onclick="startSpeechRecognition('${userTextAnswerId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0" title="音声回答">
+            <button type="button" onclick="startSpeechRecognition('${userTextAnswerId}', '${q.id}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0" title="音声回答">
               <i class="fa-solid fa-microphone"></i>
             </button>
           </div>
