@@ -4,13 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>カメラ英語学習アプリ</title>
-  <!-- TensorFlow.js & COCO-SSD (オンデバイス用) -->
+  <!-- TensorFlow.js & COCO-SSD (オンデバイス物体検出モデル) -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
   <style>
     :root {
       --primary-color: #4a90e2;
-      --accent-color: #28a745;
       --bg-color: #f4f7f6;
       --card-bg: #ffffff;
       --text-color: #333333;
@@ -26,7 +25,7 @@
     body {
       background-color: var(--bg-color);
       color: var(--text-color);
-      padding: 12px;
+      padding: 16px;
       max-width: 600px;
       margin: 0 auto;
     }
@@ -34,36 +33,8 @@
     h1 {
       font-size: 1.2rem;
       text-align: center;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       color: var(--primary-color);
-    }
-
-    /* モード選択パネル */
-    .mode-panel {
-      background: #fff;
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      font-size: 0.85rem;
-    }
-
-    .mode-title {
-      font-weight: bold;
-      margin-bottom: 6px;
-      color: #555;
-    }
-
-    .mode-options {
-      display: flex;
-      gap: 12px;
-    }
-
-    .mode-options label {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      cursor: pointer;
     }
 
     .camera-container {
@@ -82,16 +53,17 @@
       object-fit: cover;
     }
 
+    /* 識別ガイド枠 */
     .guide-box {
       position: absolute;
-      top: 15%;
-      left: 15%;
-      width: 70%;
-      height: 70%;
+      top: 20%;
+      left: 20%;
+      width: 60%;
+      height: 60%;
       border: 2px dashed rgba(255, 255, 255, 0.8);
       border-radius: 8px;
       pointer-events: none;
-      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
       display: flex;
       align-items: flex-end;
       justify-content: center;
@@ -109,12 +81,12 @@
     .controls {
       display: flex;
       gap: 8px;
-      margin: 10px 0;
+      margin: 12px 0;
     }
 
     button {
       flex: 1;
-      padding: 12px 8px;
+      padding: 12px;
       border: none;
       border-radius: 8px;
       background-color: var(--primary-color);
@@ -126,7 +98,7 @@
       align-items: center;
       justify-content: center;
       gap: 4px;
-      transition: opacity 0.2s;
+      transition: background-color 0.2s;
     }
 
     button:active {
@@ -137,8 +109,9 @@
       background-color: #ccc;
     }
 
-    .btn-manual {
-      background-color: #17a2b8;
+    .btn-add {
+      background-color: #6c757d;
+      flex: 0.7;
     }
 
     .loading-status {
@@ -152,13 +125,13 @@
     .results-container {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
     }
 
     .card {
       background: var(--card-bg);
       border-radius: 12px;
-      padding: 12px;
+      padding: 14px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.06);
       display: flex;
       flex-direction: column;
@@ -177,11 +150,10 @@
     .delete-btn {
       background: none;
       border: none;
-      color: #dc3545;
+      color: #ff4d4f;
       font-size: 1rem;
       cursor: pointer;
       padding: 0 4px;
-      width: auto;
     }
 
     .input-group {
@@ -193,13 +165,13 @@
     .label-tag {
       font-size: 0.8rem;
       font-weight: bold;
-      width: 20px;
+      width: 24px;
       color: #555;
     }
 
     input[type="text"] {
       flex: 1;
-      padding: 8px;
+      padding: 8px 10px;
       border: 1px solid #ddd;
       border-radius: 6px;
       font-size: 0.95rem;
@@ -210,17 +182,19 @@
       border-radius: 6px;
       font-size: 0.85rem;
       flex: none;
-      width: 36px;
-      height: 36px;
+      background-color: #f0f0f0;
+      color: #333;
     }
 
     .btn-voice {
-      background-color: var(--accent-color);
+      background-color: #e8f5e9;
+      color: #2e7d32;
     }
 
     .speech-active {
       animation: pulse 1.2s infinite;
       background-color: #dc3545 !important;
+      color: white !important;
     }
 
     @keyframes pulse {
@@ -234,21 +208,6 @@
 
   <h1>📷 カメラ英語学習アプリ</h1>
 
-  <!-- モード選択 -->
-  <div class="mode-panel">
-    <div class="mode-title">認識モード選択:</div>
-    <div class="mode-options">
-      <label>
-        <input type="radio" name="recognitionMode" value="ondevice" checked>
-        🔒 オンデバイス (オフライン/端末内処理)
-      </label>
-      <label>
-        <input type="radio" name="recognitionMode" value="api">
-        🌐 高精度API (HuggingFace DETR)
-      </label>
-    </div>
-  </div>
-
   <div id="status" class="loading-status">AIモデルを準備中...</div>
 
   <div class="camera-container">
@@ -259,19 +218,18 @@
   </div>
 
   <div class="controls">
-    <button id="scanBtn" disabled>🔍 撮影して識別</button>
-    <button id="addManualBtn" class="btn-manual">➕ 手動で単語追加</button>
+    <button id="scanBtn" disabled>🔍 識別開始</button>
+    <button id="addManualBtn" class="btn-add">➕ 手動追加</button>
   </div>
 
   <div id="results" class="results-container"></div>
 
-  <!-- クロップ用隠しキャンバス -->
+  <!-- クロップ用キャンバス -->
   <canvas id="cropCanvas" style="display:none;"></canvas>
 
   <script>
     let localModel = null;
     let cardCounter = 0;
-
     const video = document.getElementById('video');
     const scanBtn = document.getElementById('scanBtn');
     const addManualBtn = document.getElementById('addManualBtn');
@@ -279,169 +237,144 @@
     const resultsContainer = document.getElementById('results');
     const cropCanvas = document.getElementById('cropCanvas');
 
-    // 初期化
+    // 1. カメラとモデルの初期化
     async function init() {
       try {
-        // カメラ設定
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false
         });
         video.srcObject = stream;
 
-        // COCO-SSDオンデバイスモデル初期ロード
+        // 軽量オンデバイスモデル (COCO-SSD) の読み込み
         localModel = await cocoSsd.load();
-        statusText.innerText = "準備完了！枠内に物体を入れてボタンを押してください。";
+        statusText.innerText = "準備完了！物体をカメラ枠内に合わせてボタンを押してください。";
         scanBtn.disabled = false;
       } catch (err) {
         console.error(err);
-        statusText.innerText = "カメラの起動に失敗しました (HTTPS接続が必要です)。";
+        statusText.innerText = "エラー: カメラの起動または初期化に失敗しました。";
       }
     }
 
-    // 識別実行ボタン
+    // 2. 画像識別処理
     scanBtn.addEventListener('click', async () => {
-      statusText.innerText = "識別中...";
+      if (!localModel) return;
+
+      statusText.innerText = "識別処理中...";
       scanBtn.disabled = true;
 
-      const mode = document.querySelector('input[name="recognitionMode"]:checked').value;
-
       try {
-        // 枠内画像のクロップ
         const ctx = cropCanvas.getContext('2d');
-        const vWidth = video.videoWidth || 640;
-        const vHeight = video.videoHeight || 480;
+        const vWidth = video.videoWidth;
+        const vHeight = video.videoHeight;
 
-        const cropX = vWidth * 0.15;
-        const cropY = vHeight * 0.15;
-        const cropW = vWidth * 0.7;
-        const cropH = vHeight * 0.7;
+        // ガイド枠内（中央領域）を切り出して解析
+        const cropX = vWidth * 0.2;
+        const cropY = vHeight * 0.2;
+        const cropW = vWidth * 0.6;
+        const cropH = vHeight * 0.6;
 
         cropCanvas.width = cropW;
         cropCanvas.height = cropH;
         ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
-        let predictions = [];
-
-        if (mode === 'ondevice') {
-          // 1. オンデバイス識別 (COCO-SSD)
-          if (!localModel) localModel = await cocoSsd.load();
-          const rawPreds = await localModel.detect(cropCanvas);
-          predictions = rawPreds
-            .filter(p => p.score >= 0.3)
-            .map(p => ({ label: p.class, score: Math.round(p.score * 100) }));
-        } else {
-          // 2. クラウドAPI識別 (Hugging Face DETR オープンモデル)
-          predictions = await recognizeViaApi(cropCanvas);
-        }
+        const rawPreds = await localModel.detect(cropCanvas);
+        const predictions = filterPredictions(rawPreds);
 
         if (predictions.length === 0) {
-          statusText.innerText = "物体を認識できませんでした。「手動で単語追加」をお試しください。";
+          statusText.innerText = "物体を認識できませんでした。近づけるか「手動追加」をご利用ください。";
         } else {
-          statusText.innerText = "識別完了！用語の修正や発音確認が可能です。";
-          // 結果の追加
-          predictions.slice(0, 3).forEach(item => {
-            addCard(item.label, `確信度: ${item.score}%`);
+          predictions.forEach(item => {
+            addResultCard(item.class, Math.round(item.score * 100));
           });
+          statusText.innerText = "識別完了！用語の編集・自動翻訳・発音再生が可能です。";
         }
       } catch (err) {
         console.error(err);
-        statusText.innerText = "識別中にエラーが発生しました。手動入力をご利用ください。";
+        statusText.innerText = "識別処理中にエラーが発生しました。";
       } finally {
         scanBtn.disabled = false;
       }
     });
 
-    // HuggingFace オープンAPI連携処理
-    async function recognizeViaApi(canvas) {
-      return new Promise((resolve, reject) => {
-        canvas.toBlob(async (blob) => {
-          try {
-            const res = await fetch("https://api-inference.huggingface.co/models/facebook/detr-resnet-50", {
-              method: "POST",
-              headers: { "Content-Type": "image/jpeg" },
-              body: blob
-            });
-            
-            if (!res.ok) throw new Error("APIレスポンスエラー");
-            
-            const data = await res.json();
-            if (Array.isArray(data)) {
-              const mapped = data
-                .filter(item => item.score >= 0.25)
-                .map(item => ({ label: item.label, score: Math.round(item.score * 100) }));
-              resolve(mapped);
-            } else {
-              resolve([]);
-            }
-          } catch (err) {
-            reject(err);
+    // 認識結果のフィルタリング（確信度・重複除去）
+    function filterPredictions(preds) {
+      const map = new Map();
+      preds.forEach(p => {
+        if (p.score >= 0.25) { // 25%以上の確信度
+          if (!map.has(p.class) || map.get(p.class).score < p.score) {
+            map.set(p.class, p);
           }
-        }, "image/jpeg");
+        }
       });
+      return Array.from(map.values()).sort((a, b) => b.score - a.score).slice(0, 3);
     }
 
-    // 手動追加ボタン
+    // 3. 手動追加ボタン
     addManualBtn.addEventListener('click', () => {
-      addCard('', '手動入力');
-      statusText.innerText = "手動入力カードを追加しました。名称を入力してください。";
+      addResultCard("", 100, true);
+      statusText.innerText = "手動項目を追加しました。単語を入力してください。";
     });
 
-    // 単語カードの追加生成
-    function addCard(initialEnglish = '', subtitle = '') {
-      const cardId = cardCounter++;
+    // 4. 結果カードの動的生成
+    function addResultCard(englishText = "", confidence = 100, isManual = false) {
+      const index = cardCounter++;
       const card = document.createElement('div');
       card.className = 'card';
-      card.id = `card-${cardId}`;
+      card.id = `card-${index}`;
+
+      const headerTitle = isManual ? "手動入力" : `識別候補 (確信度: ${confidence}%)`;
 
       card.innerHTML = `
         <div class="card-header">
-          <span>${subtitle}</span>
-          <button class="delete-btn" onclick="removeCard('${cardId}')">✖</button>
+          <span>${headerTitle}</span>
+          <button class="delete-btn" onclick="removeCard('${index}')">✕</button>
         </div>
         
         <div class="input-group">
           <span class="label-tag">英</span>
-          <input type="text" id="en-input-${cardId}" value="${initialEnglish}" placeholder="例: apple">
-          <button class="action-btn" onclick="speakText('en-input-${cardId}', 'en-US')">🔊</button>
-          <button class="action-btn btn-voice" id="mic-en-${cardId}" onclick="startSpeechRecognition('${cardId}', 'en-US')">🎙️</button>
+          <input type="text" id="en-input-${index}" value="${englishText}" placeholder="英語単語を入力">
+          <button class="action-btn" onclick="speakText('en-input-${index}', 'en-US')">🔊</button>
+          <button class="action-btn btn-voice" id="mic-en-${index}" onclick="startSpeechRecognition('${index}', 'en-US')">🎙️</button>
         </div>
 
         <div class="input-group">
           <span class="label-tag">日</span>
-          <input type="text" id="ja-input-${cardId}" value="" placeholder="例: りんご">
-          <button class="action-btn" onclick="speakText('ja-input-${cardId}', 'ja-JP')">🔊</button>
-          <button class="action-btn btn-voice" id="mic-ja-${cardId}" onclick="startSpeechRecognition('${cardId}', 'ja-JP')">🎙️</button>
+          <input type="text" id="ja-input-${index}" value="" placeholder="日本語訳を入力/自動翻訳">
+          <button class="action-btn" onclick="speakText('ja-input-${index}', 'ja-JP')">🔊</button>
+          <button class="action-btn btn-voice" id="mic-ja-${index}" onclick="startSpeechRecognition('${index}', 'ja-JP')">🎙️</button>
         </div>
       `;
 
       resultsContainer.prepend(card);
 
-      const enInput = document.getElementById(`en-input-${cardId}`);
-      const jaInput = document.getElementById(`ja-input-${cardId}`);
+      const enInput = document.getElementById(`en-input-${index}`);
+      const jaInput = document.getElementById(`ja-input-${index}`);
 
-      // 入力変更時の相互翻訳イベント
-      enInput.addEventListener('change', () => translateAndSet(cardId, enInput.value, 'en2ja'));
-      jaInput.addEventListener('change', () => translateAndSet(cardId, jaInput.value, 'ja2en'));
+      enInput.addEventListener('change', () => {
+        translateAndSet(index, enInput.value, 'en2ja');
+      });
 
-      // 初期値がある場合は初期翻訳実行
-      if (initialEnglish) {
-        translateAndSet(cardId, initialEnglish, 'en2ja');
+      jaInput.addEventListener('change', () => {
+        translateAndSet(index, jaInput.value, 'ja2en');
+      });
+
+      if (englishText) {
+        translateAndSet(index, englishText, 'en2ja');
       }
     }
 
-    // カード削除
-    function removeCard(id) {
-      const card = document.getElementById(`card-${id}`);
+    function removeCard(index) {
+      const card = document.getElementById(`card-${index}`);
       if (card) card.remove();
     }
 
-    // 相互翻訳 (MyMemory Free API)
-    async function translateAndSet(id, text, direction) {
+    // 5. 自動翻訳機能
+    async function translateAndSet(index, text, direction) {
       if (!text.trim()) return;
 
-      const jaInput = document.getElementById(`ja-input-${id}`);
-      const enInput = document.getElementById(`en-input-${id}`);
+      const jaInput = document.getElementById(`ja-input-${index}`);
+      const enInput = document.getElementById(`en-input-${index}`);
       const langPair = direction === 'en2ja' ? 'en|ja' : 'ja|en';
 
       try {
@@ -449,9 +382,9 @@
         const data = await res.json();
         const translatedText = data.responseData.translatedText;
 
-        if (direction === 'en2ja') {
+        if (direction === 'en2ja' && jaInput) {
           jaInput.value = translatedText;
-        } else {
+        } else if (direction === 'ja2en' && enInput) {
           enInput.value = translatedText;
         }
       } catch (err) {
@@ -459,7 +392,7 @@
       }
     }
 
-    // 音声読み上げ (TTS)
+    // 6. 音声再生 (Text-to-Speech)
     function speakText(inputId, lang) {
       const text = document.getElementById(inputId).value;
       if (!text) return;
@@ -467,12 +400,12 @@
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = lang;
-      utterance.rate = 0.85; // 少しゆっくり再生
+      utterance.rate = 0.9;
       window.speechSynthesis.speak(utterance);
     }
 
-    // 音声入力 (Web Speech API)
-    function startSpeechRecognition(id, lang) {
+    // 7. 音声入力 (Speech Recognition)
+    function startSpeechRecognition(index, lang) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
         alert("お使いのブラウザは音声入力に対応していません。");
@@ -483,7 +416,7 @@
       recognition.lang = lang;
       recognition.interimResults = false;
 
-      const micBtnId = lang === 'en-US' ? `mic-en-${id}` : `mic-ja-${id}`;
+      const micBtnId = lang === 'en-US' ? `mic-en-${index}` : `mic-ja-${index}`;
       const micBtn = document.getElementById(micBtnId);
       
       micBtn.classList.add('speech-active');
@@ -491,16 +424,21 @@
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         if (lang === 'en-US') {
-          document.getElementById(`en-input-${id}`).value = transcript;
-          translateAndSet(id, transcript, 'en2ja');
+          document.getElementById(`en-input-${index}`).value = transcript;
+          translateAndSet(index, transcript, 'en2ja');
         } else {
-          document.getElementById(`ja-input-${id}`).value = transcript;
-          translateAndSet(id, transcript, 'ja2en');
+          document.getElementById(`ja-input-${index}`).value = transcript;
+          translateAndSet(index, transcript, 'ja2en');
         }
       };
 
-      recognition.onerror = () => micBtn.classList.remove('speech-active');
-      recognition.onend = () => micBtn.classList.remove('speech-active');
+      recognition.onerror = () => {
+        micBtn.classList.remove('speech-active');
+      };
+
+      recognition.onend = () => {
+        micBtn.classList.remove('speech-active');
+      };
 
       recognition.start();
     }
