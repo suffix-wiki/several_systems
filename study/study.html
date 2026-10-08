@@ -43,14 +43,14 @@
     </div>
   </header>
 
-  <!-- メインコンテンツ -->
-  <main class="max-w-6xl w-full mx-auto p-3 sm:p-4 flex-grow">
+  <!-- メインコンテンツ (PC/タブレット/スマホ最適化) -->
+  <main class="max-w-6xl w-full mx-auto p-3 sm:p-5 lg:p-6 flex-grow">
 
     <!-- 1. 設問一覧画面 & ダッシュボード -->
     <section id="list-screen" class="screen active space-y-6">
       
-      <!-- ダッシュボードカード -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+      <!-- ダッシュボードカード (タブレットで2x2, PCで4列) -->
+      <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <!-- 連続学習日数 -->
         <div onclick="openCalendarModal()" class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-indigo-400 transition cursor-pointer flex items-center gap-3">
           <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
@@ -96,7 +96,7 @@
         </div>
       </div>
 
-      <!-- 操作エリア -->
+      <!-- アクションコントロール -->
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h2 class="text-xl sm:text-2xl font-bold text-slate-800">問題集一覧</h2>
@@ -113,8 +113,7 @@
             <i class="fa-solid fa-upload"></i> 読込
             <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
           </label>
-          <!-- リセット機能（要望1） -->
-          <button onclick="confirmResetAllData()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium shadow flex items-center gap-1 transition" title="全データと実績を初期化">
+          <button onclick="confirmResetAllData()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium shadow flex items-center gap-1 transition">
             <i class="fa-solid fa-rotate-right"></i> 全リセット
           </button>
         </div>
@@ -140,7 +139,7 @@
       </div>
     </section>
 
-    <!-- 2. 設問作成・編集画面 (合格基準設定の追加) -->
+    <!-- 2. 設問作成・編集画面 (音声入力対応) -->
     <section id="edit-screen" class="screen">
       <div class="flex justify-between items-center mb-4 sm:mb-6">
         <h2 id="edit-screen-title" class="text-xl sm:text-2xl font-bold text-slate-800">問題集の作成・編集</h2>
@@ -151,12 +150,16 @@
 
       <form id="quiz-edit-form" onsubmit="saveQuiz(event)" class="space-y-5">
         <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="sm:col-span-2">
               <label class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">問題集タイトル <span class="text-red-500">*</span></label>
-              <input type="text" id="quiz-title" required placeholder="例：英単語マスター / IT資格 過去問" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500">
+              <div class="flex gap-2">
+                <input type="text" id="quiz-title" required placeholder="例：英単語マスター / IT資格 過去問" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500">
+                <button type="button" onclick="startSpeechRecognition('quiz-title')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center gap-1 flex-shrink-0" title="音声入力">
+                  <i class="fa-solid fa-microphone"></i>
+                </button>
+              </div>
             </div>
-            <!-- 合格基準（目標正解率 %）設定 (要望2) -->
             <div>
               <label class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">合格基準 (正解率%)</label>
               <div class="flex items-center gap-1">
@@ -195,12 +198,12 @@
       </form>
     </section>
 
-    <!-- 3. 設問回答画面 -->
+    <!-- 3. 設問回答画面 (キーボード自動不使用化＆音声回答対応) -->
     <section id="answer-screen" class="screen">
-      <div class="max-w-2xl mx-auto space-y-4 sm:space-y-5">
+      <div class="max-w-2xl lg:max-w-3xl mx-auto space-y-4 sm:space-y-5">
         
         <div class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between gap-2">
-          <div class="text-xs font-semibold text-slate-700 truncate max-w-[200px]" id="answer-quiz-title-display">問題集</div>
+          <div class="text-xs font-semibold text-slate-700 truncate max-w-[200px] sm:max-w-[350px]" id="answer-quiz-title-display">問題集</div>
 
           <div id="timer-container" class="hidden flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs font-bold">
             <i class="fa-solid fa-stopwatch animate-pulse"></i>
@@ -293,7 +296,7 @@
       </div>
     </section>
 
-    <!-- 5. 学習アナリティクス画面 (合格基準ラインのグラフ連動) -->
+    <!-- 5. 学習アナリティクス画面 -->
     <section id="history-screen" class="screen space-y-6">
       <div class="flex justify-between items-center">
         <div>
@@ -482,7 +485,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V5';
+    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V6';
     let appData = {
       quizzes: [],
       histories: [],
@@ -602,7 +605,40 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
     }
 
-    // 全データ初期化（リセット機能要望1）
+    // --- 音声入力Web Speech API対応 (要望1) ---
+    function startSpeechRecognition(targetInputId) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert('お使いのブラウザは音声入力に対応していません。Google ChromeやEdgeなどでお試しください。');
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'ja-JP';
+      recognition.interimResults = false;
+
+      const targetEl = document.getElementById(targetInputId);
+
+      recognition.onstart = function() {
+        if (targetEl) targetEl.placeholder = '音声を聞き取り中...';
+      };
+
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        if (targetEl) {
+          if (targetEl.tagName === 'TEXTAREA' || targetEl.tagName === 'INPUT') {
+            targetEl.value = (targetEl.value ? targetEl.value + ' ' : '') + transcript;
+          }
+        }
+      };
+
+      recognition.onerror = function() {
+        alert('音声認識でエラーが発生しました。');
+      };
+
+      recognition.start();
+    }
+
     function confirmResetAllData() {
       if (confirm('【注意】これまでの回答履歴、総学習時間、称号、レベルなど全てのデータを完全に初期化しますか？')) {
         if (confirm('本当によろしいですか？この操作は取り消せません。')) {
@@ -803,6 +839,9 @@
       const cardId = 'card_' + Math.random().toString(36).substring(2, 9);
       card.dataset.cardId = cardId;
 
+      const qTextId = `q-text-input-${cardId}`;
+      const qExpId = `q-exp-input-${cardId}`;
+
       card.innerHTML = `
         <button type="button" onclick="this.closest('.q-card').remove(); reindexQuestionCards();" class="absolute top-4 right-4 text-slate-400 hover:text-red-500">
           <i class="fa-solid fa-xmark text-lg"></i>
@@ -830,14 +869,24 @@
 
         <div>
           <label class="block text-xs font-medium text-slate-600 mb-1">問題文 <span class="text-red-500">*</span></label>
-          <textarea rows="2" required placeholder="問題文を入力" class="q-text w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm">${escapeHtml(text)}</textarea>
+          <div class="flex gap-2">
+            <textarea id="${qTextId}" rows="2" required placeholder="問題文を入力" class="q-text w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm">${escapeHtml(text)}</textarea>
+            <button type="button" onclick="startSpeechRecognition('${qTextId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0" title="音声入力">
+              <i class="fa-solid fa-microphone"></i>
+            </button>
+          </div>
         </div>
 
         <div class="q-options-area bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-2"></div>
 
         <div>
           <label class="block text-xs font-medium text-slate-600 mb-1">解説（任意）</label>
-          <textarea rows="2" placeholder="正解の理由や補足解説" class="q-explanation w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm text-slate-700">${escapeHtml(explanation)}</textarea>
+          <div class="flex gap-2">
+            <textarea id="${qExpId}" rows="2" placeholder="正解の理由や補足解説" class="q-explanation w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm text-slate-700">${escapeHtml(explanation)}</textarea>
+            <button type="button" onclick="startSpeechRecognition('${qExpId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0" title="音声入力">
+              <i class="fa-solid fa-microphone"></i>
+            </button>
+          </div>
         </div>
       `;
 
@@ -870,11 +919,13 @@
 
           const inputType = isMulti ? 'checkbox' : 'radio';
           const nameAttr = `q-radio-${cardId}`;
+          const optInputId = `q-opt-${cardId}-${idx}`;
 
           area.innerHTML += `
             <div class="flex items-center gap-2">
               <input type="${inputType}" name="${nameAttr}" value="${idx}" class="q-ans-check w-4 h-4 text-indigo-600" ${isChecked ? 'checked' : ''}>
-              <input type="text" value="${escapeHtml(opt)}" required placeholder="選択肢${idx+1}" class="q-opt-text flex-grow border border-slate-300 rounded px-2.5 py-1 text-xs sm:text-sm">
+              <input type="text" id="${optInputId}" value="${escapeHtml(opt)}" required placeholder="選択肢${idx+1}" class="q-opt-text flex-grow border border-slate-300 rounded px-2.5 py-1 text-xs sm:text-sm">
+              <button type="button" onclick="startSpeechRecognition('${optInputId}')" class="text-indigo-600 px-2 py-1 text-xs" title="音声入力"><i class="fa-solid fa-microphone"></i></button>
             </div>
           `;
         });
@@ -897,9 +948,13 @@
         `;
       } else if (type === 'text') {
         const answer = qData ? qData.answer : '';
+        const optTextAnsId = `q-text-ans-${cardId}`;
         area.innerHTML = `
           <label class="block text-xs font-semibold text-slate-600 mb-1">正解キーワード</label>
-          <input type="text" value="${escapeHtml(answer)}" required placeholder="正解を入力" class="q-text-ans w-full border border-slate-300 rounded px-3 py-1.5 text-xs sm:text-sm bg-white">
+          <div class="flex gap-2">
+            <input type="text" id="${optTextAnsId}" value="${escapeHtml(answer)}" required placeholder="正解を入力" class="q-text-ans w-full border border-slate-300 rounded px-3 py-1.5 text-xs sm:text-sm bg-white">
+            <button type="button" onclick="startSpeechRecognition('${optTextAnsId}')" class="text-indigo-600 px-2.5 py-1 text-xs border border-indigo-200 rounded" title="音声入力"><i class="fa-solid fa-microphone"></i></button>
+          </div>
         `;
       }
     }
@@ -1047,6 +1102,7 @@
       document.getElementById('timer-display').innerText = `${m}:${s}`;
     }
 
+    // 回答画面描画 (【改善要望2】1文字ごとのキーボード不意閉じ問題対策：入力中再描画の遮断)
     function renderAnswerCard() {
       const q = activeSession.questions[activeSession.currentIndex];
       const total = activeSession.questions.length;
@@ -1085,7 +1141,7 @@
           const isChecked = savedAns === String(idx);
           area.innerHTML += `
             <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-indigo-50/50 cursor-pointer transition">
-              <input type="radio" name="ans-group" value="${idx}" onchange="saveCurrentAnswer('${q.id}', '${idx}')" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-indigo-600">
+              <input type="radio" name="ans-group" value="${idx}" onchange="saveCurrentAnswer('${q.id}', '${idx}', true)" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-indigo-600">
               <span class="text-xs sm:text-sm font-medium text-slate-700">${escapeHtml(opt)}</span>
             </label>
           `;
@@ -1102,8 +1158,14 @@
         });
       } else if (q.type === 'text') {
         const val = savedAns || '';
+        const userTextAnswerId = `user-text-ans-input`;
         area.innerHTML = `
-          <input type="text" value="${escapeHtml(val)}" oninput="saveCurrentAnswer('${q.id}', this.value)" placeholder="回答を入力" class="w-full border border-slate-300 rounded-lg p-3 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500">
+          <div class="flex gap-2">
+            <input type="text" id="${userTextAnswerId}" value="${escapeHtml(val)}" oninput="saveCurrentAnswer('${q.id}', this.value, false)" placeholder="回答を入力してください" class="w-full border border-slate-300 rounded-lg p-3 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500">
+            <button type="button" onclick="startSpeechRecognition('${userTextAnswerId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0" title="音声回答">
+              <i class="fa-solid fa-microphone"></i>
+            </button>
+          </div>
         `;
       }
 
@@ -1126,15 +1188,17 @@
       renderAnswerCard();
     }
 
-    function saveCurrentAnswer(qId, val) {
+    // 1文字ごとのキーボード閉じ対策：shouldReRenderで制御
+    function saveCurrentAnswer(qId, val, shouldReRender = false) {
       activeSession.userAnswers[qId] = val;
-      renderAnswerCard();
+      if (shouldReRender) {
+        renderAnswerCard();
+      }
     }
 
     function saveMultiAnswer(qId) {
       const checked = document.querySelectorAll('.q-multi-check:checked');
       activeSession.userAnswers[qId] = Array.from(checked).map(c => c.value);
-      renderAnswerCard();
     }
 
     function prevQuestion() {
@@ -1244,7 +1308,6 @@
       renderResultView(historyRecord);
     }
 
-    // 採点結果画面描画 (目標合格基準に応じた判定演出)
     function renderResultView(record) {
       document.getElementById('res-score').innerText = record.score;
       document.getElementById('res-max-score').innerText = record.maxScore;
@@ -1329,7 +1392,7 @@
       return escapeHtml(ans);
     }
 
-    // --- 分析画面 (合格基準ライン反映) ---
+    // --- 分析画面 ---
     let currentAnalyticsQuizId = null;
 
     function viewHistoryList(quizId) {
