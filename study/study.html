@@ -43,13 +43,13 @@
     </div>
   </header>
 
-  <!-- メインコンテンツ (PC/タブレット/スマホ最適化) -->
+  <!-- メインコンテンツ -->
   <main class="max-w-6xl w-full mx-auto p-3 sm:p-5 lg:p-6 flex-grow">
 
     <!-- 1. 設問一覧画面 & ダッシュボード -->
     <section id="list-screen" class="screen active space-y-6">
       
-      <!-- ダッシュボードカード (タブレットで2x2, PCで4列) -->
+      <!-- ダッシュボードカード -->
       <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <!-- 連続学習日数 -->
         <div onclick="openCalendarModal()" class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-indigo-400 transition cursor-pointer flex items-center gap-3">
@@ -139,7 +139,7 @@
       </div>
     </section>
 
-    <!-- 2. 設問作成・編集画面 (音声入力対応) -->
+    <!-- 2. 設問作成・編集画面 -->
     <section id="edit-screen" class="screen">
       <div class="flex justify-between items-center mb-4 sm:mb-6">
         <h2 id="edit-screen-title" class="text-xl sm:text-2xl font-bold text-slate-800">問題集の作成・編集</h2>
@@ -198,7 +198,7 @@
       </form>
     </section>
 
-    <!-- 3. 設問回答画面 (キーボード自動不使用化＆音声回答対応) -->
+    <!-- 3. 設問回答画面 -->
     <section id="answer-screen" class="screen">
       <div class="max-w-2xl lg:max-w-3xl mx-auto space-y-4 sm:space-y-5">
         
@@ -485,7 +485,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V6';
+    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V7';
     let appData = {
       quizzes: [],
       histories: [],
@@ -605,7 +605,6 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
     }
 
-    // --- 音声入力Web Speech API対応 (要望1) ---
     function startSpeechRecognition(targetInputId) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
@@ -900,6 +899,7 @@
       });
     }
 
+    // 選択肢入力エリアの描画 (【改善点】新規時はvalueを空にし、placeholderのみ設定)
     function renderOptionsInput(card, qData = null) {
       const type = card.querySelector('.q-type').value;
       const area = card.querySelector('.q-options-area');
@@ -908,11 +908,12 @@
 
       if (type === 'choice4' || type === 'multi') {
         const isMulti = type === 'multi';
-        const options = qData ? qData.options : ['選択肢 1', '選択肢 2', '選択肢 3', '選択肢 4'];
+        const defaultCount = 4;
         const answer = qData ? qData.answer : (isMulti ? ['0'] : '0');
 
         area.innerHTML = `<label class="block text-xs font-semibold text-slate-600 mb-1">選択肢と正解チェック</label>`;
-        options.forEach((opt, idx) => {
+        for (let idx = 0; idx < defaultCount; idx++) {
+          const optVal = (qData && qData.options && qData.options[idx] !== undefined) ? qData.options[idx] : '';
           const isChecked = isMulti 
             ? (Array.isArray(answer) && answer.includes(String(idx)))
             : String(answer) === String(idx);
@@ -924,11 +925,11 @@
           area.innerHTML += `
             <div class="flex items-center gap-2">
               <input type="${inputType}" name="${nameAttr}" value="${idx}" class="q-ans-check w-4 h-4 text-indigo-600" ${isChecked ? 'checked' : ''}>
-              <input type="text" id="${optInputId}" value="${escapeHtml(opt)}" required placeholder="選択肢${idx+1}" class="q-opt-text flex-grow border border-slate-300 rounded px-2.5 py-1 text-xs sm:text-sm">
+              <input type="text" id="${optInputId}" value="${escapeHtml(optVal)}" placeholder="選択肢 ${idx + 1}" required class="q-opt-text flex-grow border border-slate-300 rounded px-2.5 py-1 text-xs sm:text-sm">
               <button type="button" onclick="startSpeechRecognition('${optInputId}')" class="text-indigo-600 px-2 py-1 text-xs" title="音声入力"><i class="fa-solid fa-microphone"></i></button>
             </div>
           `;
-        });
+        }
       } else if (type === 'tf') {
         const answer = qData ? qData.answer : '0';
         const nameAttr = `q-tf-${cardId}`;
@@ -952,7 +953,7 @@
         area.innerHTML = `
           <label class="block text-xs font-semibold text-slate-600 mb-1">正解キーワード</label>
           <div class="flex gap-2">
-            <input type="text" id="${optTextAnsId}" value="${escapeHtml(answer)}" required placeholder="正解を入力" class="q-text-ans w-full border border-slate-300 rounded px-3 py-1.5 text-xs sm:text-sm bg-white">
+            <input type="text" id="${optTextAnsId}" value="${escapeHtml(answer)}" required placeholder="正解キーワードを入力" class="q-text-ans w-full border border-slate-300 rounded px-3 py-1.5 text-xs sm:text-sm bg-white">
             <button type="button" onclick="startSpeechRecognition('${optTextAnsId}')" class="text-indigo-600 px-2.5 py-1 text-xs border border-indigo-200 rounded" title="音声入力"><i class="fa-solid fa-microphone"></i></button>
           </div>
         `;
@@ -1102,7 +1103,6 @@
       document.getElementById('timer-display').innerText = `${m}:${s}`;
     }
 
-    // 回答画面描画 (【改善要望2】1文字ごとのキーボード不意閉じ問題対策：入力中再描画の遮断)
     function renderAnswerCard() {
       const q = activeSession.questions[activeSession.currentIndex];
       const total = activeSession.questions.length;
@@ -1188,7 +1188,6 @@
       renderAnswerCard();
     }
 
-    // 1文字ごとのキーボード閉じ対策：shouldReRenderで制御
     function saveCurrentAnswer(qId, val, shouldReRender = false) {
       activeSession.userAnswers[qId] = val;
       if (shouldReRender) {
