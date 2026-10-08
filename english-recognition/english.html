@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>カメラ英語学習アプリ</title>
-  <!-- TensorFlow.js & MobileNet (画像識別モデル) -->
+  <title>高精度カメラ英語学習アプリ</title>
+  <!-- TensorFlow.js & COCO-SSD (物体検出モデル) -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0/dist/mobilenet.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
   <style>
     :root {
       --primary-color: #4a90e2;
@@ -53,6 +53,31 @@
       object-fit: cover;
     }
 
+    /* ガイド枠 */
+    .guide-box {
+      position: absolute;
+      top: 20%;
+      left: 20%;
+      width: 60%;
+      height: 60%;
+      border: 2px dashed rgba(255, 255, 255, 0.8);
+      border-radius: 8px;
+      pointer-events: none;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 8px;
+    }
+
+    .guide-text {
+      color: #fff;
+      font-size: 0.75rem;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
     .controls {
       display: flex;
       gap: 10px;
@@ -82,14 +107,6 @@
 
     button:disabled {
       background-color: #ccc;
-    }
-
-    .btn-secondary {
-      background-color: #6c757d;
-    }
-
-    .btn-voice {
-      background-color: #28a745;
     }
 
     .loading-status {
@@ -152,6 +169,10 @@
       flex: none;
     }
 
+    .btn-voice {
+      background-color: #28a745;
+    }
+
     .speech-active {
       animation: pulse 1.2s infinite;
       background-color: #dc3545 !important;
@@ -166,18 +187,24 @@
 </head>
 <body>
 
-  <h1>📷 カメラ英語学習アプリ</h1>
-  <div id="status" class="loading-status">AIモデルを読み込み中...</div>
+  <h1>📷 高精度カメラ英語学習アプリ</h1>
+  <div id="status" class="loading-status">高精度AIモデル(COCO-SSD)を読み込み中...</div>
 
   <div class="camera-container">
     <video id="video" autoplay playsinline muted></video>
+    <div class="guide-box">
+      <span class="guide-text">枠内に物体を合わせてください</span>
+    </div>
   </div>
 
   <div class="controls">
-    <button id="scanBtn" disabled>🔍 写っているものを識別</button>
+    <button id="scanBtn" disabled>🔍 枠内の物体を識別</button>
   </div>
 
   <div id="results" class="results-container"></div>
+
+  <!-- クロップ用の非表示キャンバス -->
+  <canvas id="cropCanvas" style="display:none;"></canvas>
 
   <script>
     let model = null;
@@ -185,20 +212,20 @@
     const scanBtn = document.getElementById('scanBtn');
     const statusText = document.getElementById('status');
     const resultsContainer = document.getElementById('results');
+    const cropCanvas = document.getElementById('cropCanvas');
 
-    // 1. カメラとAIモデルの初期化
+    // 1. 初期化
     async function init() {
       try {
-        // カメラ設定 (背面カメラ優先)
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' },
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false
         });
         video.srcObject = stream;
 
-        // MobileNetモデル読み込み
-        model = await mobilenet.load();
-        statusText.innerText = "準備完了！物体をカメラに写して識別ボタンを押してください。";
+        // COCO-SSDモデルの読み込み
+        model = await cocoSsd.load();
+        statusText.innerText = "準備完了！中央の枠内に物体を入れて撮影してください。";
         scanBtn.disabled = false;
       } catch (err) {
         console.error(err);
@@ -206,7 +233,7 @@
       }
     }
 
-    // 2. 画像識別処理
+    // 2. クロップ画像の抽出と識別処理
     scanBtn.addEventListener('click', async () => {
       if (!model) return;
       
@@ -214,24 +241,44 @@
       scanBtn.disabled = true;
 
       try {
-        // 上位3つの推論結果を取得
-        const predictions = await model.classify(video, 3);
+        // ガイド枠内の領域のみをキャンバスに描画
+        const ctx = cropCanvas.getContext('2d');
+        const vWidth = video.videoWidth;
+        const vHeight = video.videoHeight;
+
+        // 20%〜80%の範囲を抽出
+        const cropX = vWidth * 0.2;
+        const cropY = vHeight * 0.2;
+        const cropW = vWidth * 0.6;
+        const cropH = vHeight * 0.6;
+
+        cropCanvas.width = cropW;
+        cropCanvas.height = cropH;
+        ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+        // COCO-SSDで検出（確信度0.3以上のものを抽出）
+        const predictions = await model.detect(cropCanvas);
+        
+        // 確信度順にソートし、重複を除外
+        const filtered = filterPredictions(predictions);
+
         resultsContainer.innerHTML = '';
 
-        for (let i = 0; i < predictions.length; i++) {
-          const item = predictions[i];
-          // MobileNetはカンマ区切りで複数の英単語を返すため、最初の単語を抽出
-          const rawEnglish = item.className.split(',')[0].trim();
-          const probability = Math.round(item.probability * 100);
+        if (filtered.length === 0) {
+          statusText.innerText = "物体を認識できませんでした。近づけるか明るい場所でお試しください。";
+        } else {
+          for (let i = 0; i < filtered.length; i++) {
+            const item = filtered[i];
+            const rawEnglish = item.class;
+            const probability = Math.round(item.score * 100);
 
-          // カードを作成して追加
-          const card = createResultCard(rawEnglish, probability, i);
-          resultsContainer.appendChild(card);
-          
-          // 初期翻訳を実行 (英語 -> 日本語)
-          translateAndSet(i, rawEnglish, 'en2ja');
+            const card = createResultCard(rawEnglish, probability, i);
+            resultsContainer.appendChild(card);
+            
+            translateAndSet(i, rawEnglish, 'en2ja');
+          }
+          statusText.innerText = "識別完了！用語の編集や発音確認が可能です。";
         }
-        statusText.innerText = "識別完了！用語の編集や発音確認が可能です。";
       } catch (err) {
         console.error(err);
         statusText.innerText = "識別処理中にエラーが発生しました。";
@@ -240,7 +287,20 @@
       }
     });
 
-    // 3. 結果カードのHTML動的生成
+    // 重複除去とフィルタリング
+    function filterPredictions(predictions) {
+      const uniqueMap = new Map();
+      predictions.forEach(p => {
+        if (p.score >= 0.3) { // 確信度30%以上
+          if (!uniqueMap.has(p.class) || uniqueMap.get(p.class).score < p.score) {
+            uniqueMap.set(p.class, p);
+          }
+        }
+      });
+      return Array.from(uniqueMap.values()).sort((a, b) => b.score - a.score).slice(0, 3);
+    }
+
+    // 3. カードUI生成
     function createResultCard(englishText, probability, index) {
       const card = document.createElement('div');
       card.className = 'card';
@@ -248,10 +308,9 @@
 
       card.innerHTML = `
         <div class="card-header">
-          <span>候補 ${index + 1} (確信度: ${probability}%)</span>
+          <span>識別候補 ${index + 1} (確信度: ${probability}%)</span>
         </div>
         
-        <!-- 英語入力 & 操作 -->
         <div class="input-group">
           <span class="label-tag">英</span>
           <input type="text" id="en-input-${index}" value="${englishText}">
@@ -259,7 +318,6 @@
           <button class="action-btn btn-voice" id="mic-en-${index}" onclick="startSpeechRecognition('${index}', 'en-US')">🎙️</button>
         </div>
 
-        <!-- 日本語入力 & 操作 -->
         <div class="input-group">
           <span class="label-tag">日</span>
           <input type="text" id="ja-input-${index}" value="翻訳中...">
@@ -268,7 +326,6 @@
         </div>
       `;
 
-      // 編集時のリアルタイム自動翻訳イベントイベント付与
       setTimeout(() => {
         const enInput = document.getElementById(`en-input-${index}`);
         const jaInput = document.getElementById(`ja-input-${index}`);
@@ -285,7 +342,7 @@
       return card;
     }
 
-    // 4. 翻訳処理 (無料の MyMemory API を使用)
+    // 4. 翻訳処理
     async function translateAndSet(index, text, direction) {
       if (!text.trim()) return;
 
@@ -309,23 +366,23 @@
       }
     }
 
-    // 5. 音声合成 (Text-to-Speech)
+    // 5. 音声合成
     function speakText(inputId, lang) {
       const text = document.getElementById(inputId).value;
       if (!text) return;
 
-      window.speechSynthesis.cancel(); // 連続再生防止
+      window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = lang;
-      utterance.rate = 0.9; // 読み上げ速度調整（学習用に少しゆっくり）
+      utterance.rate = 0.9;
       window.speechSynthesis.speak(utterance);
     }
 
-    // 6. 音声入力 (Web Speech API)
+    // 6. 音声入力
     function startSpeechRecognition(index, lang) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        alert("お使いのブラウザは音声入力に対応していません。キーボードをご利用ください。");
+        alert("お使いのブラウザは音声入力に対応していません。");
         return;
       }
 
@@ -349,8 +406,7 @@
         }
       };
 
-      recognition.onerror = (event) => {
-        console.error("音声認識エラー:", event.error);
+      recognition.onerror = () => {
         micBtn.classList.remove('speech-active');
       };
 
@@ -361,7 +417,6 @@
       recognition.start();
     }
 
-    // アプリ初期化
     window.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
