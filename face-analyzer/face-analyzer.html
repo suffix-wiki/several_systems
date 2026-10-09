@@ -80,7 +80,6 @@
       box-shadow: 0 0 20px var(--theme-glow);
     }
 
-    /* HUD Overlay Effects */
     .scanlines {
       background: linear-gradient(
         to bottom,
@@ -110,11 +109,10 @@
     <div class="flex items-center gap-2">
       <i data-lucide="crosshair" class="w-6 h-6 theme-color-text animate-spin" style="animation-duration: 10s;"></i>
       <h1 class="font-orbitron font-black text-base md:text-xl tracking-wider theme-color-text theme-glow-text">
-        CYBER SCOUTER <span class="text-xs text-slate-200 font-normal px-1.5 py-0.5 border theme-border rounded bg-slate-950/60">HUD v5.0</span>
+        CYBER SCOUTER <span class="text-xs text-slate-200 font-normal px-1.5 py-0.5 border theme-border rounded bg-slate-950/60">v6.0 REAR-FOCUS</span>
       </h1>
     </div>
 
-    <!-- Controls: Theme Toggle, Audio Toggle, Camera Flip -->
     <div class="flex items-center gap-2">
       <button id="btn-theme" class="px-2.5 py-1 text-xs border theme-border rounded-lg flex items-center gap-1.5 bg-slate-950/60 hover:bg-slate-800/50 transition theme-color-text">
         <i data-lucide="palette" class="w-3.5 h-3.5"></i>
@@ -125,7 +123,7 @@
         <i id="icon-audio" data-lucide="volume-2" class="w-4 h-4"></i>
       </button>
 
-      <button id="btn-camera-flip" class="p-1.5 border theme-border rounded-lg bg-slate-950/60 hover:bg-slate-800/50 transition theme-color-text" title="カメラ切替">
+      <button id="btn-camera-flip" class="p-1.5 border theme-border rounded-lg bg-slate-950/60 hover:bg-slate-800/50 transition theme-color-text" title="カメラ反転切替">
         <i data-lucide="refresh-cw" class="w-4 h-4"></i>
       </button>
     </div>
@@ -133,17 +131,15 @@
 
   <main class="flex-1 relative overflow-hidden flex flex-col justify-between">
     
-    <!-- Camera Viewport & Canvas Overlay -->
     <div class="absolute inset-0 z-0 flex items-center justify-center bg-black">
-      <video id="webcam" class="absolute w-full h-full object-cover transform -scale-x-100" playsinline autoplay muted></video>
+      <!-- Camera element: Defaulting to non-mirrored for Rear camera -->
+      <video id="webcam" class="absolute w-full h-full object-cover" playsinline autoplay muted></video>
       <canvas id="scouter-canvas" class="absolute w-full h-full object-cover z-10 pointer-events-none"></canvas>
       
-      <!-- Monocle Tint Overlay -->
       <div id="scouter-tint" class="absolute inset-0 pointer-events-none transition-colors duration-500 bg-cyan-950/20 mix-blend-color-dodge"></div>
       <div class="absolute inset-0 pointer-events-none scanlines z-10 opacity-60"></div>
     </div>
 
-    <!-- Navigation Mode Tabs (Top Controls) -->
     <div class="relative z-20 p-2.5 flex flex-col items-center gap-2">
       <div class="inline-flex p-1 bg-slate-900/85 backdrop-blur-md rounded-xl border theme-border max-w-full overflow-x-auto gap-1">
         <button data-mode="power" class="mode-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 bg-slate-800 text-white shadow-lg transition">
@@ -160,7 +156,6 @@
         </button>
       </div>
 
-      <!-- Criteria Focus Selector (Only for Face Type Mode) -->
       <div id="criteria-selector" class="hidden flex items-center gap-2 bg-slate-900/90 border theme-border px-3 py-1 rounded-full text-xs">
         <span class="text-slate-300 font-bold">評価基準:</span>
         <button id="btn-criteria-cool" class="px-2.5 py-0.5 rounded-full font-bold bg-slate-800 theme-color-text border theme-border transition">
@@ -172,29 +167,27 @@
       </div>
     </div>
 
-    <!-- Power Alert Banner -->
+    <!-- Power Warning Indicator -->
     <div id="alert-banner" class="relative z-20 self-center hidden transform transition-all duration-300 my-2">
       <div class="bg-red-600/90 text-white font-black px-5 py-1.5 rounded-full border-2 border-yellow-300 shadow-2xl flex items-center gap-2 animate-bounce">
         <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-300"></i>
-        <span id="alert-text" class="tracking-widest text-xs md:text-sm font-orbitron">WARNING: ENERGY OVERLOAD!</span>
+        <span id="alert-text" class="tracking-widest text-xs md:text-sm font-orbitron">TARGET LOCKED: HIGH POWER DETECTED!</span>
       </div>
     </div>
 
     <div class="relative z-20 p-3 md:p-5 flex flex-col items-center">
       
-      <!-- Analysis Info Panel -->
       <div id="analysis-panel" class="w-full max-w-xl mb-3 scouter-panel rounded-2xl p-4 text-xs md:text-sm shadow-2xl border theme-border hidden transition-all duration-300">
         <div id="panel-content" class="space-y-3"></div>
       </div>
 
-      <!-- Action Buttons Bar -->
       <div class="w-full max-w-md flex justify-between items-center gap-3">
         <button id="btn-scan" class="flex-1 py-3 px-4 theme-btn-primary font-orbitron font-black text-sm md:text-base rounded-xl transition active:scale-95 flex items-center justify-center gap-2">
           <i data-lucide="radar" class="w-5 h-5"></i>
-          <span id="btn-scan-text">ターゲットスキャン</span>
+          <span id="btn-scan-text">焦点ロックオン分析</span>
         </button>
 
-        <button id="btn-capture" class="p-3 bg-slate-900/90 border theme-border rounded-xl theme-color-text hover:bg-slate-800/80 active:scale-95 transition flex items-center justify-center shadow-lg" title="HUDショットを保存">
+        <button id="btn-capture" class="p-3 bg-slate-900/90 border theme-border rounded-xl theme-color-text hover:bg-slate-800/80 active:scale-95 transition flex items-center justify-center shadow-lg" title="HUDショット保存">
           <i data-lucide="camera" class="w-5 h-5"></i>
         </button>
       </div>
@@ -202,7 +195,7 @@
 
   </main>
 
-  <!-- Snapshot Capture Result Modal -->
+  <!-- Modal for Snapshot Display -->
   <div id="capture-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border theme-border rounded-2xl max-w-md w-full p-4 flex flex-col items-center space-y-4 shadow-2xl">
       <div class="flex justify-between items-center w-full border-b border-slate-800 pb-2">
@@ -220,7 +213,7 @@
 
       <div class="flex gap-3 w-full">
         <button id="btn-download" class="flex-1 py-2.5 theme-btn-primary font-bold text-xs md:text-sm rounded-xl transition flex items-center justify-center gap-2">
-          <i data-lucide="download" class="w-4 h-4"></i> 画像をダウンロード
+          <i data-lucide="download" class="w-4 h-4"></i> 画像を保存
         </button>
       </div>
     </div>
@@ -228,42 +221,22 @@
 
   <script>
     const STATE = {
-      mode: 'power', // 'power' | 'facetype' | 'rpg' | 'chemistry'
-      theme: 'cyan',  // 'cyan' | 'green' | 'red' | 'purple'
-      criteria: 'cool', // 'cool' (かっこよさ) | 'beauty' (美しさ)
+      mode: 'power',
+      theme: 'cyan',
+      criteria: 'cool',
       audioEnabled: true,
-      facingMode: 'user',
-      lastDetectedFaces: []
+      facingMode: 'environment', // Defaulting to Rear Camera as requested!
+      lastDetectedFaces: [],
+      smoothTarget: null // Interpolated face box
     };
 
     const THEMES = {
-      cyan: {
-        primary: '#00ccff',
-        rgb: '0, 204, 255',
-        tint: 'rgba(0, 204, 255, 0.15)',
-        name: 'CYAN'
-      },
-      green: {
-        primary: '#00ff66',
-        rgb: '0, 255, 102)',
-        tint: 'rgba(0, 255, 102, 0.15)',
-        name: 'GREEN'
-      },
-      red: {
-        primary: '#ff3344',
-        rgb: '255, 51, 68',
-        tint: 'rgba(255, 51, 68, 0.2)',
-        name: 'RED'
-      },
-      purple: {
-        primary: '#bf00ff',
-        rgb: '191, 0, 255',
-        tint: 'rgba(191, 0, 255, 0.2)',
-        name: 'PURPLE'
-      }
+      cyan: { primary: '#00ccff', rgb: '0, 204, 255', tint: 'rgba(0, 204, 255, 0.15)', name: 'CYAN' },
+      green: { primary: '#00ff66', rgb: '0, 255, 102', tint: 'rgba(0, 255, 102, 0.15)', name: 'GREEN' },
+      red: { primary: '#ff3344', rgb: '255, 51, 68', tint: 'rgba(255, 51, 68, 0.2)', name: 'RED' },
+      purple: { primary: '#bf00ff', rgb: '191, 0, 255', tint: 'rgba(191, 0, 255, 0.2)', name: 'PURPLE' }
     };
 
-    // Male Face Types
     const MALE_TYPES = [
       { name: "しょうゆ顔 (Soy)", desc: "癖がなく整った和風の王道で爽やかなバランス顔立ち" },
       { name: "ソース顔 (Sauce)", desc: "彫りが深く目鼻立ちがはっきりとした濃いめワイルド顔" },
@@ -274,7 +247,6 @@
       { name: "酢顔 (Vinegar)", desc: "すっきりスリムでミステリアスな透明感あふれる極薄顔" }
     ];
 
-    // Female Face Types
     const FEMALE_TYPES = [
       { name: "フェミニン (Feminine)", desc: "柔らかく華やかで女性らしい洗練された上品な顔立ち" },
       { name: "エレガント (Elegant)", desc: "彫りが深く大人っぽく凛とした品格あふれる美意識高め顔" },
@@ -284,7 +256,6 @@
       { name: "キュート (Cute)", desc: "丸みのあるパーツと明るい表情が愛くるしい童顔" }
     ];
 
-    // Classic RPG Job Categories
     const RPG_JOBS = [
       { title: "勇者 (Hero)", trait: "万能な統率力と不屈の精神を持った光のリーダー", rank: "S-Rank" },
       { title: "魔法使い (Mage)", trait: "圧倒的な知性と広範囲な状況変化を起こす術士", rank: "A-Rank" },
@@ -296,7 +267,6 @@
       { title: "魔王 (Demon King)", trait: "全周囲を圧倒するカリスマ性と絶大なオーラ", rank: "EX-Rank" }
     ];
 
-    // Fortune Compatibility Archetypes
     const FORTUNE_ARCHETYPES = [
       { title: "運命のソウルメイト", desc: "前世からの深い絆。お互いの長所を高め合える最高の相性です。" },
       { title: "最強の無敵バディ", desc: "直感と波長が完璧に合致。どんな困難も二人でクリアできます。" },
@@ -305,10 +275,7 @@
     ];
 
     class SoundEngine {
-      constructor() {
-        this.ctx = null;
-      }
-
+      constructor() { this.ctx = null; }
       init() {
         if (!this.ctx) {
           const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -372,7 +339,7 @@
 
     const soundEngine = new SoundEngine();
 
-    class FaceDetector {
+    class CenterFocusDetector {
       constructor(videoElement) {
         this.video = videoElement;
       }
@@ -382,59 +349,93 @@
 
         const width = this.video.videoWidth;
         const height = this.video.videoHeight;
-        const time = Date.now() * 0.0025;
+        const screenCenterX = width / 2;
+        const screenCenterY = height / 2;
 
-        // Target 1 (Primary)
-        const centerX = width * (0.5 + Math.sin(time * 0.6) * 0.03);
-        const centerY = height * (0.43 + Math.cos(time * 0.4) * 0.02);
-        const size = Math.min(width, height) * 0.36;
+        const time = Date.now() * 0.002;
+
+        // Simulated central target anchor (Prioritizing the exact center of screen)
+        const size = Math.min(width, height) * 0.38;
+        
+        // Minor natural micro-movements around the viewport center
+        const rawCenterX = screenCenterX + Math.sin(time * 0.8) * (width * 0.02);
+        const rawCenterY = screenCenterY + Math.cos(time * 0.6) * (height * 0.02);
 
         const powerSeed = Math.abs(Math.sin(time * 1.5)) + Math.cos(time * 1.2);
-        let basePower = Math.floor(3200 + powerSeed * 8400);
+        let basePower = Math.floor(4500 + powerSeed * 8800);
 
-        if (Math.sin(time * 0.2) > 0.9) {
-          basePower = Math.floor(65000 + Math.random() * 35000); // Surge
+        if (Math.sin(time * 0.25) > 0.88) {
+          basePower = Math.floor(72000 + Math.random() * 28000); // Sudden energy overload
         }
 
-        const gender1 = (Math.sin(time) > -0.2) ? 'Male' : 'Female';
-        const age1 = Math.floor(22 + (Math.abs(Math.cos(time * 0.5)) * 16));
+        const gender1 = (Math.sin(time * 0.4) > -0.1) ? 'Male' : 'Female';
+        const age1 = Math.floor(22 + (Math.abs(Math.cos(time * 0.3)) * 18));
 
-        const primaryFace = {
-          id: 'target-1',
-          x: centerX - size / 2,
-          y: centerY - size / 2,
+        // Primary Target Always Focuses Directly on Center Camera Line!
+        const primaryTarget = {
+          id: 'center-primary-target',
+          rawX: rawCenterX - size / 2,
+          rawY: rawCenterY - size / 2,
           width: size,
-          height: size * 1.25,
+          height: size * 1.22,
           gender: gender1,
           age: age1,
           power: basePower,
-          charmScore: Math.min(99, Math.floor(81 + (basePower % 18))),
+          charmScore: Math.min(99, Math.floor(82 + (basePower % 17))),
           maleType: MALE_TYPES[Math.floor(basePower) % MALE_TYPES.length],
           femaleType: FEMALE_TYPES[Math.floor(basePower) % FEMALE_TYPES.length],
           rpg: RPG_JOBS[Math.floor(basePower * 2) % RPG_JOBS.length],
-          landmarks: this.generateLandmarks(centerX, centerY, size)
+          centerX: rawCenterX,
+          centerY: rawCenterY,
+          distToCenter: 0
+        };
+
+        // Smooth Exponential Moving Average for fluid target tracking
+        if (!STATE.smoothTarget) {
+          STATE.smoothTarget = { ...primaryTarget };
+        } else {
+          const alpha = 0.18; // Smoothing factor
+          STATE.smoothTarget.rawX += (primaryTarget.rawX - STATE.smoothTarget.rawX) * alpha;
+          STATE.smoothTarget.rawY += (primaryTarget.rawY - STATE.smoothTarget.rawY) * alpha;
+          STATE.smoothTarget.width += (primaryTarget.width - STATE.smoothTarget.width) * alpha;
+          STATE.smoothTarget.height += (primaryTarget.height - STATE.smoothTarget.height) * alpha;
+          STATE.smoothTarget.power = primaryTarget.power;
+          STATE.smoothTarget.gender = primaryTarget.gender;
+          STATE.smoothTarget.age = primaryTarget.age;
+          STATE.smoothTarget.charmScore = primaryTarget.charmScore;
+          STATE.smoothTarget.maleType = primaryTarget.maleType;
+          STATE.smoothTarget.femaleType = primaryTarget.femaleType;
+          STATE.smoothTarget.rpg = primaryTarget.rpg;
+        }
+
+        const primaryFace = {
+          ...STATE.smoothTarget,
+          x: STATE.smoothTarget.rawX,
+          y: STATE.smoothTarget.rawY,
+          landmarks: this.generateLandmarks(
+            STATE.smoothTarget.rawX + STATE.smoothTarget.width / 2,
+            STATE.smoothTarget.rawY + STATE.smoothTarget.height / 2,
+            STATE.smoothTarget.width
+          )
         };
 
         const faces = [primaryFace];
 
-        // Target 2 (Secondary - For Multi-Person Chemistry)
-        const secX = width * (0.22 + Math.cos(time * 0.7) * 0.03);
-        const secY = height * (0.47 + Math.sin(time * 0.5) * 0.03);
-        const secSize = size * 0.72;
-
-        const gender2 = (gender1 === 'Male') ? 'Female' : 'Male';
-        const age2 = Math.floor(20 + (Math.abs(Math.sin(time * 0.7)) * 14));
+        // Secondary Target for Multi-person mode
+        const secX = width * 0.22 + Math.cos(time * 0.5) * 15;
+        const secY = height * 0.45 + Math.sin(time * 0.4) * 15;
+        const secSize = size * 0.7;
 
         faces.push({
-          id: 'target-2',
+          id: 'secondary-target',
           x: secX - secSize / 2,
           y: secY - secSize / 2,
           width: secSize,
-          height: secSize * 1.25,
-          gender: gender2,
-          age: age2,
-          power: Math.floor(basePower * 0.85),
-          charmScore: Math.floor(75 + (basePower % 22)),
+          height: secSize * 1.2,
+          gender: (gender1 === 'Male') ? 'Female' : 'Male',
+          age: Math.floor(20 + Math.abs(Math.sin(time * 0.5)) * 12),
+          power: Math.floor(basePower * 0.88),
+          charmScore: Math.floor(78 + (basePower % 18)),
           maleType: MALE_TYPES[(Math.floor(basePower) + 2) % MALE_TYPES.length],
           femaleType: FEMALE_TYPES[(Math.floor(basePower) + 1) % FEMALE_TYPES.length],
           rpg: RPG_JOBS[(Math.floor(basePower) + 3) % RPG_JOBS.length],
@@ -472,25 +473,25 @@
         const theme = THEMES[STATE.theme];
         const color = theme.primary;
 
-        this.drawBackgroundGrid(color);
+        // 1. Draw Prominent Central Target Focus Guide
+        this.drawCentralFocusReticle(color);
 
         if (!faces || faces.length === 0) {
           this.drawSearchingText(color);
           return;
         }
 
-        // Modular Rendering Based on Current Mode
         if (STATE.mode === 'chemistry') {
           if (faces.length >= 2) {
-            this.drawTargetReticle(faces[0], color);
-            this.drawTargetReticle(faces[1], '#ff00aa');
+            this.drawTargetReticle(faces[0], color, true);
+            this.drawTargetReticle(faces[1], '#ff00aa', false);
             this.drawChemistryHUD(faces[0], faces[1]);
           } else {
-            this.drawTargetReticle(faces[0], color);
+            this.drawTargetReticle(faces[0], color, true);
           }
         } else {
           const face = faces[0];
-          this.drawTargetReticle(face, color);
+          this.drawTargetReticle(face, color, true);
 
           if (STATE.mode === 'power') {
             this.drawPowerLevelHUD(face, color);
@@ -502,28 +503,27 @@
         }
       }
 
-      drawBackgroundGrid(color) {
+      drawCentralFocusReticle(color) {
         const ctx = this.ctx;
         const w = this.canvas.width;
         const h = this.canvas.height;
+        const cx = w / 2;
+        const cy = h / 2;
 
         ctx.save();
         ctx.strokeStyle = color;
-        ctx.globalAlpha = 0.12;
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.35;
 
+        // Central Precision Crosshair Grid
         ctx.beginPath();
-        ctx.arc(w / 2, h / 2, Math.min(w, h) * 0.35, 0, Math.PI * 2);
+        ctx.moveTo(cx - 30, cy); ctx.lineTo(cx + 30, cy);
+        ctx.moveTo(cx, cy - 30); ctx.lineTo(cx, cy + 30);
         ctx.stroke();
 
-        const margin = 20;
-        const len = 35;
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = 0.4;
-
         ctx.beginPath();
-        ctx.moveTo(margin, margin + len); ctx.lineTo(margin, margin); ctx.lineTo(margin + len, margin);
-        ctx.moveTo(w - margin - len, margin); ctx.lineTo(w - margin, margin); ctx.lineTo(w - margin, margin + len);
+        ctx.arc(cx, cy, 50, 0, Math.PI * 2);
+        ctx.setLineDash([4, 6]);
         ctx.stroke();
 
         ctx.restore();
@@ -537,11 +537,11 @@
         ctx.textAlign = 'center';
         ctx.shadowColor = color;
         ctx.shadowBlur = 8;
-        ctx.fillText('TARGET SEARCHING...', this.canvas.width / 2, this.canvas.height / 2);
+        ctx.fillText('TARGET LOCKING ON CENTER...', this.canvas.width / 2, this.canvas.height / 2 + 80);
         ctx.restore();
       }
 
-      drawTargetReticle(face, color) {
+      drawTargetReticle(face, color, isCenterTarget) {
         const ctx = this.ctx;
         const { x, y, width, height, gender, age } = face;
         const cx = x + width / 2;
@@ -549,37 +549,46 @@
 
         ctx.save();
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = isCenterTarget ? 2.5 : 1.5;
         ctx.shadowColor = color;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = isCenterTarget ? 14 : 6;
 
-        const radius = Math.max(width, height) * 0.55;
+        // Locking Circle
+        const radius = Math.max(width, height) * 0.52;
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx.setLineDash([12, 8]);
+        ctx.setLineDash(isCenterTarget ? [12, 6] : [6, 6]);
         ctx.stroke();
 
+        // Corner Bounding Marks
         ctx.setLineDash([]);
-        const size = 15;
+        const size = 18;
         ctx.beginPath(); ctx.moveTo(x, y + size); ctx.lineTo(x, y); ctx.lineTo(x + size, y); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(x + width - size, y); ctx.lineTo(x + width, y); ctx.lineTo(x + width, y + size); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(x, y + height - size); ctx.lineTo(x, y + height); ctx.lineTo(x + size, y + height); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(x + width - size, y + height); ctx.lineTo(x + width, y + height); ctx.lineTo(x + width, y + height - size); ctx.stroke();
 
-        // Gender & Age Attribute Overlay Badge
-        ctx.fillStyle = 'rgba(3, 7, 18, 0.85)';
-        ctx.fillRect(x, y - 26, 110, 20);
+        // Center Focus Indicator Lock Icon
+        if (isCenterTarget) {
+          ctx.fillStyle = color;
+          ctx.font = '900 10px Orbitron';
+          ctx.fillText('LOCKED ON CENTER', x, y - 32);
+        }
+
+        // Gender & Age Attribute Badge
+        ctx.fillStyle = 'rgba(3, 7, 18, 0.88)';
+        ctx.fillRect(x, y - 24, 115, 20);
         ctx.strokeStyle = color;
         ctx.lineWidth = 1;
-        ctx.strokeRect(x, y - 26, 110, 20);
+        ctx.strokeRect(x, y - 24, 115, 20);
 
         ctx.fillStyle = color;
         ctx.font = '700 11px Orbitron';
-        ctx.fillText(`${gender === 'Male' ? '♂' : '♀'} ${gender} / ${age}歳`, x + 6, y - 12);
+        ctx.fillText(`${gender === 'Male' ? '♂' : '♀'} ${gender} / ${age}歳`, x + 6, y - 10);
 
         if (face.landmarks) {
           ctx.fillStyle = color;
-          ctx.globalAlpha = 0.8;
+          ctx.globalAlpha = 0.85;
           [face.landmarks.leftEye, face.landmarks.rightEye, face.landmarks.nose, face.landmarks.mouth].forEach(pt => {
             ctx.beginPath();
             ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
@@ -600,15 +609,15 @@
         ctx.shadowBlur = 12;
 
         ctx.font = '900 12px Orbitron';
-        ctx.fillText('BATTLE POWER', x + width + 15, y + 20);
+        ctx.fillText('BATTLE POWER', x + width + 15, y + 18);
 
         ctx.font = '900 28px Orbitron';
-        ctx.fillText(power.toLocaleString(), x + width + 15, y + 52);
+        ctx.fillText(power.toLocaleString(), x + width + 15, y + 50);
 
         if (power > 12000) {
           ctx.fillStyle = '#ff3344';
           ctx.font = '700 11px Noto Sans JP';
-          ctx.fillText('⚠️ 高エネルギー検出！', x + width + 15, y + 74);
+          ctx.fillText('⚠️ 高エネルギー検出！', x + width + 15, y + 72);
         }
 
         ctx.restore();
@@ -692,7 +701,7 @@
       constructor() {
         this.video = document.getElementById('webcam');
         this.canvas = document.getElementById('scouter-canvas');
-        this.detector = new FaceDetector(this.video);
+        this.detector = new CenterFocusDetector(this.video);
         this.renderer = new HUDCanvasRenderer(this.canvas);
         
         this.bindEvents();
@@ -702,17 +711,25 @@
 
       async initCamera() {
         try {
+          if (this.stream) {
+            this.stream.getTracks().forEach(track => track.stop());
+          }
+
+          // Camera constraints prioritize Rear / Environment Camera explicitly!
           const constraints = {
             video: {
-              facingMode: STATE.facingMode,
+              facingMode: STATE.facingMode === 'environment' ? { ideal: 'environment' } : 'user',
               width: { ideal: 1280 },
               height: { ideal: 720 }
             },
             audio: false
           };
 
-          if (this.stream) {
-            this.stream.getTracks().forEach(track => track.stop());
+          // Apply Video Mirroring ONLY for Front ('user') camera
+          if (STATE.facingMode === 'user') {
+            this.video.classList.add('-scale-x-100');
+          } else {
+            this.video.classList.remove('-scale-x-100');
           }
 
           this.stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -721,14 +738,23 @@
 
           this.renderer.resize();
         } catch (err) {
-          console.error("Camera access failed:", err);
+          console.warn("Requested camera mode unavailable, falling back...", err);
+          try {
+            // Fallback to default video device
+            this.stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            this.video.srcObject = this.stream;
+            await this.video.play();
+            this.renderer.resize();
+          } catch(e) {
+            console.error("Camera Initialization Failed Completely", e);
+          }
         }
       }
 
       bindEvents() {
         window.addEventListener('resize', () => this.renderer.resize());
 
-        // Navigation Tabs
+        // Mode Switching
         document.querySelectorAll('.mode-tab').forEach(tab => {
           tab.addEventListener('click', (e) => {
             const mode = e.currentTarget.dataset.mode;
@@ -736,7 +762,7 @@
           });
         });
 
-        // Theme Switcher (Global Theme Propagation)
+        // Theme Switcher
         document.getElementById('btn-theme').addEventListener('click', () => {
           const themeKeys = Object.keys(THEMES);
           const currentIndex = themeKeys.indexOf(STATE.theme);
@@ -777,14 +803,14 @@
           lucide.createIcons();
         });
 
-        // Camera Flip
+        // Camera Flip Button
         document.getElementById('btn-camera-flip').addEventListener('click', () => {
-          STATE.facingMode = (STATE.facingMode === 'user') ? 'environment' : 'user';
+          STATE.facingMode = (STATE.facingMode === 'environment') ? 'user' : 'environment';
           this.initCamera();
           soundEngine.playBeep(1500, 'square', 0.08);
         });
 
-        // Target Scan Action
+        // Action Scan
         document.getElementById('btn-scan').addEventListener('click', () => {
           this.triggerScanSequence();
         });
@@ -876,7 +902,7 @@
               <div class="p-2.5 rounded-xl bg-slate-900/80 border theme-border">
                 <div class="text-xs text-slate-400">推定属性</div>
                 <div class="font-bold text-sm text-white mt-0.5">${f1.gender === 'Male' ? '男性 ♂' : '女性 ♀'} (${f1.age}歳)</div>
-                <div class="text-xs text-slate-300 mt-1">AI顔構造解析に基づく測定</div>
+                <div class="text-xs text-slate-300 mt-1">AI中央フォーカスで判定</div>
               </div>
 
               <div class="p-2.5 rounded-xl bg-slate-900/80 border theme-border">
@@ -907,7 +933,7 @@
             panelContent.innerHTML = `
               <div class="text-center py-2 text-amber-300">
                 <i data-lucide="users" class="w-6 h-6 mx-auto mb-1"></i>
-                カメラ画角内に2人目のターゲットを捉えてください
+                画角内に2人目のターゲットを捉えてください
               </div>
             `;
             lucide.createIcons();
