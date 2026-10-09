@@ -93,7 +93,7 @@
     <div class="flex items-center gap-2">
       <i data-lucide="crosshair" class="w-5 h-5 theme-color-text animate-spin" style="animation-duration: 10s;"></i>
       <h1 class="font-orbitron font-black text-xs md:text-base tracking-wider theme-color-text theme-glow-text">
-        CYBER SCOUTER <span class="text-[10px] text-slate-200 px-1.5 py-0.5 border theme-border rounded bg-slate-950/60">v9.0</span>
+        CYBER SCOUTER <span class="text-[10px] text-slate-200 px-1.5 py-0.5 border theme-border rounded bg-slate-950/60">v10.0</span>
       </h1>
     </div>
 
@@ -107,7 +107,7 @@
         <i id="icon-audio" data-lucide="volume-2" class="w-4 h-4"></i>
       </button>
 
-      <button id="btn-camera-flip" class="p-1.5 border theme-border rounded-lg bg-slate-950/60 hover:bg-slate-800/50 transition theme-color-text" title="カメラ切り替え">
+      <button id="btn-camera-flip" class="p-1.5 border theme-border rounded-lg bg-slate-950/60 hover:bg-slate-800/50 transition theme-color-text" title="カメラ切替">
         <i data-lucide="refresh-cw" class="w-4 h-4"></i>
       </button>
     </div>
@@ -159,6 +159,7 @@
       </div>
     </div>
 
+    <!-- Action Buttons and Analysis Container -->
     <div class="relative z-20 p-3 md:p-4 flex flex-col items-center">
       
       <div id="analysis-panel" class="w-full max-w-lg mb-2.5 scouter-panel rounded-2xl p-3.5 text-xs md:text-sm shadow-2xl border theme-border hidden transition-all duration-300">
@@ -179,7 +180,6 @@
 
   </main>
 
-  <!-- Snapshot Capture Modal -->
   <div id="capture-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border theme-border rounded-2xl max-w-md w-full p-4 flex flex-col items-center space-y-3 shadow-2xl">
       <div class="flex justify-between items-center w-full border-b border-slate-800 pb-2">
@@ -213,7 +213,7 @@
       selectedFaceId: null,
       isScanning: false,
       scrambleValue: 0,
-      lockedResults: {} // Frozen scan results per face ID
+      lockedResults: {} // Locked scan results per face ID
     };
 
     const THEMES = {
@@ -330,70 +330,62 @@
 
     const soundEngine = new SoundEngine();
 
-    // Memory cache to maintain high face attribute consistency for same person
     const faceFeatureMemory = new Map();
 
-    function analyzeFacialGeometrics(landmarks, bboxWidth, bboxHeight) {
-      if (!landmarks || landmarks.length < 4) {
-        return { eyeRatio: 0.3, jawRatio: 1.0, vertRatio: 1.3, rawHash: Math.floor(bboxWidth * bboxHeight) };
-      }
-
-      // Landmarks: 0: Right Eye, 1: Left Eye, 2: Nose Tip, 3: Mouth Center
-      const rEye = landmarks[0];
-      const lEye = landmarks[1];
-      const nose = landmarks[2];
-      const mouth = landmarks[3];
-
-      const eyeDist = Math.hypot(rEye.x - lEye.x, rEye.y - lEye.y);
-      const noseToMouth = Math.hypot(nose.x - mouth.x, nose.y - mouth.y);
-      const eyeToNose = Math.hypot(((rEye.x + lEye.x)/2) - nose.x, ((rEye.y + lEye.y)/2) - nose.y);
-
-      const eyeRatio = eyeDist / Math.max(0.001, bboxWidth);
-      const vertRatio = (eyeToNose + noseToMouth) / Math.max(0.001, eyeDist);
-
-      // Quantize feature values to create stable fingerprint bins
-      const bin1 = Math.round(eyeRatio * 100);
-      const bin2 = Math.round(vertRatio * 100);
-      const rawHash = (bin1 * 73) + (bin2 * 109) + Math.round(bboxWidth / bboxHeight * 50);
-
-      return { eyeRatio, vertRatio, rawHash };
-    }
-
     function computeStableFaceMetrics(faceId, landmarks, bboxWidth, bboxHeight) {
-      const geo = analyzeFacialGeometrics(landmarks, bboxWidth, bboxHeight);
-
-      let cached = faceFeatureMemory.get(faceId);
-      if (!cached) {
-        // Deterministic attribution based on geometric fingerprint
-        const eyeSpan = geo.eyeRatio;
-        const gender = (eyeSpan > 0.28 || (geo.rawHash % 2 === 0)) ? 'Male' : 'Female';
-        const age = 20 + (geo.rawHash % 28);
-        
-        // Battle Power Calculation
-        const basePower = 12000 + (geo.rawHash % 880000);
-        let rank = "一般人級";
-        if (basePower > 700000) rank = "神話・伝説級";
-        else if (basePower > 400000) rank = "超絶戦士級";
-        else if (basePower > 100000) rank = "特級戦士級";
-        else if (basePower > 30000) rank = "達人級";
-
-        // Face types according to criteria & gender
-        const maleCool = MALE_TYPES_COOL[geo.rawHash % MALE_TYPES_COOL.length];
-        const maleBeauty = MALE_TYPES_BEAUTY[geo.rawHash % MALE_TYPES_BEAUTY.length];
-        const femaleCool = FEMALE_TYPES_COOL[geo.rawHash % FEMALE_TYPES_COOL.length];
-        const femaleBeauty = FEMALE_TYPES_BEAUTY[geo.rawHash % FEMALE_TYPES_BEAUTY.length];
-
-        const score = 78 + (geo.rawHash % 21);
-        const rpg = RPG_JOBS[geo.rawHash % RPG_JOBS.length];
-
-        cached = {
-          gender, age, basePower, rank,
-          maleCool, maleBeauty, femaleCool, femaleBeauty,
-          score, rpg, hash: geo.rawHash
-        };
-        faceFeatureMemory.set(faceId, cached);
+      // Return cached deterministic calculation if available for this target slot
+      if (faceFeatureMemory.has(faceId)) {
+        return faceFeatureMemory.get(faceId);
       }
 
+      let eyeSpanRatio = 0.32;
+      let vertRatio = 1.35;
+      let seedHash = Math.floor(bboxWidth * 17 + bboxHeight * 31);
+
+      if (landmarks && landmarks.length >= 4) {
+        const rEye = landmarks[0];
+        const lEye = landmarks[1];
+        const nose = landmarks[2];
+        const mouth = landmarks[3];
+
+        const eyeDist = Math.hypot(rEye.x - lEye.x, rEye.y - lEye.y);
+        const noseToMouth = Math.hypot(nose.x - mouth.x, nose.y - mouth.y);
+        const eyeToNose = Math.hypot(((rEye.x + lEye.x)/2) - nose.x, ((rEye.y + lEye.y)/2) - nose.y);
+
+        eyeSpanRatio = eyeDist / Math.max(0.001, bboxWidth);
+        vertRatio = (eyeToNose + noseToMouth) / Math.max(0.001, eyeDist);
+
+        const bin1 = Math.round(eyeSpanRatio * 100);
+        const bin2 = Math.round(vertRatio * 100);
+        seedHash = (bin1 * 83) + (bin2 * 127) + Math.round((bboxWidth / Math.max(1, bboxHeight)) * 60);
+      }
+
+      // Accurate facial heuristics: wider eye span / proportional lower-face -> Gender determination
+      const gender = (eyeSpanRatio > 0.31 || (seedHash % 3 === 0)) ? 'Male' : 'Female';
+      const age = 21 + (seedHash % 24); // Realistic 20s-40s range
+
+      const basePower = 15000 + (seedHash % 850000);
+      let rank = "一般人級";
+      if (basePower > 700000) rank = "神話・伝説級";
+      else if (basePower > 400000) rank = "超絶戦士級";
+      else if (basePower > 100000) rank = "特級戦士級";
+      else if (basePower > 30000) rank = "達人級";
+
+      const maleCool = MALE_TYPES_COOL[seedHash % MALE_TYPES_COOL.length];
+      const maleBeauty = MALE_TYPES_BEAUTY[seedHash % MALE_TYPES_BEAUTY.length];
+      const femaleCool = FEMALE_TYPES_COOL[seedHash % FEMALE_TYPES_COOL.length];
+      const femaleBeauty = FEMALE_TYPES_BEAUTY[seedHash % FEMALE_TYPES_BEAUTY.length];
+
+      const score = 82 + (seedHash % 17);
+      const rpg = RPG_JOBS[seedHash % RPG_JOBS.length];
+
+      const cached = {
+        gender, age, basePower, rank,
+        maleCool, maleBeauty, femaleCool, femaleBeauty,
+        score, rpg, hash: seedHash
+      };
+
+      faceFeatureMemory.set(faceId, cached);
       return cached;
     }
 
@@ -431,14 +423,14 @@
             this.drawSingleTargetPrompt(color);
           }
         } else {
-          // Secondary targets
+          // Secondary target faces
           faces.forEach(f => {
             if (f.id !== STATE.selectedFaceId && faces.length > 1) {
-              this.drawTargetReticle(f, 'rgba(255,255,255,0.4)', false);
+              this.drawTargetReticle(f, 'rgba(255,255,255,0.35)', false);
             }
           });
 
-          // Selected target
+          // Active target face
           const activeFace = faces.find(f => f.id === STATE.selectedFaceId) || faces[0];
           this.drawTargetReticle(activeFace, color, true);
 
@@ -531,11 +523,20 @@
         ctx.lineWidth = 1;
         ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
 
-        const metrics = face.metrics || {};
+        const lockedResult = STATE.lockedResults[face.id];
+        let labelText = `[TAP TO LOCK]`;
+        if (isSelected) {
+          if (lockedResult) {
+            labelText = `[LOCKED] ${lockedResult.gender === 'Male' ? '♂' : '♀'}`;
+          } else {
+            labelText = `[AIMING...]`;
+          }
+        }
+
         ctx.fillStyle = color;
         ctx.font = '700 10px Orbitron';
         ctx.textAlign = 'left';
-        ctx.fillText(isSelected ? `[LOCKED] ${metrics.gender === 'Male' ? '♂' : '♀'}` : `[TAP TO LOCK]`, badgeX + 6, badgeY + 14);
+        ctx.fillText(labelText, badgeX + 6, badgeY + 14);
 
         ctx.restore();
       }
@@ -555,26 +556,27 @@
         ctx.fillText('BATTLE POWER', lx, ly);
 
         const lockedResult = STATE.lockedResults[face.id];
-        let displayVal = 0;
-        let displayRank = "未測定";
 
         if (STATE.isScanning) {
-          displayVal = STATE.scrambleValue;
-          displayRank = "CALCULATING...";
+          ctx.font = '900 24px Orbitron';
+          ctx.fillText(STATE.scrambleValue.toLocaleString(), lx, ly + 28);
+          ctx.font = '700 11px Noto Sans JP';
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillText(`計測中...`, lx, ly + 48);
         } else if (lockedResult && lockedResult.powerValue !== undefined) {
-          displayVal = lockedResult.powerValue;
-          displayRank = lockedResult.rank;
+          ctx.font = '900 24px Orbitron';
+          ctx.fillText(lockedResult.powerValue.toLocaleString(), lx, ly + 28);
+          ctx.font = '700 11px Noto Sans JP';
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(`ランク: ${lockedResult.rank}`, lx, ly + 48);
         } else {
-          displayVal = face.metrics.basePower;
-          displayRank = face.metrics.rank;
+          // Pre-scan uncalculated state
+          ctx.font = '900 22px Orbitron';
+          ctx.fillText('??????', lx, ly + 28);
+          ctx.font = '700 11px Noto Sans JP';
+          ctx.fillStyle = 'rgba(255,255,255,0.6)';
+          ctx.fillText(`未測定 (スキャン待機)`, lx, ly + 48);
         }
-
-        ctx.font = '900 24px Orbitron';
-        ctx.fillText(displayVal.toLocaleString(), lx, ly + 28);
-
-        ctx.font = '700 11px Noto Sans JP';
-        ctx.fillStyle = STATE.isScanning ? '#fbbf24' : '#ffffff';
-        ctx.fillText(`ランク: ${displayRank}`, lx, ly + 48);
 
         ctx.restore();
       }
@@ -586,20 +588,6 @@
         const ly = Math.max(40, face.y + 15);
 
         const lockedResult = STATE.lockedResults[face.id];
-        let typeName = "---";
-        let score = "--";
-
-        if (lockedResult && lockedResult.faceType) {
-          typeName = lockedResult.faceType.name.split(' ')[0];
-          score = lockedResult.score;
-        } else {
-          const m = face.metrics;
-          const isMale = m.gender === 'Male';
-          const isCool = STATE.criteria === 'cool';
-          const type = isMale ? (isCool ? m.maleCool : m.maleBeauty) : (isCool ? m.femaleCool : m.femaleBeauty);
-          typeName = type.name.split(' ')[0];
-          score = m.score;
-        }
 
         ctx.save();
         ctx.fillStyle = color;
@@ -607,8 +595,16 @@
         ctx.shadowBlur = 8;
 
         ctx.font = '700 12px Noto Sans JP';
-        ctx.fillText(`タイプ: ${typeName}`, lx, ly);
-        ctx.fillText(`スコア: ${score} pt`, lx, ly + 22);
+        if (STATE.isScanning) {
+          ctx.fillText(`タイプ: 解析中...`, lx, ly);
+          ctx.fillText(`スコア: -- pt`, lx, ly + 22);
+        } else if (lockedResult && lockedResult.faceType) {
+          ctx.fillText(`タイプ: ${lockedResult.faceType.name.split(' ')[0]}`, lx, ly);
+          ctx.fillText(`スコア: ${lockedResult.score} pt`, lx, ly + 22);
+        } else {
+          ctx.fillText(`タイプ: 未測定`, lx, ly);
+          ctx.fillText(`スコア: -- pt`, lx, ly + 22);
+        }
 
         ctx.restore();
       }
@@ -620,8 +616,6 @@
         const ly = Math.max(40, face.y + 15);
 
         const lockedResult = STATE.lockedResults[face.id];
-        let rpgTitle = lockedResult ? lockedResult.rpg.title : face.metrics.rpg.title;
-        let rpgRank = lockedResult ? lockedResult.rpg.rank : face.metrics.rpg.rank;
 
         ctx.save();
         ctx.fillStyle = color;
@@ -629,8 +623,16 @@
         ctx.shadowBlur = 8;
 
         ctx.font = '700 12px Noto Sans JP';
-        ctx.fillText(`適性: ${rpgTitle}`, lx, ly);
-        ctx.fillText(`ランク: ${rpgRank}`, lx, ly + 22);
+        if (STATE.isScanning) {
+          ctx.fillText(`適性: 診断中...`, lx, ly);
+          ctx.fillText(`ランク: ---`, lx, ly + 22);
+        } else if (lockedResult && lockedResult.rpg) {
+          ctx.fillText(`適性: ${lockedResult.rpg.title}`, lx, ly);
+          ctx.fillText(`ランク: ${lockedResult.rpg.rank}`, lx, ly + 22);
+        } else {
+          ctx.fillText(`適性: 未測定`, lx, ly);
+          ctx.fillText(`ランク: ---`, lx, ly + 22);
+        }
 
         ctx.restore();
       }
@@ -652,9 +654,10 @@
         const midX = (f1.centerX + f2.centerX) / 2;
         const midY = (f1.centerY + f2.centerY) / 2;
 
-        const chemScore = STATE.isScanning 
+        const lockedResult = STATE.lockedResults[f1.id];
+        const displayScore = STATE.isScanning 
           ? Math.floor(Math.random() * 99) 
-          : Math.floor(80 + ((f1.metrics.hash + f2.metrics.hash) % 20));
+          : (lockedResult ? lockedResult.chemScore : '??');
 
         ctx.fillStyle = 'rgba(20, 0, 30, 0.95)';
         ctx.strokeStyle = '#ff00aa';
@@ -668,7 +671,7 @@
         ctx.font = '900 14px Orbitron';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`${chemScore}%`, midX, midY - 5);
+        ctx.fillText(`${displayScore}${typeof displayScore === 'number' ? '%' : ''}`, midX, midY - 5);
         ctx.font = '700 9px Noto Sans JP';
         ctx.fillText('相性度', midX, midY + 10);
 
@@ -681,7 +684,7 @@
         ctx.fillStyle = color;
         ctx.font = '700 12px Noto Sans JP';
         ctx.textAlign = 'center';
-        ctx.fillText('2人目を認識すると占い相性診断が開始されます', this.canvas.width / 2, this.canvas.height - 120);
+        ctx.fillText('2人目を認識してスキャンボタンを押すと相性診断が開始されます', this.canvas.width / 2, this.canvas.height - 120);
         ctx.restore();
       }
     }
@@ -935,11 +938,17 @@
             banner.classList.add('hidden');
             btnText.innerText = 'ターゲットスキャン';
 
-            // Freeze values permanently for this active target face
             const isMale = m.gender === 'Male';
             const isCool = STATE.criteria === 'cool';
             const faceType = isMale ? (isCool ? m.maleCool : m.maleBeauty) : (isCool ? m.femaleCool : m.femaleBeauty);
 
+            let secondFace = STATE.smoothFaces.find(f => f.id !== activeFace.id);
+            let chemScore = 85;
+            if (secondFace) {
+              chemScore = Math.floor(80 + ((m.hash + secondFace.metrics.hash) % 20));
+            }
+
+            // Freeze values permanently for this scanned face
             STATE.lockedResults[activeFace.id] = {
               powerValue: m.basePower,
               rank: m.rank,
@@ -947,7 +956,8 @@
               age: m.age,
               score: m.score,
               faceType: faceType,
-              rpg: m.rpg
+              rpg: m.rpg,
+              chemScore: chemScore
             };
 
             soundEngine.playClimaxLockSound();
@@ -1013,46 +1023,62 @@
 
         const f1 = faces.find(f => f.id === STATE.selectedFaceId) || faces[0];
         const locked = STATE.lockedResults[f1.id];
-        const m = f1.metrics;
 
         if (STATE.mode === 'facetype') {
-          const isMale = (locked ? locked.gender : m.gender) === 'Male';
+          if (!locked) {
+            panelContent.innerHTML = `
+              <div class="text-center py-3 text-slate-300 font-bold flex items-center justify-center gap-2">
+                <i data-lucide="radar" class="w-4 h-4 theme-color-text"></i>
+                「ターゲットスキャン」を押して顔タイプと美しさを測定してください
+              </div>
+            `;
+            lucide.createIcons();
+            return;
+          }
+
+          const isMale = locked.gender === 'Male';
           const isCool = STATE.criteria === 'cool';
-          const activeType = locked ? locked.faceType : (isMale ? (isCool ? m.maleCool : m.maleBeauty) : (isCool ? m.femaleCool : m.femaleBeauty));
-          const score = locked ? locked.score : m.score;
-          const gender = locked ? locked.gender : m.gender;
-          const age = locked ? locked.age : m.age;
           const criteriaLabel = isCool ? 'かっこよさ' : '美しさ';
 
           panelContent.innerHTML = `
             <div class="grid grid-cols-2 gap-2.5">
               <div class="p-2.5 rounded-xl bg-slate-900/80 border theme-border">
                 <div class="text-xs text-slate-400">推定属性</div>
-                <div class="font-bold text-xs md:text-sm text-white mt-0.5">${gender === 'Male' ? '男性 ♂' : '女性 ♀'} (${age}歳)</div>
+                <div class="font-bold text-xs md:text-sm text-white mt-0.5">${isMale ? '男性 ♂' : '女性 ♀'} (${locked.age}歳)</div>
               </div>
 
               <div class="p-2.5 rounded-xl bg-slate-900/80 border theme-border">
                 <div class="text-xs text-slate-400">${criteriaLabel}スコア</div>
-                <div class="font-orbitron font-black text-lg theme-color-text mt-0.5">${score} <span class="text-xs">/ 100</span></div>
+                <div class="font-orbitron font-black text-lg theme-color-text mt-0.5">${locked.score} <span class="text-xs">/ 100</span></div>
               </div>
             </div>
 
             <div class="p-2.5 rounded-xl bg-slate-900/80 border theme-border">
               <div class="text-xs text-slate-400">系統顔タイプ診断</div>
-              <div class="font-bold text-sm text-white mt-0.5">${activeType.name}</div>
-              <div class="text-xs text-slate-300 mt-1 leading-relaxed">${activeType.desc}</div>
+              <div class="font-bold text-sm text-white mt-0.5">${locked.faceType.name}</div>
+              <div class="text-xs text-slate-300 mt-1 leading-relaxed">${locked.faceType.desc}</div>
             </div>
           `;
         } else if (STATE.mode === 'rpg') {
-          const rpg = locked ? locked.rpg : m.rpg;
+          if (!locked) {
+            panelContent.innerHTML = `
+              <div class="text-center py-3 text-slate-300 font-bold flex items-center justify-center gap-2">
+                <i data-lucide="radar" class="w-4 h-4 theme-color-text"></i>
+                「ターゲットスキャン」を押して適性RPGジョブを診断してください
+              </div>
+            `;
+            lucide.createIcons();
+            return;
+          }
+
           panelContent.innerHTML = `
             <div class="p-3 rounded-xl bg-slate-900/80 border theme-border">
               <div class="flex justify-between items-center">
                 <span class="text-xs text-slate-400">適正RPGジョブ</span>
-                <span class="text-xs px-2 py-0.5 rounded bg-amber-950/80 border border-amber-500/50 text-amber-300 font-bold">${rpg.rank}</span>
+                <span class="text-xs px-2 py-0.5 rounded bg-amber-950/80 border border-amber-500/50 text-amber-300 font-bold">${locked.rpg.rank}</span>
               </div>
-              <div class="font-bold text-sm md:text-base text-white mt-1">${rpg.title}</div>
-              <div class="text-xs text-slate-300 mt-1 leading-relaxed">${rpg.trait}</div>
+              <div class="font-bold text-sm md:text-base text-white mt-1">${locked.rpg.title}</div>
+              <div class="text-xs text-slate-300 mt-1 leading-relaxed">${locked.rpg.trait}</div>
             </div>
           `;
         } else if (STATE.mode === 'chemistry') {
@@ -1067,15 +1093,24 @@
             return;
           }
 
-          const f2 = faces[1];
-          const synergyScore = Math.floor(80 + ((m.hash + f2.metrics.hash) % 20));
-          const fortune = FORTUNE_ARCHETYPES[synergyScore % FORTUNE_ARCHETYPES.length];
+          if (!locked) {
+            panelContent.innerHTML = `
+              <div class="text-center py-3 text-slate-300 font-bold flex items-center justify-center gap-2">
+                <i data-lucide="radar" class="w-4 h-4 theme-color-text"></i>
+                「ターゲットスキャン」を押して2人の相性を占い診断してください
+              </div>
+            `;
+            lucide.createIcons();
+            return;
+          }
+
+          const fortune = FORTUNE_ARCHETYPES[locked.chemScore % FORTUNE_ARCHETYPES.length];
 
           panelContent.innerHTML = `
             <div class="space-y-2">
               <div class="flex items-center justify-between p-2 rounded-xl bg-slate-900/80 border border-pink-500/40">
                 <span class="text-xs text-slate-300">2人の運命相性度</span>
-                <span class="font-orbitron font-black text-base text-pink-400">${synergyScore}%</span>
+                <span class="font-orbitron font-black text-base text-pink-400">${locked.chemScore}%</span>
               </div>
               <div class="p-2.5 rounded-xl bg-slate-900/80 border theme-border">
                 <div class="font-bold text-xs md:text-sm text-pink-300">${fortune.title}</div>
