@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pocket Drum Studio - 横画面対応ドラムアプリ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Pocket Drum Studio</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -25,7 +25,7 @@
             height: 100vh;
         }
 
-        /* アプローチリングのアニメーション基本クラス */
+        /* アプローチリングのスタイル */
         .ring-marker {
             pointer-events: none;
             position: absolute;
@@ -39,7 +39,7 @@
 
         /* タップ時の視覚フィードバック */
         .pad-active {
-            transform: scale(0.94) !important;
+            transform: translate(-50%, -50%) scale(0.92) !important;
             filter: brightness(1.5) contrast(1.2);
             box-shadow: 0 0 30px rgba(56, 189, 248, 0.9) !important;
         }
@@ -47,32 +47,32 @@
         /* 判定用ポップアップテキストのアニメーション */
         @keyframes floatUp {
             0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8); }
-            50% { opacity: 1; transform: translate(-50%, -80%) scale(1.3); }
-            100% { opacity: 0; transform: translate(-50%, -130%) scale(1.0); }
+            50% { opacity: 1; transform: translate(-50%, -90%) scale(1.3); }
+            100% { opacity: 0; transform: translate(-50%, -140%) scale(1.0); }
         }
 
         .judgement-pop {
             position: absolute;
             font-weight: 900;
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             pointer-events: none;
             z-index: 40;
             animation: floatUp 0.6s ease-out forwards;
-            text-shadow: 0 0 12px rgba(0, 0, 0, 0.9);
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.9);
         }
 
-        /* ドラムステージレイアウト（画面全体を最大活用） */
+        /* ドラムステージレイアウト（画面全体を活用） */
         .drum-stage {
             position: relative;
             width: 100%;
-            height: calc(100vh - 64px);
-            max-width: 1300px;
+            height: calc(100vh - 44px);
             margin: 0 auto;
         }
 
-        /* ドラムパーツ個別のスタイル（より視認性の高いダイナミックデザイン） */
+        /* ドラムパーツ共通スタイル（中心基準で配置して重なりを正確に回避） */
         .drum-pad {
             position: absolute;
+            transform: translate(-50%, -50%);
             border-radius: 50%;
             display: flex;
             flex-direction: column;
@@ -80,12 +80,13 @@
             justify-content: center;
             cursor: pointer;
             transition: transform 0.05s ease, filter 0.05s ease;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 10px 25px rgba(0,0,0,0.6);
-            border: 3px solid rgba(255,255,255,0.25);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 8px 20px rgba(0,0,0,0.6);
+            border: 2.5px solid rgba(255,255,255,0.25);
             background-size: cover;
+            z-index: 10;
         }
 
-        /* 画面回転警告（縦画面時） */
+        /* 縦画面警告オーバーレイ */
         @media (orientation: portrait) {
             #rotate-warning {
                 display: flex !important;
@@ -98,226 +99,211 @@
     <!-- 縦画面警告オーバーレイ -->
     <div id="rotate-warning" class="hidden fixed inset-0 z-50 bg-slate-950/95 text-white flex-col items-center justify-center text-center p-6 backdrop-blur-md">
         <i class="fa-solid fa-mobile-screen-button text-6xl text-sky-400 mb-4 animate-bounce"></i>
-        <h2 class="text-2xl font-bold mb-2">画面を横向きにしてください</h2>
-        <p class="text-slate-400 text-sm max-w-xs">スマートフォンを横画面にセットして遊んでください。</p>
+        <h2 class="text-xl font-bold mb-2">画面を横向きにしてください</h2>
+        <p class="text-slate-400 text-xs max-w-xs">スマートフォンを横画面にセットして遊んでください。</p>
     </div>
 
-    <!-- トップナビゲーション / ステータスバー -->
-    <header class="h-16 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between px-4 z-20 shrink-0">
-        <!-- 左側：ロゴ & モード切替 -->
-        <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2">
-                <i class="fa-solid fa-drum text-sky-400 text-xl"></i>
-                <span class="font-extrabold text-lg tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400 hidden sm:inline">POCKET DRUM</span>
-            </div>
-
-            <!-- モード切り替えタブ -->
-            <div class="flex bg-slate-800 p-1 rounded-lg border border-slate-700/60 ml-2">
-                <button id="btn-mode-free" class="px-3 py-1 text-xs font-bold rounded-md bg-sky-500 text-white shadow transition-all">
-                    <i class="fa-solid fa-sliders mr-1"></i>フリー演奏
+    <!-- 超軽量トップバー（高さを44pxに抑えタップ領域を最大化） -->
+    <header class="h-11 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between px-3 z-20 shrink-0">
+        <!-- 左側：モード切替 (コンパクトボタン) -->
+        <div class="flex items-center gap-2">
+            <span class="font-black text-xs tracking-wider text-sky-400 hidden sm:inline mr-1"><i class="fa-solid fa-drum mr-1"></i>POCKET DRUM</span>
+            
+            <div class="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700/60">
+                <button id="btn-mode-free" class="px-2 py-1 text-[11px] font-bold rounded bg-sky-500 text-white shadow">
+                    フリー
                 </button>
-                <button id="btn-mode-song" class="px-3 py-1 text-xs font-bold rounded-md text-slate-400 hover:text-white transition-all">
-                    <i class="fa-solid fa-music mr-1"></i>楽曲演奏
+                <button id="btn-mode-song" class="px-2 py-1 text-[11px] font-bold rounded text-slate-400 hover:text-white">
+                    楽曲
                 </button>
             </div>
         </div>
 
-        <!-- 中央：ゲームスコア（楽曲モード用）/ テンポ表示（フリーモード用） -->
-        <div id="status-panel-free" class="flex items-center gap-4 text-xs font-medium bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700">
-            <div class="flex items-center gap-2">
-                <span class="text-slate-400">バスドラ自動:</span>
+        <!-- 中央：フリー演奏時コントロール (超小型) -->
+        <div id="status-panel-free" class="flex items-center gap-2 text-[11px] bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700">
+            <div class="flex items-center gap-1.5">
+                <span class="text-slate-400 text-[10px]">キック:</span>
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="kick-auto-toggle" class="sr-only peer" checked>
-                    <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-500"></div>
+                    <div class="w-7 h-4 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-sky-500"></div>
                 </label>
             </div>
 
-            <div class="h-4 w-[1px] bg-slate-700"></div>
+            <div class="h-3 w-[1px] bg-slate-700"></div>
 
-            <div class="flex items-center gap-2">
-                <span class="text-slate-400">パターン:</span>
-                <select id="kick-pattern-select" class="bg-slate-900 text-sky-300 text-xs rounded px-2 py-1 border border-slate-700 focus:outline-none">
-                    <optgroup label="8ビート (楽譜標準)">
-                        <option value="8bit_standard">8ビート (基本: 1・3拍目)</option>
-                        <option value="8bit_syncopation">8ビート (3拍目裏・食い込み)</option>
-                        <option value="8bit_dodon">8ビート (3拍目 ドドン!)</option>
-                        <option value="8bit_push">8ビート (1拍目裏 押し)</option>
-                    </optgroup>
-                    <optgroup label="ダンス・16ビート">
-                        <option value="4floor">4つ打ち (1・2・3・4拍すべて)</option>
-                        <option value="16bit_funk">16ビート (ファンク・ハネ)</option>
-                    </optgroup>
-                </select>
-            </div>
+            <select id="kick-pattern-select" class="bg-slate-900 text-sky-300 text-[10px] rounded px-1 py-0.5 border border-slate-700">
+                <option value="8bit_standard">8ビート(基本)</option>
+                <option value="8bit_syncopation">8ビート(シンコペ)</option>
+                <option value="8bit_dodon">8ビート(ドドン)</option>
+                <option value="8bit_push">8ビート(押し)</option>
+                <option value="4floor">4つ打ち</option>
+                <option value="16bit_funk">16ビート</option>
+            </select>
 
-            <div class="h-4 w-[1px] bg-slate-700"></div>
+            <div class="h-3 w-[1px] bg-slate-700 hidden sm:block"></div>
 
-            <div class="flex items-center gap-2">
-                <span class="text-slate-400">BPM:</span>
-                <input type="range" id="bpm-slider" min="60" max="180" value="120" class="w-16 accent-sky-400">
-                <span id="bpm-value" class="w-7 text-right font-bold text-sky-400">120</span>
+            <div class="flex items-center gap-1 hidden sm:flex">
+                <span class="text-slate-400 text-[10px]">BPM:</span>
+                <input type="range" id="bpm-slider" min="60" max="180" value="120" class="w-12 accent-sky-400">
+                <span id="bpm-value" class="w-5 text-right font-bold text-sky-400 text-[10px]">120</span>
             </div>
         </div>
 
-        <!-- 楽曲演奏モード時ステータス -->
-        <div id="status-panel-song" class="hidden flex items-center gap-6 text-xs font-bold bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700">
-            <div><span class="text-slate-400 font-normal mr-1">SCORE:</span><span id="score-display" class="text-amber-400 text-base">000000</span></div>
-            <div><span class="text-slate-400 font-normal mr-1">COMBO:</span><span id="combo-display" class="text-sky-400 text-base">0</span></div>
+        <!-- 楽曲演奏時ステータス -->
+        <div id="status-panel-song" class="hidden flex items-center gap-4 text-[11px] font-bold bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700">
+            <div><span class="text-slate-400 font-normal text-[10px] mr-1">SCORE:</span><span id="score-display" class="text-amber-400">000000</span></div>
+            <div><span class="text-slate-400 font-normal text-[10px] mr-1">COMBO:</span><span id="combo-display" class="text-sky-400">0</span></div>
         </div>
 
-        <!-- 右側：設定 ＆ 楽曲選択ボタン -->
-        <div class="flex items-center gap-2">
-            <button id="btn-song-select" class="hidden px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition shadow">
-                <i class="fa-solid fa-folder-open mr-1.5"></i>曲を選択
+        <!-- 右側：設定 ＆ 曲選択 (極小ボタン) -->
+        <div class="flex items-center gap-1.5">
+            <button id="btn-song-select" class="hidden px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold rounded-md shadow">
+                <i class="fa-solid fa-music mr-1"></i>選曲
             </button>
-            <button id="btn-settings" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition">
-                <i class="fa-solid fa-gear text-sm"></i>
+            <button id="btn-settings" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md border border-slate-700">
+                <i class="fa-solid fa-gear text-xs"></i>
             </button>
         </div>
     </header>
 
-    <!-- ドラムステージ（打面大型化＆中心近接配置レイアウト） -->
-    <main class="flex-1 relative overflow-hidden flex items-center justify-center p-2">
+    <!-- ドラムステージ（重なりゼロ＆最大化レイアウト） -->
+    <main class="flex-1 relative overflow-hidden flex items-center justify-center">
         <div id="drum-stage" class="drum-stage">
-            
-            <!-- 1. Crash Cymbal (クラッシュシンバル - 左上) -->
-            <div id="pad-crash" data-sound="crash" class="drum-pad bg-gradient-to-br from-amber-300/40 via-yellow-500/30 to-amber-700/50 border-amber-400/70" 
-                 style="top: 2%; left: 8%; width: 26vw; height: 26vw; max-width: 175px; max-height: 175px;">
-                <span class="text-amber-200 font-black text-sm sm:text-base tracking-wider drop-shadow">CRASH</span>
-                <span class="text-[10px] text-amber-100/70 font-mono">左シンバル</span>
+
+            <!-- 1. Crash Cymbal (左上) -->
+            <div id="pad-crash" data-sound="crash" class="drum-pad bg-gradient-to-br from-amber-300/40 via-yellow-500/30 to-amber-700/50 border-amber-400/70"
+                 style="top: 22%; left: 13%; width: 23vh; height: 23vh; min-width: 80px; min-height: 80px;">
+                <span class="text-amber-200 font-black text-xs sm:text-sm drop-shadow">CRASH</span>
             </div>
 
-            <!-- 2. Hi-Hat (ハイハット - 左中) -->
+            <!-- 2. Hi-Hat (左中) -->
             <div id="pad-hihat" data-sound="hihat" class="drum-pad bg-gradient-to-br from-yellow-200/40 via-amber-400/30 to-yellow-600/50 border-yellow-300/70"
-                 style="top: 38%; left: 3%; width: 25vw; height: 25vw; max-width: 165px; max-height: 165px;">
-                <span class="text-yellow-100 font-black text-sm sm:text-base tracking-wider drop-shadow">HI-HAT</span>
-                <span class="text-[10px] text-yellow-100/70 font-mono">ハット</span>
+                 style="top: 55%; left: 15%; width: 22vh; height: 22vh; min-width: 78px; min-height: 78px;">
+                <span class="text-yellow-100 font-black text-xs sm:text-sm drop-shadow">HI-HAT</span>
             </div>
 
-            <!-- 3. High Tom (ハイタム - 中央接近左上) -->
-            <div id="pad-tom1" data-sound="tom1" class="drum-pad bg-gradient-to-br from-slate-700 via-slate-800 to-slate-950 border-sky-400/60"
-                 style="top: 12%; left: 36%; width: 23vw; height: 23vw; max-width: 155px; max-height: 155px;">
-                <span class="text-sky-300 font-extrabold text-sm sm:text-base">HIGH TOM</span>
-                <span class="text-[10px] text-slate-400 font-mono">タム1</span>
-            </div>
-
-            <!-- 4. Low Tom (ロータム - 中央接近右上) -->
-            <div id="pad-tom2" data-sound="tom2" class="drum-pad bg-gradient-to-br from-slate-700 via-slate-800 to-slate-950 border-sky-400/60"
-                 style="top: 12%; left: 56%; width: 23vw; height: 23vw; max-width: 155px; max-height: 155px;">
-                <span class="text-sky-300 font-extrabold text-sm sm:text-base">LOW TOM</span>
-                <span class="text-[10px] text-slate-400 font-mono">タム2</span>
-            </div>
-
-            <!-- 5. Ride Cymbal (ライドシンバル - 右上) -->
-            <div id="pad-ride" data-sound="ride" class="drum-pad bg-gradient-to-br from-amber-300/40 via-yellow-500/30 to-amber-700/50 border-amber-400/70"
-                 style="top: 2%; left: 78%; width: 26vw; height: 26vw; max-width: 175px; max-height: 175px;">
-                <span class="text-amber-200 font-black text-sm sm:text-base tracking-wider drop-shadow">RIDE</span>
-                <span class="text-[10px] text-amber-100/70 font-mono">右シンバル</span>
-            </div>
-
-            <!-- 6. Snare Drum (スネア - 中央接近左下) -->
+            <!-- 3. Snare Drum (左下/手前) -->
             <div id="pad-snare" data-sound="snare" class="drum-pad bg-gradient-to-br from-rose-200/20 via-slate-700 to-slate-950 border-rose-400/80"
-                 style="top: 48%; left: 26%; width: 28vw; height: 28vw; max-width: 185px; max-height: 185px;">
-                <span class="text-rose-400 font-black text-base sm:text-lg tracking-wider drop-shadow">SNARE</span>
-                <span class="text-[11px] text-rose-200/70 font-mono">スネア</span>
+                 style="top: 80%; left: 30%; width: 26vh; height: 26vh; min-width: 90px; min-height: 90px;">
+                <span class="text-rose-300 font-black text-sm sm:text-base drop-shadow">SNARE</span>
             </div>
 
-            <!-- 7. Floor Tom (フロアタム - 中央接近右下) -->
+            <!-- 4. High Tom (中央左上) -->
+            <div id="pad-tom1" data-sound="tom1" class="drum-pad bg-gradient-to-br from-slate-700 via-slate-800 to-slate-950 border-sky-400/60"
+                 style="top: 26%; left: 38%; width: 22vh; height: 22vh; min-width: 78px; min-height: 78px;">
+                <span class="text-sky-300 font-extrabold text-xs sm:text-sm">HIGH TOM</span>
+            </div>
+
+            <!-- 5. Low Tom (中央右上) -->
+            <div id="pad-tom2" data-sound="tom2" class="drum-pad bg-gradient-to-br from-slate-700 via-slate-800 to-slate-950 border-sky-400/60"
+                 style="top: 26%; left: 62%; width: 22vh; height: 22vh; min-width: 78px; min-height: 78px;">
+                <span class="text-sky-300 font-extrabold text-xs sm:text-sm">LOW TOM</span>
+            </div>
+
+            <!-- 6. Ride Cymbal (右上) -->
+            <div id="pad-ride" data-sound="ride" class="drum-pad bg-gradient-to-br from-amber-300/40 via-yellow-500/30 to-amber-700/50 border-amber-400/70"
+                 style="top: 22%; left: 87%; width: 23vh; height: 23vh; min-width: 80px; min-height: 80px;">
+                <span class="text-amber-200 font-black text-xs sm:text-sm drop-shadow">RIDE</span>
+            </div>
+
+            <!-- 7. Floor Tom (右下) -->
             <div id="pad-floortom" data-sound="floortom" class="drum-pad bg-gradient-to-br from-slate-700 via-slate-800 to-slate-950 border-indigo-400/60"
-                 style="top: 48%; left: 66%; width: 28vw; height: 28vw; max-width: 185px; max-height: 185px;">
-                <span class="text-indigo-300 font-black text-sm sm:text-base">FLOOR TOM</span>
-                <span class="text-[10px] text-slate-400 font-mono">フロアタム</span>
+                 style="top: 75%; left: 74%; width: 26vh; height: 26vh; min-width: 90px; min-height: 90px;">
+                <span class="text-indigo-300 font-black text-xs sm:text-sm">FLOOR TOM</span>
             </div>
 
-            <!-- 8. Bass Drum Visual Indicator (バスドラム中央視覚エフェクト) -->
-            <div id="pad-kick-visual" class="absolute top-[68%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border-4 border-emerald-500/40 flex flex-col items-center justify-center pointer-events-none bg-emerald-950/20 transition-all duration-75">
-                <i class="fa-solid fa-shoe-prints text-emerald-400/60 text-2xl mb-1"></i>
-                <span class="text-[10px] text-emerald-400/80 font-black tracking-widest">AUTO KICK</span>
+            <!-- バスドラム視覚インジケーター (中央奥) -->
+            <div id="pad-kick-visual" class="absolute top-[68%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border-2 border-emerald-500/40 flex flex-col items-center justify-center pointer-events-none bg-emerald-950/20 transition-all duration-75 z-0">
+                <i class="fa-solid fa-shoe-prints text-emerald-400/60 text-base mb-0.5"></i>
+                <span class="text-[9px] text-emerald-400/80 font-black">KICK</span>
             </div>
 
         </div>
     </main>
 
-    <!-- 楽曲選択 & モードモーダル -->
-    <div id="modal-song" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl">
-            <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+    <!-- 楽曲選択モーダル（スクロール対応＆×ボタン固定） -->
+    <div id="modal-song" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-xl p-4 shadow-2xl flex flex-col max-h-[85vh]">
+            <!-- ヘッダー固定 -->
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800 shrink-0">
+                <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
                     <i class="fa-solid fa-music text-sky-400"></i> 楽曲の選択
                 </h3>
-                <button id="btn-close-song-modal" class="text-slate-400 hover:text-white p-1">
-                    <i class="fa-solid fa-xmark text-lg"></i>
+                <button id="btn-close-song-modal" class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-800 border border-slate-700 text-xs">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <div class="space-y-3 mb-6">
+            <!-- コンテンツエリア（自動スクロール） -->
+            <div class="space-y-2.5 my-3 overflow-y-auto pr-1 flex-1 text-xs">
                 <!-- デモ曲1 -->
-                <button class="song-option-btn w-full bg-slate-800/80 hover:bg-slate-700/80 p-3 rounded-xl border border-slate-700 text-left flex items-center justify-between group transition" data-song="demo1">
+                <button class="song-option-btn w-full bg-slate-800/80 hover:bg-slate-700/80 p-2.5 rounded-lg border border-slate-700 text-left flex items-center justify-between group transition" data-song="demo1">
                     <div>
-                        <div class="font-bold text-sky-300 text-sm group-hover:text-white">標準8ビート 練習曲 (BPM 120)</div>
-                        <div class="text-xs text-slate-400">基本の1・3拍キックとスネア練習</div>
+                        <div class="font-bold text-sky-300 group-hover:text-white">標準8ビート 練習曲 (BPM 120)</div>
+                        <div class="text-[10px] text-slate-400">基本の1・3拍キックとスネア練習</div>
                     </div>
                     <i class="fa-solid fa-play text-slate-500 group-hover:text-sky-400"></i>
                 </button>
 
                 <!-- デモ曲2 -->
-                <button class="song-option-btn w-full bg-slate-800/80 hover:bg-slate-700/80 p-3 rounded-xl border border-slate-700 text-left flex items-center justify-between group transition" data-song="demo2">
+                <button class="song-option-btn w-full bg-slate-800/80 hover:bg-slate-700/80 p-2.5 rounded-lg border border-slate-700 text-left flex items-center justify-between group transition" data-song="demo2">
                     <div>
-                        <div class="font-bold text-indigo-300 text-sm group-hover:text-white">ロック・シンコペーション (BPM 125)</div>
-                        <div class="text-xs text-slate-400">3拍目裏のキックとタム回し</div>
+                        <div class="font-bold text-indigo-300 group-hover:text-white">ロック・シンコペーション (BPM 125)</div>
+                        <div class="text-[10px] text-slate-400">3拍目裏のキックとタム回し</div>
                     </div>
                     <i class="fa-solid fa-play text-slate-500 group-hover:text-indigo-400"></i>
                 </button>
 
                 <!-- カスタムMP3/WAVファイル読み込み -->
-                <div class="pt-2">
-                    <label class="block text-xs font-medium text-slate-400 mb-1">自分の曲を読み込む (MP3/WAV)</label>
-                    <input type="file" id="audio-file-input" accept="audio/*" class="block w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-sky-500 file:text-white hover:file:bg-sky-400 cursor-pointer bg-slate-800 rounded-xl border border-slate-700">
+                <div class="pt-1">
+                    <label class="block text-[11px] font-medium text-slate-300 mb-1">端末の曲を読み込む (MP3/WAV)</label>
+                    <input type="file" id="audio-file-input" accept="audio/*" class="block w-full text-[10px] text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-sky-500 file:text-white hover:file:bg-sky-400 cursor-pointer bg-slate-800 rounded-lg border border-slate-700">
                 </div>
             </div>
 
-            <button id="btn-start-song" class="w-full bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold py-3 rounded-xl shadow-lg transition">
+            <!-- スタートボタン固定 -->
+            <button id="btn-start-song" class="w-full bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold py-2 rounded-lg shadow text-xs shrink-0">
                 演奏スタート！
             </button>
         </div>
     </div>
 
-    <!-- 音源＆設定モーダル -->
-    <div id="modal-settings" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl">
-            <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-sliders text-sky-400"></i> サウンド＆システム設定
+    <!-- 設定モーダル（スクロール対応） -->
+    <div id="modal-settings" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-xl p-4 shadow-2xl flex flex-col max-h-[85vh]">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800 shrink-0">
+                <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+                    <i class="fa-solid fa-sliders text-sky-400"></i> 設定
                 </h3>
-                <button id="btn-close-settings-modal" class="text-slate-400 hover:text-white p-1">
-                    <i class="fa-solid fa-xmark text-lg"></i>
+                <button id="btn-close-settings-modal" class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-800 border border-slate-700 text-xs">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <div class="space-y-4 mb-6">
+            <div class="space-y-3 my-3 overflow-y-auto pr-1 flex-1 text-xs">
                 <div>
-                    <label class="block text-xs font-medium text-slate-300 mb-2">音源タイプ（サウンドエンジン）</label>
-                    <div class="grid grid-cols-2 gap-3">
-                        <label class="sound-mode-option cursor-pointer bg-slate-800 border-2 border-sky-500 p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center">
+                    <label class="block text-[11px] font-medium text-slate-300 mb-1.5">音源エンジン</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="sound-mode-option cursor-pointer bg-slate-800 border-2 border-sky-500 p-2 rounded-lg flex flex-col items-center justify-center text-center">
                             <input type="radio" name="sound-mode" value="synth" class="sr-only" checked>
-                            <span class="font-bold text-sm text-sky-300">① Synth モード</span>
-                            <span class="text-[10px] text-slate-400">超高速レスポンス音源 (Web Audio API)</span>
+                            <span class="font-bold text-xs text-sky-300">Synth モード</span>
+                            <span class="text-[9px] text-slate-400">超高速レスポンス</span>
                         </label>
-                        <label class="sound-mode-option cursor-pointer bg-slate-800 border-2 border-slate-700 p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center">
+                        <label class="sound-mode-option cursor-pointer bg-slate-800 border-2 border-slate-700 p-2 rounded-lg flex flex-col items-center justify-center text-center">
                             <input type="radio" name="sound-mode" value="sample" class="sr-only">
-                            <span class="font-bold text-sm text-slate-300">② Sample モード</span>
-                            <span class="text-[10px] text-slate-400">リアルドラム録音 サンプル音源</span>
+                            <span class="font-bold text-xs text-slate-300">Sample モード</span>
+                            <span class="text-[9px] text-slate-400">録音サンプル音</span>
                         </label>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-slate-300 mb-1">全体音量</label>
+                    <label class="block text-[11px] font-medium text-slate-300 mb-1">マスター音量</label>
                     <input type="range" id="master-volume" min="0" max="1" step="0.05" value="0.8" class="w-full accent-sky-400">
                 </div>
             </div>
 
-            <button id="btn-save-settings" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold py-2.5 rounded-xl transition">
+            <button id="btn-save-settings" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold py-2 rounded-lg text-xs shrink-0">
                 閉じる
             </button>
         </div>
@@ -329,10 +315,7 @@
         let audioCtx = null;
         let masterGainNode = null;
 
-        // 音源タイプ: 'synth' または 'sample'
         let soundEngineType = 'synth';
-
-        // 外部サンプルオーディオのバッファ格納用
         const sampleBuffers = {};
 
         function initAudio() {
@@ -347,29 +330,25 @@
             }
         }
 
-        /* 
-         * Web Audio API Synthesizer (リアル合成音源)
-         */
+        // Web Audio API Synthesizer 音色生成
         function playSynthesizedSound(type) {
             if (!audioCtx) return;
             const now = audioCtx.currentTime;
 
             if (type === 'kick') {
-                // バスドラム (低音サイン波 + 急激なピッチ下降)
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.frequency.setValueAtTime(140, now);
-                osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.35);
+                osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.3);
                 gain.gain.setValueAtTime(1.0, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
                 osc.connect(gain);
                 gain.connect(masterGainNode);
                 osc.start(now);
-                osc.stop(now + 0.35);
+                osc.stop(now + 0.3);
 
             } else if (type === 'snare') {
-                // スネア (ノイズ成分 + トーンオシレーター)
-                const bufferSize = audioCtx.sampleRate * 0.22;
+                const bufferSize = audioCtx.sampleRate * 0.2;
                 const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
                 const data = buffer.getChannelData(0);
                 for (let i = 0; i < bufferSize; i++) {
@@ -380,11 +359,11 @@
 
                 const noiseFilter = audioCtx.createBiquadFilter();
                 noiseFilter.type = 'highpass';
-                noiseFilter.frequency.value = 900;
+                noiseFilter.frequency.value = 800;
 
                 const noiseGain = audioCtx.createGain();
-                noiseGain.gain.setValueAtTime(0.85, now);
-                noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+                noiseGain.gain.setValueAtTime(0.8, now);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
 
                 noise.connect(noiseFilter);
                 noiseFilter.connect(noiseGain);
@@ -394,7 +373,7 @@
                 const oscGain = audioCtx.createGain();
                 osc.frequency.setValueAtTime(180, now);
                 osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.1);
-                oscGain.gain.setValueAtTime(0.7, now);
+                oscGain.gain.setValueAtTime(0.6, now);
                 oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
 
                 osc.connect(oscGain);
@@ -402,12 +381,11 @@
 
                 noise.start(now);
                 osc.start(now);
-                noise.stop(now + 0.22);
+                noise.stop(now + 0.2);
                 osc.stop(now + 0.1);
 
             } else if (type === 'hihat') {
-                // ハイハット (ハイパスフィルタ処理したショートノイズ)
-                const bufferSize = audioCtx.sampleRate * 0.07;
+                const bufferSize = audioCtx.sampleRate * 0.06;
                 const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
                 const data = buffer.getChannelData(0);
                 for (let i = 0; i < bufferSize; i++) {
@@ -418,7 +396,7 @@
 
                 const filter = audioCtx.createBiquadFilter();
                 filter.type = 'highpass';
-                filter.frequency.value = 7500;
+                filter.frequency.value = 7000;
 
                 const gain = audioCtx.createGain();
                 gain.gain.setValueAtTime(0.6, now);
@@ -428,11 +406,10 @@
                 filter.connect(gain);
                 gain.connect(masterGainNode);
                 noise.start(now);
-                noise.stop(now + 0.07);
+                noise.stop(now + 0.06);
 
             } else if (type === 'crash' || type === 'ride') {
-                // シンバル (長めのハイパスノイズ + 金属音成分)
-                const duration = type === 'crash' ? 1.3 : 0.85;
+                const duration = type === 'crash' ? 1.2 : 0.8;
                 const bufferSize = audioCtx.sampleRate * duration;
                 const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
                 const data = buffer.getChannelData(0);
@@ -444,10 +421,10 @@
 
                 const filter = audioCtx.createBiquadFilter();
                 filter.type = 'highpass';
-                filter.frequency.value = type === 'crash' ? 4200 : 5200;
+                filter.frequency.value = type === 'crash' ? 4000 : 5000;
 
                 const gain = audioCtx.createGain();
-                gain.gain.setValueAtTime(type === 'crash' ? 0.85 : 0.55, now);
+                gain.gain.setValueAtTime(type === 'crash' ? 0.8 : 0.5, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
                 noise.connect(filter);
@@ -457,37 +434,34 @@
                 noise.stop(now + duration);
 
             } else if (type === 'tom1' || type === 'tom2' || type === 'floortom') {
-                // タムタム (ピッチ別)
-                const freqs = { tom1: 155, tom2: 115, floortom: 82 };
-                const freq = freqs[type] || 120;
+                const freqs = { tom1: 150, tom2: 110, floortom: 80 };
+                const freq = freqs[type] || 110;
 
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
 
                 osc.frequency.setValueAtTime(freq, now);
-                osc.frequency.exponentialRampToValueAtTime(freq * 0.22, now + 0.32);
+                osc.frequency.exponentialRampToValueAtTime(freq * 0.2, now + 0.3);
 
-                gain.gain.setValueAtTime(0.9, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+                gain.gain.setValueAtTime(0.85, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
 
                 osc.connect(gain);
                 gain.connect(masterGainNode);
                 osc.start(now);
-                osc.stop(now + 0.32);
+                osc.stop(now + 0.3);
             }
         }
 
-        // 音声発音統合関数
         function triggerDrumSound(soundName) {
             initAudio();
             
-            // バスドラム視覚フィードバック
             if (soundName === 'kick') {
                 const kickEl = document.getElementById('pad-kick-visual');
                 kickEl.classList.add('scale-125', 'border-emerald-400', 'bg-emerald-500/40');
                 setTimeout(() => {
                     kickEl.classList.remove('scale-125', 'border-emerald-400', 'bg-emerald-500/40');
-                }, 100);
+                }, 90);
             }
 
             if (soundEngineType === 'synth' || !sampleBuffers[soundName]) {
@@ -500,30 +474,16 @@
             }
         }
 
-        /*
-         * ドラム譜面（4/4拍子 8分音符/16分音符グリッド）に基づくバスドラムパターン
-         * [8分音符 8ステップ / 16分音符 16ステップ]
-         */
+        // バスドラム自動連動タイマー
         let autoKickTimer = null;
         let currentStep = 0;
 
         const kickPatterns = {
-            // 8ビート パターン1 (基本・1&3拍目) -> [1拍目表, 3拍目表]
             '8bit_standard':    [1, 0, 0, 0, 1, 0, 0, 0],
-            
-            // 8ビート パターン2 (3拍目裏・ロック定番/シンコペーション) -> [1拍目表, 3拍目裏]
             '8bit_syncopation': [1, 0, 0, 0, 0, 1, 0, 0],
-            
-            // 8ビート パターン3 (ドドン・3拍目表裏連打) -> [1拍目表, 3拍目表, 3拍目裏]
             '8bit_dodon':       [1, 0, 0, 0, 1, 1, 0, 0],
-
-            // 8ビート パターン4 (1拍目裏食い込み) -> [1拍目表, 1拍目裏, 3拍目表]
             '8bit_push':        [1, 1, 0, 0, 1, 0, 0, 0],
-
-            // 4つ打ち (ダンス・ポップス) -> [1, 2, 3, 4拍すべて表]
             '4floor':           [1, 0, 1, 0, 1, 0, 1, 0],
-
-            // 16ビート Funk/Syncopation (16分音符グリッド 16ステップ)
             '16bit_funk':       [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]
         };
 
@@ -536,11 +496,8 @@
             const patternKey = document.getElementById('kick-pattern-select').value;
             const pattern = kickPatterns[patternKey] || kickPatterns['8bit_standard'];
 
-            // 16ステップか8ステップか判定
             const is16Step = pattern.length === 16;
-            const intervalMs = is16Step 
-                ? (60 / bpm / 4) * 1000  // 16分音符間隔
-                : (60 / bpm / 2) * 1000; // 8分音符間隔
+            const intervalMs = is16Step ? (60 / bpm / 4) * 1000 : (60 / bpm / 2) * 1000;
 
             autoKickTimer = setInterval(() => {
                 if (pattern[currentStep] === 1) {
@@ -558,37 +515,26 @@
             currentStep = 0;
         }
 
-        // 楽曲演奏モード（音ゲー）関連変数
-        let currentMode = 'free'; // 'free' or 'song'
+        // 楽曲演奏モード変数
+        let currentMode = 'free';
         let score = 0;
         let combo = 0;
 
         const demoNoteCharts = {
             'demo1': [
-                { time: 1.0, pad: 'hihat' },
-                { time: 1.5, pad: 'snare' },
-                { time: 2.0, pad: 'hihat' },
-                { time: 2.5, pad: 'snare' },
-                { time: 3.0, pad: 'tom1' },
-                { time: 3.5, pad: 'tom2' },
-                { time: 4.0, pad: 'floortom' },
-                { time: 4.5, pad: 'crash' },
-                { time: 5.0, pad: 'hihat' },
-                { time: 5.5, pad: 'snare' },
-                { time: 6.0, pad: 'ride' }
+                { time: 1.0, pad: 'hihat' }, { time: 1.5, pad: 'snare' },
+                { time: 2.0, pad: 'hihat' }, { time: 2.5, pad: 'snare' },
+                { time: 3.0, pad: 'tom1' },  { time: 3.5, pad: 'tom2' },
+                { time: 4.0, pad: 'floortom' }, { time: 4.5, pad: 'crash' }
             ],
             'demo2': [
-                { time: 0.8, pad: 'hihat' },
-                { time: 1.2, pad: 'hihat' },
-                { time: 1.6, pad: 'snare' },
-                { time: 2.0, pad: 'hihat' },
-                { time: 2.4, pad: 'tom1' },
-                { time: 2.8, pad: 'tom2' },
+                { time: 0.8, pad: 'hihat' }, { time: 1.2, pad: 'hihat' },
+                { time: 1.6, pad: 'snare' }, { time: 2.0, pad: 'hihat' },
+                { time: 2.4, pad: 'tom1' },  { time: 2.8, pad: 'tom2' },
                 { time: 3.2, pad: 'crash' }
             ]
         };
 
-        // アプローチリングの生成＆タイマー制御
         function spawnApproachRing(padId, noteId, approachTime = 1.2) {
             const padEl = document.getElementById(padId);
             if (!padEl) return;
@@ -598,12 +544,11 @@
 
             const ring = document.createElement('div');
             ring.className = 'ring-marker';
-            ring.dataset.noteId = noteId;
 
             const centerX = rect.left + rect.width / 2 - stageRect.left;
             const centerY = rect.top + rect.height / 2 - stageRect.top;
 
-            const initialSize = rect.width * 2.2;
+            const initialSize = rect.width * 2.1;
             const targetSize = rect.width;
 
             ring.style.left = `${centerX}px`;
@@ -619,7 +564,7 @@
                 const elapsed = (now - startTime) / 1000;
                 const progress = elapsed / approachTime;
 
-                if (progress >= 1.25) {
+                if (progress >= 1.2) {
                     if (ring.parentNode) {
                         ring.parentNode.removeChild(ring);
                         registerHitResult('MISS', padEl);
@@ -631,11 +576,6 @@
                 ring.style.width = `${currentSize}px`;
                 ring.style.height = `${currentSize}px`;
 
-                if (Math.abs(progress - 1.0) < 0.1) {
-                    ring.style.borderColor = '#f59e0b';
-                    ring.style.boxShadow = '0 0 20px #f59e0b';
-                }
-
                 if (ring.parentNode) {
                     requestAnimationFrame(animateRing);
                 }
@@ -644,7 +584,6 @@
             requestAnimationFrame(animateRing);
         }
 
-        // タップ時のタイミング判定
         function evaluateTap(soundName) {
             if (currentMode !== 'song') return;
 
@@ -673,18 +612,14 @@
                 const diffRatio = minDiff / rect.width;
 
                 let result = 'GOOD';
-                if (diffRatio < 0.15) {
-                    result = 'PERFECT';
-                } else if (diffRatio < 0.35) {
-                    result = 'GREAT';
-                }
+                if (diffRatio < 0.15) result = 'PERFECT';
+                else if (diffRatio < 0.35) result = 'GREAT';
 
                 bestRing.remove();
                 registerHitResult(result, padEl);
             }
         }
 
-        // 判定結果の処理と演出
         function registerHitResult(result, targetEl) {
             const rect = targetEl.getBoundingClientRect();
             const stageRect = document.getElementById('drum-stage').getBoundingClientRect();
@@ -724,7 +659,6 @@
 
         document.addEventListener('DOMContentLoaded', () => {
 
-            // マルチタッチ/クリック対応ドラムパッドイベント
             const pads = document.querySelectorAll('.drum-pad');
             pads.forEach(pad => {
                 const handleTrigger = (e) => {
@@ -735,7 +669,7 @@
                     triggerDrumSound(sound);
 
                     pad.classList.add('pad-active');
-                    setTimeout(() => pad.classList.remove('pad-active'), 100);
+                    setTimeout(() => pad.classList.remove('pad-active'), 90);
 
                     if (currentMode === 'song') {
                         evaluateTap(sound);
@@ -746,7 +680,6 @@
                 pad.addEventListener('mousedown', handleTrigger);
             });
 
-            // モード切り替えボタン
             const btnFree = document.getElementById('btn-mode-free');
             const btnSong = document.getElementById('btn-mode-song');
             const panelFree = document.getElementById('status-panel-free');
@@ -755,8 +688,8 @@
 
             btnFree.addEventListener('click', () => {
                 currentMode = 'free';
-                btnFree.className = "px-3 py-1 text-xs font-bold rounded-md bg-sky-500 text-white shadow transition-all";
-                btnSong.className = "px-3 py-1 text-xs font-bold rounded-md text-slate-400 hover:text-white transition-all";
+                btnFree.className = "px-2 py-1 text-[11px] font-bold rounded bg-sky-500 text-white shadow";
+                btnSong.className = "px-2 py-1 text-[11px] font-bold rounded text-slate-400 hover:text-white";
                 panelFree.classList.remove('hidden');
                 panelSong.classList.add('hidden');
                 btnSongSelect.classList.add('hidden');
@@ -765,8 +698,8 @@
 
             btnSong.addEventListener('click', () => {
                 currentMode = 'song';
-                btnSong.className = "px-3 py-1 text-xs font-bold rounded-md bg-indigo-600 text-white shadow transition-all";
-                btnFree.className = "px-3 py-1 text-xs font-bold rounded-md text-slate-400 hover:text-white transition-all";
+                btnSong.className = "px-2 py-1 text-[11px] font-bold rounded bg-indigo-600 text-white shadow";
+                btnFree.className = "px-2 py-1 text-[11px] font-bold rounded text-slate-400 hover:text-white";
                 panelFree.classList.add('hidden');
                 panelSong.classList.remove('hidden');
                 btnSongSelect.classList.remove('hidden');
@@ -775,16 +708,11 @@
                 document.getElementById('modal-song').classList.remove('hidden');
             });
 
-            // BPM スライダー
-            const bpmSlider = document.getElementById('bpm-slider');
-            bpmSlider.addEventListener('input', (e) => {
+            document.getElementById('bpm-slider').addEventListener('input', (e) => {
                 document.getElementById('bpm-value').textContent = e.target.value;
-                if (currentMode === 'free') {
-                    startAutoKick();
-                }
+                if (currentMode === 'free') startAutoKick();
             });
 
-            // バスドラム自動 ON/OFF トグル
             document.getElementById('kick-auto-toggle').addEventListener('change', () => {
                 if (currentMode === 'free') startAutoKick();
             });
@@ -793,7 +721,7 @@
                 if (currentMode === 'free') startAutoKick();
             });
 
-            // モーダル開閉
+            // モーダル閉じるイベント
             document.getElementById('btn-song-select').addEventListener('click', () => {
                 document.getElementById('modal-song').classList.remove('hidden');
             });
@@ -811,14 +739,12 @@
                 document.getElementById('modal-settings').classList.add('hidden');
             });
 
-            // マスター音量
             document.getElementById('master-volume').addEventListener('input', (e) => {
                 if (masterGainNode) {
                     masterGainNode.gain.value = parseFloat(e.target.value);
                 }
             });
 
-            // 楽曲演奏スタート処理
             document.getElementById('btn-start-song').addEventListener('click', () => {
                 document.getElementById('modal-song').classList.add('hidden');
                 score = 0;
@@ -834,11 +760,9 @@
                 });
             });
 
-            // 初回タップ時 AudioContext のロック解除
             window.addEventListener('touchstart', initAudio, { once: true });
             window.addEventListener('click', initAudio, { once: true });
 
-            // 初期自動キック起動
             startAutoKick();
         });
     </script>
