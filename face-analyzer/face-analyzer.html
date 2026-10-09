@@ -3,68 +3,63 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CYBER SCOUTER - SF Face & Battle Power Analyzer</title>
+  <title>Cyber Scouter & Face AI Analyzer</title>
+  
+  <!-- Tailwind CSS & Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
-  
+
+  <!-- MediaPipe Face Detection for Accurate Real-Time Target Tracking -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js" crossorigin="anonymous"></script>
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap');
     
     :root {
       --theme-primary: #00ccff;
       --theme-primary-rgb: 0, 204, 255;
-      --theme-secondary: #001a33;
       --theme-glow: rgba(0, 204, 255, 0.4);
-      --theme-border: rgba(0, 204, 255, 0.35);
-      --theme-bg-panel: rgba(10, 20, 30, 0.88);
+      --theme-border: rgba(0, 204, 255, 0.4);
+      --theme-bg-panel: rgba(5, 15, 25, 0.92);
     }
 
     [data-theme="green"] {
       --theme-primary: #00ff66;
       --theme-primary-rgb: 0, 255, 102;
-      --theme-secondary: #003311;
       --theme-glow: rgba(0, 255, 102, 0.4);
-      --theme-border: rgba(0, 255, 102, 0.35);
-      --theme-bg-panel: rgba(10, 30, 18, 0.88);
+      --theme-border: rgba(0, 255, 102, 0.4);
+      --theme-bg-panel: rgba(5, 25, 12, 0.92);
     }
 
     [data-theme="red"] {
       --theme-primary: #ff3344;
       --theme-primary-rgb: 255, 51, 68;
-      --theme-secondary: #330005;
       --theme-glow: rgba(255, 51, 68, 0.4);
-      --theme-border: rgba(255, 51, 68, 0.35);
-      --theme-bg-panel: rgba(30, 10, 12, 0.88);
+      --theme-border: rgba(255, 51, 68, 0.4);
+      --theme-bg-panel: rgba(25, 5, 8, 0.92);
     }
 
     [data-theme="purple"] {
       --theme-primary: #bf00ff;
       --theme-primary-rgb: 191, 0, 255;
-      --theme-secondary: #240033;
       --theme-glow: rgba(191, 0, 255, 0.4);
-      --theme-border: rgba(191, 0, 255, 0.35);
-      --theme-bg-panel: rgba(25, 10, 30, 0.88);
+      --theme-border: rgba(191, 0, 255, 0.4);
+      --theme-bg-panel: rgba(20, 5, 28, 0.92);
     }
 
     body {
       font-family: 'Noto Sans JP', sans-serif;
-      overflow-x: hidden;
+      overflow: hidden;
       touch-action: manipulation;
     }
-    .font-orbitron {
-      font-family: 'Orbitron', sans-serif;
-    }
+    .font-orbitron { font-family: 'Orbitron', sans-serif; }
     
-    .theme-color-text {
-      color: var(--theme-primary);
-    }
-
-    .theme-border {
-      border-color: var(--theme-border);
-    }
+    .theme-color-text { color: var(--theme-primary); }
+    .theme-border { border-color: var(--theme-border); }
 
     .theme-glow-text {
-      text-shadow: 0 0 10px var(--theme-primary), 0 0 20px var(--theme-glow);
+      text-shadow: 0 0 8px var(--theme-primary), 0 0 16px var(--theme-glow);
     }
 
     .theme-btn-primary {
@@ -90,40 +85,29 @@
       );
       background-size: 100% 4px;
     }
-
-    ::-webkit-scrollbar {
-      width: 4px;
-    }
-    ::-webkit-scrollbar-track {
-      background: rgba(0,0,0,0.5);
-    }
-    ::-webkit-scrollbar-thumb {
-      background: var(--theme-primary);
-      border-radius: 2px;
-    }
   </style>
 </head>
 <body id="app-body" data-theme="cyan" class="h-full flex flex-col bg-slate-950 text-cyan-400 transition-colors duration-500">
 
-  <header class="flex-none bg-slate-900/90 border-b theme-border px-4 py-2.5 flex justify-between items-center z-30 transition-colors duration-300">
+  <header class="flex-none bg-slate-900/90 border-b theme-border px-3 py-2 flex justify-between items-center z-30">
     <div class="flex items-center gap-2">
-      <i data-lucide="crosshair" class="w-6 h-6 theme-color-text animate-spin" style="animation-duration: 10s;"></i>
-      <h1 class="font-orbitron font-black text-base md:text-xl tracking-wider theme-color-text theme-glow-text">
-        CYBER SCOUTER <span class="text-xs text-slate-200 font-normal px-1.5 py-0.5 border theme-border rounded bg-slate-950/60">v6.0 REAR-FOCUS</span>
+      <i data-lucide="crosshair" class="w-5 h-5 theme-color-text animate-spin" style="animation-duration: 10s;"></i>
+      <h1 class="font-orbitron font-black text-xs md:text-base tracking-wider theme-color-text theme-glow-text">
+        CYBER SCOUTER <span class="text-[10px] text-slate-200 px-1.5 py-0.5 border theme-border rounded bg-slate-950/60">v8.0</span>
       </h1>
     </div>
 
     <div class="flex items-center gap-2">
-      <button id="btn-theme" class="px-2.5 py-1 text-xs border theme-border rounded-lg flex items-center gap-1.5 bg-slate-950/60 hover:bg-slate-800/50 transition theme-color-text">
+      <button id="btn-theme" class="px-2.5 py-1 text-xs border theme-border rounded-lg flex items-center gap-1 bg-slate-950/60 hover:bg-slate-800/50 transition theme-color-text">
         <i data-lucide="palette" class="w-3.5 h-3.5"></i>
-        <span id="theme-label" class="font-bold">CYAN</span>
+        <span id="theme-label" class="font-bold font-orbitron">CYAN</span>
       </button>
 
-      <button id="btn-audio" class="p-1.5 border theme-border rounded-lg bg-slate-950/60 hover:bg-slate-800/50 transition theme-color-text" title="オーディオ切替">
+      <button id="btn-audio" class="p-1.5 border theme-border rounded-lg bg-slate-950/60 hover:bg-slate-800/50 transition theme-color-text">
         <i id="icon-audio" data-lucide="volume-2" class="w-4 h-4"></i>
       </button>
 
-      <button id="btn-camera-flip" class="p-1.5 border theme-border rounded-lg bg-slate-950/60 hover:bg-slate-800/50 transition theme-color-text" title="カメラ反転切替">
+      <button id="btn-camera-flip" class="p-1.5 border theme-border rounded-lg bg-slate-950/60 hover:bg-slate-800/50 transition theme-color-text" title="カメラ切り替え">
         <i data-lucide="refresh-cw" class="w-4 h-4"></i>
       </button>
     </div>
@@ -132,17 +116,17 @@
   <main class="flex-1 relative overflow-hidden flex flex-col justify-between">
     
     <div class="absolute inset-0 z-0 flex items-center justify-center bg-black">
-      <!-- Camera element: Defaulting to non-mirrored for Rear camera -->
       <video id="webcam" class="absolute w-full h-full object-cover" playsinline autoplay muted></video>
-      <canvas id="scouter-canvas" class="absolute w-full h-full object-cover z-10 pointer-events-none"></canvas>
+      <canvas id="scouter-canvas" class="absolute w-full h-full object-cover z-10 cursor-pointer"></canvas>
       
       <div id="scouter-tint" class="absolute inset-0 pointer-events-none transition-colors duration-500 bg-cyan-950/20 mix-blend-color-dodge"></div>
-      <div class="absolute inset-0 pointer-events-none scanlines z-10 opacity-60"></div>
+      <div class="absolute inset-0 pointer-events-none scanlines z-10 opacity-50"></div>
     </div>
 
+    <!-- Mode Selector Controls -->
     <div class="relative z-20 p-2.5 flex flex-col items-center gap-2">
-      <div class="inline-flex p-1 bg-slate-900/85 backdrop-blur-md rounded-xl border theme-border max-w-full overflow-x-auto gap-1">
-        <button data-mode="power" class="mode-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 bg-slate-800 text-white shadow-lg transition">
+      <div class="inline-flex p-1 bg-slate-900/90 backdrop-blur-md rounded-xl border theme-border max-w-full overflow-x-auto gap-1">
+        <button data-mode="power" class="mode-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 bg-slate-800 text-white shadow-lg transition border theme-border">
           <i data-lucide="zap" class="w-4 h-4"></i> 戦闘力測定
         </button>
         <button data-mode="facetype" class="mode-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 theme-color-text hover:bg-slate-800/50 transition">
@@ -167,27 +151,27 @@
       </div>
     </div>
 
-    <!-- Power Warning Indicator -->
-    <div id="alert-banner" class="relative z-20 self-center hidden transform transition-all duration-300 my-2">
-      <div class="bg-red-600/90 text-white font-black px-5 py-1.5 rounded-full border-2 border-yellow-300 shadow-2xl flex items-center gap-2 animate-bounce">
-        <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-300"></i>
-        <span id="alert-text" class="tracking-widest text-xs md:text-sm font-orbitron">TARGET LOCKED: HIGH POWER DETECTED!</span>
+    <!-- Scanning & Alert Overlay Banner -->
+    <div id="alert-banner" class="relative z-20 self-center hidden transform transition-all duration-300 my-1">
+      <div class="bg-amber-500/90 text-slate-950 font-black px-4 py-1.5 rounded-full border border-amber-300 shadow-2xl flex items-center gap-2 animate-pulse">
+        <i data-lucide="radar" class="w-4 h-4 text-slate-950 animate-spin"></i>
+        <span id="alert-text" class="tracking-widest text-xs font-orbitron font-bold">SCANNING TARGET GEOMETRY...</span>
       </div>
     </div>
 
-    <div class="relative z-20 p-3 md:p-5 flex flex-col items-center">
+    <div class="relative z-20 p-3 md:p-4 flex flex-col items-center">
       
-      <div id="analysis-panel" class="w-full max-w-xl mb-3 scouter-panel rounded-2xl p-4 text-xs md:text-sm shadow-2xl border theme-border hidden transition-all duration-300">
-        <div id="panel-content" class="space-y-3"></div>
+      <div id="analysis-panel" class="w-full max-w-lg mb-2.5 scouter-panel rounded-2xl p-3.5 text-xs md:text-sm shadow-2xl border theme-border hidden transition-all duration-300">
+        <div id="panel-content" class="space-y-2.5"></div>
       </div>
 
       <div class="w-full max-w-md flex justify-between items-center gap-3">
-        <button id="btn-scan" class="flex-1 py-3 px-4 theme-btn-primary font-orbitron font-black text-sm md:text-base rounded-xl transition active:scale-95 flex items-center justify-center gap-2">
-          <i data-lucide="radar" class="w-5 h-5"></i>
-          <span id="btn-scan-text">焦点ロックオン分析</span>
+        <button id="btn-scan" class="flex-1 py-3 px-4 theme-btn-primary font-orbitron font-black text-xs md:text-sm rounded-xl transition active:scale-95 flex items-center justify-center gap-2">
+          <i data-lucide="radar" class="w-4 h-4"></i>
+          <span id="btn-scan-text">ターゲットスキャン</span>
         </button>
 
-        <button id="btn-capture" class="p-3 bg-slate-900/90 border theme-border rounded-xl theme-color-text hover:bg-slate-800/80 active:scale-95 transition flex items-center justify-center shadow-lg" title="HUDショット保存">
+        <button id="btn-capture" class="p-3 bg-slate-900/90 border theme-border rounded-xl theme-color-text hover:bg-slate-800/80 active:scale-95 transition flex items-center justify-center shadow-lg" title="HUDスナップショット保存">
           <i data-lucide="camera" class="w-5 h-5"></i>
         </button>
       </div>
@@ -195,12 +179,12 @@
 
   </main>
 
-  <!-- Modal for Snapshot Display -->
+  <!-- Snapshot Capture Modal -->
   <div id="capture-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border theme-border rounded-2xl max-w-md w-full p-4 flex flex-col items-center space-y-4 shadow-2xl">
+    <div class="bg-slate-900 border theme-border rounded-2xl max-w-md w-full p-4 flex flex-col items-center space-y-3 shadow-2xl">
       <div class="flex justify-between items-center w-full border-b border-slate-800 pb-2">
-        <h3 class="font-orbitron font-bold theme-color-text flex items-center gap-2">
-          <i data-lucide="file-check" class="w-4 h-4"></i> SCOUTER DATA RECORD
+        <h3 class="font-orbitron font-bold theme-color-text flex items-center gap-2 text-xs md:text-sm">
+          <i data-lucide="file-check" class="w-4 h-4"></i> SCOUTER DATA SNAPSHOT
         </h3>
         <button id="btn-modal-close" class="text-slate-400 hover:text-white p-1">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -211,11 +195,9 @@
         <img id="captured-image" class="w-full h-auto object-contain max-h-[60vh]" alt="Scouter Result">
       </div>
 
-      <div class="flex gap-3 w-full">
-        <button id="btn-download" class="flex-1 py-2.5 theme-btn-primary font-bold text-xs md:text-sm rounded-xl transition flex items-center justify-center gap-2">
-          <i data-lucide="download" class="w-4 h-4"></i> 画像を保存
-        </button>
-      </div>
+      <button id="btn-download" class="w-full py-2.5 theme-btn-primary font-bold text-xs md:text-sm rounded-xl transition flex items-center justify-center gap-2">
+        <i data-lucide="download" class="w-4 h-4"></i> 画像を保存
+      </button>
     </div>
   </div>
 
@@ -225,9 +207,13 @@
       theme: 'cyan',
       criteria: 'cool',
       audioEnabled: true,
-      facingMode: 'environment', // Defaulting to Rear Camera as requested!
-      lastDetectedFaces: [],
-      smoothTarget: null // Interpolated face box
+      facingMode: 'environment', // Outer camera default
+      rawFaces: [],
+      smoothFaces: [],
+      selectedFaceId: null,
+      isScanning: false,
+      scanProgress: 0,
+      scrambleValue: 0
     };
 
     const THEMES = {
@@ -283,15 +269,15 @@
         }
       }
 
-      playBeep(freq = 1200, type = 'sine', duration = 0.08) {
+      playBeep(freq = 1200, duration = 0.08) {
         if (!STATE.audioEnabled) return;
         this.init();
         try {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
-          osc.type = type;
+          osc.type = 'sine';
           osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-          gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
@@ -300,163 +286,86 @@
         } catch(e) {}
       }
 
-      playPowerUp() {
-        if (!STATE.audioEnabled) return;
-        this.init();
-        try {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(200, this.ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(2000, this.ctx.currentTime + 0.6);
-          gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.6);
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start();
-          osc.stop(this.ctx.currentTime + 0.6);
-        } catch(e) {}
-      }
-
-      playExplosion() {
+      playFastScanBeep(pitchOffset = 0) {
         if (!STATE.audioEnabled) return;
         this.init();
         try {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
           osc.type = 'square';
-          osc.frequency.setValueAtTime(150, this.ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.4);
-          gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+          osc.frequency.setValueAtTime(800 + pitchOffset, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
           osc.start();
-          osc.stop(this.ctx.currentTime + 0.4);
+          osc.stop(this.ctx.currentTime + 0.04);
+        } catch(e) {}
+      }
+
+      playClimaxLockSound() {
+        if (!STATE.audioEnabled) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(1800, this.ctx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.35);
         } catch(e) {}
       }
     }
 
     const soundEngine = new SoundEngine();
 
-    class CenterFocusDetector {
-      constructor(videoElement) {
-        this.video = videoElement;
-      }
+    function calculateFacialHash(bbox, landmarks) {
+      let hash = 0;
+      const w = bbox.width || 100;
+      const h = bbox.height || 100;
+      hash += Math.round(w * 17 + h * 31);
 
-      detect() {
-        if (!this.video.videoWidth) return [];
-
-        const width = this.video.videoWidth;
-        const height = this.video.videoHeight;
-        const screenCenterX = width / 2;
-        const screenCenterY = height / 2;
-
-        const time = Date.now() * 0.002;
-
-        // Simulated central target anchor (Prioritizing the exact center of screen)
-        const size = Math.min(width, height) * 0.38;
-        
-        // Minor natural micro-movements around the viewport center
-        const rawCenterX = screenCenterX + Math.sin(time * 0.8) * (width * 0.02);
-        const rawCenterY = screenCenterY + Math.cos(time * 0.6) * (height * 0.02);
-
-        const powerSeed = Math.abs(Math.sin(time * 1.5)) + Math.cos(time * 1.2);
-        let basePower = Math.floor(4500 + powerSeed * 8800);
-
-        if (Math.sin(time * 0.25) > 0.88) {
-          basePower = Math.floor(72000 + Math.random() * 28000); // Sudden energy overload
-        }
-
-        const gender1 = (Math.sin(time * 0.4) > -0.1) ? 'Male' : 'Female';
-        const age1 = Math.floor(22 + (Math.abs(Math.cos(time * 0.3)) * 18));
-
-        // Primary Target Always Focuses Directly on Center Camera Line!
-        const primaryTarget = {
-          id: 'center-primary-target',
-          rawX: rawCenterX - size / 2,
-          rawY: rawCenterY - size / 2,
-          width: size,
-          height: size * 1.22,
-          gender: gender1,
-          age: age1,
-          power: basePower,
-          charmScore: Math.min(99, Math.floor(82 + (basePower % 17))),
-          maleType: MALE_TYPES[Math.floor(basePower) % MALE_TYPES.length],
-          femaleType: FEMALE_TYPES[Math.floor(basePower) % FEMALE_TYPES.length],
-          rpg: RPG_JOBS[Math.floor(basePower * 2) % RPG_JOBS.length],
-          centerX: rawCenterX,
-          centerY: rawCenterY,
-          distToCenter: 0
-        };
-
-        // Smooth Exponential Moving Average for fluid target tracking
-        if (!STATE.smoothTarget) {
-          STATE.smoothTarget = { ...primaryTarget };
-        } else {
-          const alpha = 0.18; // Smoothing factor
-          STATE.smoothTarget.rawX += (primaryTarget.rawX - STATE.smoothTarget.rawX) * alpha;
-          STATE.smoothTarget.rawY += (primaryTarget.rawY - STATE.smoothTarget.rawY) * alpha;
-          STATE.smoothTarget.width += (primaryTarget.width - STATE.smoothTarget.width) * alpha;
-          STATE.smoothTarget.height += (primaryTarget.height - STATE.smoothTarget.height) * alpha;
-          STATE.smoothTarget.power = primaryTarget.power;
-          STATE.smoothTarget.gender = primaryTarget.gender;
-          STATE.smoothTarget.age = primaryTarget.age;
-          STATE.smoothTarget.charmScore = primaryTarget.charmScore;
-          STATE.smoothTarget.maleType = primaryTarget.maleType;
-          STATE.smoothTarget.femaleType = primaryTarget.femaleType;
-          STATE.smoothTarget.rpg = primaryTarget.rpg;
-        }
-
-        const primaryFace = {
-          ...STATE.smoothTarget,
-          x: STATE.smoothTarget.rawX,
-          y: STATE.smoothTarget.rawY,
-          landmarks: this.generateLandmarks(
-            STATE.smoothTarget.rawX + STATE.smoothTarget.width / 2,
-            STATE.smoothTarget.rawY + STATE.smoothTarget.height / 2,
-            STATE.smoothTarget.width
-          )
-        };
-
-        const faces = [primaryFace];
-
-        // Secondary Target for Multi-person mode
-        const secX = width * 0.22 + Math.cos(time * 0.5) * 15;
-        const secY = height * 0.45 + Math.sin(time * 0.4) * 15;
-        const secSize = size * 0.7;
-
-        faces.push({
-          id: 'secondary-target',
-          x: secX - secSize / 2,
-          y: secY - secSize / 2,
-          width: secSize,
-          height: secSize * 1.2,
-          gender: (gender1 === 'Male') ? 'Female' : 'Male',
-          age: Math.floor(20 + Math.abs(Math.sin(time * 0.5)) * 12),
-          power: Math.floor(basePower * 0.88),
-          charmScore: Math.floor(78 + (basePower % 18)),
-          maleType: MALE_TYPES[(Math.floor(basePower) + 2) % MALE_TYPES.length],
-          femaleType: FEMALE_TYPES[(Math.floor(basePower) + 1) % FEMALE_TYPES.length],
-          rpg: RPG_JOBS[(Math.floor(basePower) + 3) % RPG_JOBS.length],
-          landmarks: this.generateLandmarks(secX, secY, secSize)
+      if (landmarks && landmarks.length > 0) {
+        landmarks.forEach((pt, i) => {
+          hash += Math.round((pt.x * 1000) * (i + 1) + (pt.y * 1000) * (i + 3));
         });
-
-        return faces;
       }
-
-      generateLandmarks(cx, cy, size) {
-        const r = size * 0.28;
-        return {
-          leftEye: { x: cx - r * 0.5, y: cy - r * 0.35 },
-          rightEye: { x: cx + r * 0.5, y: cy - r * 0.35 },
-          nose: { x: cx, y: cy + r * 0.05 },
-          mouth: { x: cx, y: cy + r * 0.55 }
-        };
-      }
+      return Math.abs(hash);
     }
 
-    class HUDCanvasRenderer {
+    function generateSpecificPower(hash, bbox) {
+      const baseSeed = (hash % 899999) + 5000;
+      const scaleMultiplier = Math.floor((bbox.width * bbox.height) % 100);
+      const precisePower = baseSeed + (scaleMultiplier * 437);
+      
+      let rank = "一般人級";
+      if (precisePower > 1000000) rank = "神話・伝説級";
+      else if (precisePower > 500000) rank = "超絶戦士級";
+      else if (precisePower > 100000) rank = "特級戦士級";
+      else if (precisePower > 30000) rank = "達人級";
+      else if (precisePower > 10000) rank = "精鋭級";
+
+      return { powerValue: precisePower, rank: rank };
+    }
+
+    function generateAttributes(hash) {
+      const gender = (hash % 2 === 0) ? 'Male' : 'Female';
+      const age = 18 + (hash % 38);
+      const charmScore = 72 + (hash % 27);
+      
+      const maleType = MALE_TYPES[hash % MALE_TYPES.length];
+      const femaleType = FEMALE_TYPES[hash % FEMALE_TYPES.length];
+      const rpg = RPG_JOBS[hash % RPG_JOBS.length];
+
+      return { gender, age, charmScore, maleType, femaleType, rpg };
+    }
+
+    class ClampedHUDCanvasRenderer {
       constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
@@ -473,11 +382,10 @@
         const theme = THEMES[STATE.theme];
         const color = theme.primary;
 
-        // 1. Draw Prominent Central Target Focus Guide
-        this.drawCentralFocusReticle(color);
+        this.drawCentralGuideCrosshair(color);
 
         if (!faces || faces.length === 0) {
-          this.drawSearchingText(color);
+          this.drawSearchingStatus(color);
           return;
         }
 
@@ -485,149 +393,164 @@
           if (faces.length >= 2) {
             this.drawTargetReticle(faces[0], color, true);
             this.drawTargetReticle(faces[1], '#ff00aa', false);
-            this.drawChemistryHUD(faces[0], faces[1]);
+            this.drawChemistryConnection(faces[0], faces[1]);
           } else {
             this.drawTargetReticle(faces[0], color, true);
+            this.drawSingleTargetPrompt(color);
           }
         } else {
-          const face = faces[0];
-          this.drawTargetReticle(face, color, true);
+          // Render secondary targets first
+          faces.forEach(f => {
+            if (f.id !== STATE.selectedFaceId && faces.length > 1) {
+              this.drawTargetReticle(f, 'rgba(255,255,255,0.4)', false);
+            }
+          });
+
+          // Render active selected target
+          const activeFace = faces.find(f => f.id === STATE.selectedFaceId) || faces[0];
+          this.drawTargetReticle(activeFace, color, true);
 
           if (STATE.mode === 'power') {
-            this.drawPowerLevelHUD(face, color);
+            this.drawPowerOverlay(activeFace, color);
           } else if (STATE.mode === 'facetype') {
-            this.drawFaceTypeHUD(face, color);
+            this.drawFaceTypeOverlay(activeFace, color);
           } else if (STATE.mode === 'rpg') {
-            this.drawRPGHUD(face, color);
+            this.drawRPGOverlay(activeFace, color);
           }
         }
       }
 
-      drawCentralFocusReticle(color) {
+      drawCentralGuideCrosshair(color) {
         const ctx = this.ctx;
-        const w = this.canvas.width;
-        const h = this.canvas.height;
-        const cx = w / 2;
-        const cy = h / 2;
+        const cx = this.canvas.width / 2;
+        const cy = this.canvas.height / 2;
 
         ctx.save();
         ctx.strokeStyle = color;
-        ctx.lineWidth = 1.5;
-        ctx.globalAlpha = 0.35;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.2;
 
-        // Central Precision Crosshair Grid
         ctx.beginPath();
-        ctx.moveTo(cx - 30, cy); ctx.lineTo(cx + 30, cy);
-        ctx.moveTo(cx, cy - 30); ctx.lineTo(cx, cy + 30);
+        ctx.moveTo(cx - 20, cy); ctx.lineTo(cx + 20, cy);
+        ctx.moveTo(cx, cy - 20); ctx.lineTo(cx, cy + 20);
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.arc(cx, cy, 50, 0, Math.PI * 2);
-        ctx.setLineDash([4, 6]);
+        ctx.arc(cx, cy, 40, 0, Math.PI * 2);
+        ctx.setLineDash([4, 4]);
         ctx.stroke();
 
         ctx.restore();
       }
 
-      drawSearchingText(color) {
+      drawSearchingStatus(color) {
         const ctx = this.ctx;
         ctx.save();
         ctx.fillStyle = color;
-        ctx.font = '700 16px Orbitron, sans-serif';
+        ctx.font = '700 13px Orbitron, sans-serif';
         ctx.textAlign = 'center';
         ctx.shadowColor = color;
         ctx.shadowBlur = 8;
-        ctx.fillText('TARGET LOCKING ON CENTER...', this.canvas.width / 2, this.canvas.height / 2 + 80);
+        ctx.fillText('SEARCHING FOR TARGET FACE...', this.canvas.width / 2, this.canvas.height / 2 + 70);
         ctx.restore();
       }
 
-      drawTargetReticle(face, color, isCenterTarget) {
+      drawTargetReticle(face, color, isSelected) {
         const ctx = this.ctx;
-        const { x, y, width, height, gender, age } = face;
-        const cx = x + width / 2;
-        const cy = y + height / 2;
+        const W = this.canvas.width;
+        const H = this.canvas.height;
+
+        const boxWidth = Math.min(face.width, W * 0.85);
+        const boxHeight = Math.min(face.height, H * 0.85);
+        
+        // Strict Clamping to prevent reticle from clipping outside view
+        const cx = Math.max(boxWidth / 2 + 10, Math.min(W - boxWidth / 2 - 10, face.centerX));
+        const cy = Math.max(boxHeight / 2 + 10, Math.min(H - boxHeight / 2 - 10, face.centerY));
+
+        const x = cx - boxWidth / 2;
+        const y = cy - boxHeight / 2;
+        const radius = Math.max(boxWidth, boxHeight) * 0.52;
 
         ctx.save();
         ctx.strokeStyle = color;
-        ctx.lineWidth = isCenterTarget ? 2.5 : 1.5;
+        ctx.lineWidth = isSelected ? 2.5 : 1.5;
         ctx.shadowColor = color;
-        ctx.shadowBlur = isCenterTarget ? 14 : 6;
+        ctx.shadowBlur = isSelected ? 12 : 4;
 
-        // Locking Circle
-        const radius = Math.max(width, height) * 0.52;
+        // Circular Focus Reticle
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx.setLineDash(isCenterTarget ? [12, 6] : [6, 6]);
+        ctx.setLineDash(isSelected ? [10, 5] : [4, 4]);
         ctx.stroke();
 
-        // Corner Bounding Marks
+        // Corner Framing Marks
         ctx.setLineDash([]);
-        const size = 18;
-        ctx.beginPath(); ctx.moveTo(x, y + size); ctx.lineTo(x, y); ctx.lineTo(x + size, y); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(x + width - size, y); ctx.lineTo(x + width, y); ctx.lineTo(x + width, y + size); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(x, y + height - size); ctx.lineTo(x, y + height); ctx.lineTo(x + size, y + height); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(x + width - size, y + height); ctx.lineTo(x + width, y + height); ctx.lineTo(x + width, y + height - size); ctx.stroke();
+        const len = Math.min(20, boxWidth * 0.2);
+        ctx.beginPath(); ctx.moveTo(x, y + len); ctx.lineTo(x, y); ctx.lineTo(x + len, y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + boxWidth - len, y); ctx.lineTo(x + boxWidth, y); ctx.lineTo(x + boxWidth, y + len); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, y + boxHeight - len); ctx.lineTo(x, y + boxHeight); ctx.lineTo(x + len, y + boxHeight); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + boxWidth - len, y + boxHeight); ctx.lineTo(x + boxWidth, y + boxHeight); ctx.lineTo(x + boxWidth, y + boxHeight - len); ctx.stroke();
 
-        // Center Focus Indicator Lock Icon
-        if (isCenterTarget) {
-          ctx.fillStyle = color;
-          ctx.font = '900 10px Orbitron';
-          ctx.fillText('LOCKED ON CENTER', x, y - 32);
-        }
+        // Clamped Top Badge Banner
+        const badgeW = 120;
+        const badgeH = 20;
+        const badgeX = Math.max(10, Math.min(W - badgeW - 10, x));
+        const badgeY = Math.max(10, y - badgeH - 6);
 
-        // Gender & Age Attribute Badge
-        ctx.fillStyle = 'rgba(3, 7, 18, 0.88)';
-        ctx.fillRect(x, y - 24, 115, 20);
+        ctx.fillStyle = 'rgba(3, 7, 18, 0.9)';
+        ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
         ctx.strokeStyle = color;
         ctx.lineWidth = 1;
-        ctx.strokeRect(x, y - 24, 115, 20);
+        ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
 
         ctx.fillStyle = color;
-        ctx.font = '700 11px Orbitron';
-        ctx.fillText(`${gender === 'Male' ? '♂' : '♀'} ${gender} / ${age}歳`, x + 6, y - 10);
-
-        if (face.landmarks) {
-          ctx.fillStyle = color;
-          ctx.globalAlpha = 0.85;
-          [face.landmarks.leftEye, face.landmarks.rightEye, face.landmarks.nose, face.landmarks.mouth].forEach(pt => {
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
-            ctx.fill();
-          });
-        }
+        ctx.font = '700 10px Orbitron';
+        ctx.textAlign = 'left';
+        ctx.fillText(isSelected ? `[LOCKED] ${face.gender === 'Male' ? '♂' : '♀'}` : `[TAP TO LOCK]`, badgeX + 6, badgeY + 14);
 
         ctx.restore();
       }
 
-      drawPowerLevelHUD(face, color) {
+      drawPowerOverlay(face, color) {
         const ctx = this.ctx;
-        const { x, y, width, power } = face;
+        const W = this.canvas.width;
+        const lx = Math.min(W - 160, Math.max(10, face.x + face.width + 12));
+        const ly = Math.max(40, face.y + 15);
 
         ctx.save();
         ctx.fillStyle = color;
         ctx.shadowColor = color;
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 10;
 
-        ctx.font = '900 12px Orbitron';
-        ctx.fillText('BATTLE POWER', x + width + 15, y + 18);
+        ctx.font = '900 11px Orbitron';
+        ctx.fillText('BATTLE POWER', lx, ly);
 
-        ctx.font = '900 28px Orbitron';
-        ctx.fillText(power.toLocaleString(), x + width + 15, y + 50);
+        // Render scrambled counting value during active scanning vs final determined value
+        const displayVal = STATE.isScanning ? STATE.scrambleValue : face.powerValue;
 
-        if (power > 12000) {
-          ctx.fillStyle = '#ff3344';
+        ctx.font = '900 24px Orbitron';
+        ctx.fillText(displayVal.toLocaleString(), lx, ly + 28);
+
+        if (!STATE.isScanning) {
           ctx.font = '700 11px Noto Sans JP';
-          ctx.fillText('⚠️ 高エネルギー検出！', x + width + 15, y + 72);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(`ランク: ${face.rank}`, lx, ly + 48);
+        } else {
+          ctx.font = '700 10px Orbitron';
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillText(`CALCULATING...`, lx, ly + 48);
         }
 
         ctx.restore();
       }
 
-      drawFaceTypeHUD(face, color) {
+      drawFaceTypeOverlay(face, color) {
+        if (STATE.isScanning) return;
         const ctx = this.ctx;
-        const { x, y, width, gender, charmScore, maleType, femaleType } = face;
-        const activeType = (gender === 'Male') ? maleType : femaleType;
-        const criteriaLabel = (STATE.criteria === 'cool') ? 'かっこよさ' : '美しさ';
+        const W = this.canvas.width;
+        const lx = Math.min(W - 160, Math.max(10, face.x + face.width + 12));
+        const ly = Math.max(40, face.y + 15);
+        const activeType = (face.gender === 'Male') ? face.maleType : face.femaleType;
 
         ctx.save();
         ctx.fillStyle = color;
@@ -635,15 +558,18 @@
         ctx.shadowBlur = 8;
 
         ctx.font = '700 12px Noto Sans JP';
-        ctx.fillText(`顔タイプ: ${activeType.name.split(' ')[0]}`, x + width + 15, y + 20);
-        ctx.fillText(`${criteriaLabel}: ${charmScore}点`, x + width + 15, y + 44);
+        ctx.fillText(`タイプ: ${activeType.name.split(' ')[0]}`, lx, ly);
+        ctx.fillText(`スコア: ${face.charmScore} pt`, lx, ly + 22);
 
         ctx.restore();
       }
 
-      drawRPGHUD(face, color) {
+      drawRPGOverlay(face, color) {
+        if (STATE.isScanning) return;
         const ctx = this.ctx;
-        const { x, y, width, rpg } = face;
+        const W = this.canvas.width;
+        const lx = Math.min(W - 160, Math.max(10, face.x + face.width + 12));
+        const ly = Math.max(40, face.y + 15);
 
         ctx.save();
         ctx.fillStyle = color;
@@ -651,48 +577,59 @@
         ctx.shadowBlur = 8;
 
         ctx.font = '700 12px Noto Sans JP';
-        ctx.fillText(`ジョブ: ${rpg.title}`, x + width + 15, y + 20);
+        ctx.fillText(`適性: ${face.rpg.title}`, lx, ly);
+        ctx.fillText(`ランク: ${face.rpg.rank}`, lx, ly + 22);
 
         ctx.restore();
       }
 
-      drawChemistryHUD(face1, face2) {
+      drawChemistryConnection(f1, f2) {
         const ctx = this.ctx;
-        const c1 = { x: face1.x + face1.width / 2, y: face1.y + face1.height / 2 };
-        const c2 = { x: face2.x + face2.width / 2, y: face2.y + face2.height / 2 };
-
         ctx.save();
         ctx.strokeStyle = '#ff00aa';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([8, 6]);
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 6]);
         ctx.shadowColor = '#ff00aa';
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 10;
 
         ctx.beginPath();
-        ctx.moveTo(c1.x, c1.y);
-        ctx.lineTo(c2.x, c2.y);
+        ctx.moveTo(f1.centerX, f1.centerY);
+        ctx.lineTo(f2.centerX, f2.centerY);
         ctx.stroke();
 
-        const midX = (c1.x + c2.x) / 2;
-        const midY = (c1.y + c2.y) / 2;
+        const midX = (f1.centerX + f2.centerX) / 2;
+        const midY = (f1.centerY + f2.centerY) / 2;
 
-        ctx.fillStyle = '#110022';
+        const chemScore = STATE.isScanning 
+          ? Math.floor(Math.random() * 99) 
+          : Math.floor(80 + ((f1.hash + f2.hash) % 20));
+
+        ctx.fillStyle = 'rgba(20, 0, 30, 0.95)';
         ctx.strokeStyle = '#ff00aa';
         ctx.setLineDash([]);
         ctx.beginPath();
-        ctx.arc(midX, midY, 36, 0, Math.PI * 2);
+        ctx.arc(midX, midY, 32, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
-        const chemScore = Math.floor(80 + ((face1.power + face2.power) % 19));
         ctx.fillStyle = '#ffffff';
-        ctx.font = '900 15px Orbitron';
+        ctx.font = '900 14px Orbitron';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`${chemScore}%`, midX, midY - 6);
+        ctx.fillText(`${chemScore}%`, midX, midY - 5);
         ctx.font = '700 9px Noto Sans JP';
-        ctx.fillText('運命の相性', midX, midY + 10);
+        ctx.fillText('相性度', midX, midY + 10);
 
+        ctx.restore();
+      }
+
+      drawSingleTargetPrompt(color) {
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.font = '700 12px Noto Sans JP';
+        ctx.textAlign = 'center';
+        ctx.fillText('2人目を認識すると占い相性診断が開始されます', this.canvas.width / 2, this.canvas.height - 120);
         ctx.restore();
       }
     }
@@ -701,60 +638,164 @@
       constructor() {
         this.video = document.getElementById('webcam');
         this.canvas = document.getElementById('scouter-canvas');
-        this.detector = new CenterFocusDetector(this.video);
-        this.renderer = new HUDCanvasRenderer(this.canvas);
+        this.renderer = new ClampedHUDCanvasRenderer(this.canvas);
         
         this.bindEvents();
-        this.initCamera();
-        this.startLoop();
+        this.initFaceTracker();
+        this.startRenderLoop();
       }
 
-      async initCamera() {
-        try {
-          if (this.stream) {
-            this.stream.getTracks().forEach(track => track.stop());
-          }
+      initFaceTracker() {
+        this.faceDetection = new FaceDetection({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`
+        });
 
-          // Camera constraints prioritize Rear / Environment Camera explicitly!
-          const constraints = {
-            video: {
-              facingMode: STATE.facingMode === 'environment' ? { ideal: 'environment' } : 'user',
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            },
-            audio: false
-          };
+        this.faceDetection.setOptions({
+          model: 'short',
+          minDetectionConfidence: 0.55
+        });
 
-          // Apply Video Mirroring ONLY for Front ('user') camera
-          if (STATE.facingMode === 'user') {
-            this.video.classList.add('-scale-x-100');
-          } else {
-            this.video.classList.remove('-scale-x-100');
-          }
+        this.faceDetection.onResults((results) => this.handleFaceResults(results));
+        this.startCamera();
+      }
 
-          this.stream = await navigator.mediaDevices.getUserMedia(constraints);
-          this.video.srcObject = this.stream;
-          await this.video.play();
-
-          this.renderer.resize();
-        } catch (err) {
-          console.warn("Requested camera mode unavailable, falling back...", err);
-          try {
-            // Fallback to default video device
-            this.stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            this.video.srcObject = this.stream;
-            await this.video.play();
-            this.renderer.resize();
-          } catch(e) {
-            console.error("Camera Initialization Failed Completely", e);
-          }
+      async startCamera() {
+        if (this.cameraUtils) {
+          await this.cameraUtils.stop();
         }
+
+        if (STATE.facingMode === 'user') {
+          this.video.classList.add('-scale-x-100');
+        } else {
+          this.video.classList.remove('-scale-x-100');
+        }
+
+        this.cameraUtils = new Camera(this.video, {
+          onFrame: async () => {
+            await this.faceDetection.send({ image: this.video });
+          },
+          width: 1280,
+          height: 720,
+          facingMode: STATE.facingMode
+        });
+
+        await this.cameraUtils.start();
+        this.renderer.resize();
+      }
+
+      handleFaceResults(results) {
+        if (!results.detections || results.detections.length === 0) {
+          STATE.rawFaces = [];
+          STATE.selectedFaceId = null;
+          return;
+        }
+
+        const W = this.canvas.width;
+        const H = this.canvas.height;
+        const screenCenterX = W / 2;
+        const screenCenterY = H / 2;
+
+        const detected = results.detections.map((det, index) => {
+          const bbox = det.boundingBox;
+          let x = bbox.xCenter * W - (bbox.width * W) / 2;
+          let y = bbox.yCenter * H - (bbox.height * H) / 2;
+          let w = bbox.width * W;
+          let h = bbox.height * H;
+
+          if (STATE.facingMode === 'user') {
+            x = W - x - w;
+          }
+
+          const centerX = x + w / 2;
+          const centerY = y + h / 2;
+          const distToCenter = Math.hypot(centerX - screenCenterX, centerY - screenCenterY);
+
+          const hash = calculateFacialHash({ width: w, height: h }, det.landmarks);
+          const power = generateSpecificPower(hash, { width: w, height: h });
+          const attrs = generateAttributes(hash);
+
+          return {
+            id: `face-${index}`,
+            x, y, width: w, height: h,
+            centerX, centerY,
+            distToCenter,
+            hash,
+            powerValue: power.powerValue,
+            rank: power.rank,
+            ...attrs
+          };
+        });
+
+        detected.sort((a, b) => a.distToCenter - b.distToCenter);
+        STATE.rawFaces = detected;
+
+        if (!STATE.selectedFaceId || !detected.find(f => f.id === STATE.selectedFaceId)) {
+          STATE.selectedFaceId = detected[0].id;
+        }
+      }
+
+      updateSmoothFaces() {
+        if (STATE.rawFaces.length === 0) {
+          STATE.smoothFaces = [];
+          return;
+        }
+
+        const alpha = 0.25;
+        if (STATE.smoothFaces.length !== STATE.rawFaces.length) {
+          STATE.smoothFaces = STATE.rawFaces.map(f => ({ ...f }));
+          return;
+        }
+
+        STATE.rawFaces.forEach((raw, i) => {
+          const target = STATE.smoothFaces[i];
+          if (target) {
+            target.id = raw.id;
+            target.x += (raw.x - target.x) * alpha;
+            target.y += (raw.y - target.y) * alpha;
+            target.width += (raw.width - target.width) * alpha;
+            target.height += (raw.height - target.height) * alpha;
+            target.centerX = target.x + target.width / 2;
+            target.centerY = target.y + target.height / 2;
+            target.powerValue = raw.powerValue;
+            target.rank = raw.rank;
+            target.gender = raw.gender;
+            target.age = raw.age;
+            target.charmScore = raw.charmScore;
+            target.maleType = raw.maleType;
+            target.femaleType = raw.femaleType;
+            target.rpg = raw.rpg;
+            target.hash = raw.hash;
+          }
+        });
       }
 
       bindEvents() {
         window.addEventListener('resize', () => this.renderer.resize());
 
-        // Mode Switching
+        // Tap Canvas to Select Target Face
+        this.canvas.addEventListener('click', (e) => {
+          if (STATE.smoothFaces.length <= 1) return;
+          const rect = this.canvas.getBoundingClientRect();
+          const tapX = e.clientX - rect.left;
+          const tapY = e.clientY - rect.top;
+
+          let closest = null;
+          let minDist = Infinity;
+
+          STATE.smoothFaces.forEach(f => {
+            const d = Math.hypot(f.centerX - tapX, f.centerY - tapY);
+            if (d < minDist) {
+              minDist = d;
+              closest = f;
+            }
+          });
+
+          if (closest) {
+            STATE.selectedFaceId = closest.id;
+            soundEngine.playBeep(1400, 0.08);
+          }
+        });
+
         document.querySelectorAll('.mode-tab').forEach(tab => {
           tab.addEventListener('click', (e) => {
             const mode = e.currentTarget.dataset.mode;
@@ -762,60 +803,51 @@
           });
         });
 
-        // Theme Switcher
         document.getElementById('btn-theme').addEventListener('click', () => {
-          const themeKeys = Object.keys(THEMES);
-          const currentIndex = themeKeys.indexOf(STATE.theme);
-          STATE.theme = themeKeys[(currentIndex + 1) % themeKeys.length];
-          
+          const keys = Object.keys(THEMES);
+          const nextIdx = (keys.indexOf(STATE.theme) + 1) % keys.length;
+          STATE.theme = keys[nextIdx];
+
           document.getElementById('app-body').setAttribute('data-theme', STATE.theme);
           document.getElementById('theme-label').innerText = THEMES[STATE.theme].name;
           document.getElementById('scouter-tint').style.backgroundColor = THEMES[STATE.theme].tint;
-          
-          soundEngine.playBeep(1100, 'sine', 0.08);
+
+          soundEngine.playBeep(1100, 0.08);
         });
 
-        // Criteria Selectors
         document.getElementById('btn-criteria-cool').addEventListener('click', () => {
           STATE.criteria = 'cool';
           this.updateCriteriaButtons();
           this.updateAnalysisPanel();
-          soundEngine.playBeep(1200, 'sine', 0.05);
+          soundEngine.playBeep(1200, 0.05);
         });
 
         document.getElementById('btn-criteria-beauty').addEventListener('click', () => {
           STATE.criteria = 'beauty';
           this.updateCriteriaButtons();
           this.updateAnalysisPanel();
-          soundEngine.playBeep(1200, 'sine', 0.05);
+          soundEngine.playBeep(1200, 0.05);
         });
 
-        // Audio Toggle
         document.getElementById('btn-audio').addEventListener('click', () => {
           STATE.audioEnabled = !STATE.audioEnabled;
           const icon = document.getElementById('icon-audio');
-          if (STATE.audioEnabled) {
-            icon.setAttribute('data-lucide', 'volume-2');
-            soundEngine.playBeep(1300, 'sine', 0.08);
-          } else {
-            icon.setAttribute('data-lucide', 'volume-x');
-          }
+          icon.setAttribute('data-lucide', STATE.audioEnabled ? 'volume-2' : 'volume-x');
           lucide.createIcons();
+          if (STATE.audioEnabled) soundEngine.playBeep(1300, 0.08);
         });
 
-        // Camera Flip Button
         document.getElementById('btn-camera-flip').addEventListener('click', () => {
           STATE.facingMode = (STATE.facingMode === 'environment') ? 'user' : 'environment';
-          this.initCamera();
-          soundEngine.playBeep(1500, 'square', 0.08);
+          this.startCamera();
+          soundEngine.playBeep(1500, 0.08);
         });
 
-        // Action Scan
+        // Trigger Multi-second Scan Sequence
         document.getElementById('btn-scan').addEventListener('click', () => {
           this.triggerScanSequence();
         });
 
-        // Snapshot Action
         document.getElementById('btn-capture').addEventListener('click', () => {
           this.captureSnapshot();
         });
@@ -833,17 +865,44 @@
         });
       }
 
-      updateCriteriaButtons() {
-        const btnCool = document.getElementById('btn-criteria-cool');
-        const btnBeauty = document.getElementById('btn-criteria-beauty');
+      // Multi-second Scouter Scan Sequence with Pitch Escalation
+      triggerScanSequence() {
+        if (STATE.isScanning || STATE.smoothFaces.length === 0) return;
 
-        if (STATE.criteria === 'cool') {
-          btnCool.className = 'px-2.5 py-0.5 rounded-full font-bold bg-slate-800 theme-color-text border theme-border transition';
-          btnBeauty.className = 'px-2.5 py-0.5 rounded-full font-bold text-slate-400 hover:text-white transition';
-        } else {
-          btnBeauty.className = 'px-2.5 py-0.5 rounded-full font-bold bg-slate-800 theme-color-text border theme-border transition';
-          btnCool.className = 'px-2.5 py-0.5 rounded-full font-bold text-slate-400 hover:text-white transition';
-        }
+        STATE.isScanning = true;
+        const banner = document.getElementById('alert-banner');
+        const btnText = document.getElementById('btn-scan-text');
+        
+        banner.classList.remove('hidden');
+        btnText.innerText = '計測中...';
+
+        const activeFace = STATE.smoothFaces.find(f => f.id === STATE.selectedFaceId) || STATE.smoothFaces[0];
+        const targetVal = activeFace ? activeFace.powerValue : 50000;
+
+        let elapsed = 0;
+        const totalDuration = 2400; // 2.4 Seconds total scan sequence
+        const interval = 50;
+
+        const scanTimer = setInterval(() => {
+          elapsed += interval;
+          const progress = elapsed / totalDuration;
+
+          // Exponential scramble value calculation
+          STATE.scrambleValue = Math.floor(Math.random() * (targetVal * progress * 1.3) + (1000 * progress));
+
+          // Fast SF audio pitch escalation
+          soundEngine.playFastScanBeep(progress * 600);
+
+          if (elapsed >= totalDuration) {
+            clearInterval(scanTimer);
+            STATE.isScanning = false;
+            banner.classList.add('hidden');
+            btnText.innerText = 'ターゲットスキャン';
+
+            soundEngine.playClimaxLockSound();
+            this.updateAnalysisPanel();
+          }
+        }, interval);
       }
 
       setMode(mode) {
@@ -857,63 +916,72 @@
         });
 
         const panel = document.getElementById('analysis-panel');
-        const criteriaSelector = document.getElementById('criteria-selector');
+        const selector = document.getElementById('criteria-selector');
 
         if (mode === 'power') {
           panel.classList.add('hidden');
-          criteriaSelector.classList.add('hidden');
+          selector.classList.add('hidden');
         } else if (mode === 'facetype') {
           panel.classList.remove('hidden');
-          criteriaSelector.classList.remove('hidden');
+          selector.classList.remove('hidden');
           this.updateAnalysisPanel();
         } else {
           panel.classList.remove('hidden');
-          criteriaSelector.classList.add('hidden');
+          selector.classList.add('hidden');
           this.updateAnalysisPanel();
         }
 
-        soundEngine.playBeep(1250, 'sine', 0.08);
+        soundEngine.playBeep(1250, 0.08);
       }
 
-      triggerScanSequence() {
-        soundEngine.playPowerUp();
-        const alertBanner = document.getElementById('alert-banner');
-        alertBanner.classList.remove('hidden');
-        
-        setTimeout(() => {
-          alertBanner.classList.add('hidden');
-          this.updateAnalysisPanel();
-        }, 900);
+      updateCriteriaButtons() {
+        const btnCool = document.getElementById('btn-criteria-cool');
+        const btnBeauty = document.getElementById('btn-criteria-beauty');
+
+        if (STATE.criteria === 'cool') {
+          btnCool.className = 'px-2.5 py-0.5 rounded-full font-bold bg-slate-800 theme-color-text border theme-border transition';
+          btnBeauty.className = 'px-2.5 py-0.5 rounded-full font-bold text-slate-400 hover:text-white transition';
+        } else {
+          btnBeauty.className = 'px-2.5 py-0.5 rounded-full font-bold bg-slate-800 theme-color-text border theme-border transition';
+          btnCool.className = 'px-2.5 py-0.5 rounded-full font-bold text-slate-400 hover:text-white transition';
+        }
       }
 
       updateAnalysisPanel() {
-        const faces = STATE.lastDetectedFaces;
-        if (!faces || faces.length === 0) return;
-
+        const faces = STATE.smoothFaces;
         const panelContent = document.getElementById('panel-content');
-        const f1 = faces[0];
+
+        if (!faces || faces.length === 0) {
+          panelContent.innerHTML = `
+            <div class="text-center py-2 text-slate-400 font-bold">
+              ターゲット顔が検出されていません
+            </div>
+          `;
+          return;
+        }
+
+        const f1 = faces.find(f => f.id === STATE.selectedFaceId) || faces[0];
 
         if (STATE.mode === 'facetype') {
           const activeType = (f1.gender === 'Male') ? f1.maleType : f1.femaleType;
           const criteriaLabel = (STATE.criteria === 'cool') ? 'かっこよさ' : '美しさ';
 
           panelContent.innerHTML = `
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-2 gap-2.5">
               <div class="p-2.5 rounded-xl bg-slate-900/80 border theme-border">
                 <div class="text-xs text-slate-400">推定属性</div>
-                <div class="font-bold text-sm text-white mt-0.5">${f1.gender === 'Male' ? '男性 ♂' : '女性 ♀'} (${f1.age}歳)</div>
-                <div class="text-xs text-slate-300 mt-1">AI中央フォーカスで判定</div>
+                <div class="font-bold text-xs md:text-sm text-white mt-0.5">${f1.gender === 'Male' ? '男性 ♂' : '女性 ♀'} (${f1.age}歳)</div>
               </div>
 
               <div class="p-2.5 rounded-xl bg-slate-900/80 border theme-border">
                 <div class="text-xs text-slate-400">${criteriaLabel}スコア</div>
-                <div class="font-orbitron font-black text-xl theme-color-text mt-0.5">${f1.charmScore} <span class="text-xs">/ 100</span></div>
+                <div class="font-orbitron font-black text-lg theme-color-text mt-0.5">${f1.charmScore} <span class="text-xs">/ 100</span></div>
               </div>
             </div>
 
-            <div class="p-3 rounded-xl bg-slate-900/80 border theme-border">
-              <div class="text-xs text-slate-400">系統顔診断タイプ (${f1.gender === 'Male' ? '男性枠' : '女性枠'})</div>
-              <div class="font-bold text-base text-white mt-0.5">${activeType.name}</div>
+            <div class="p-2.5 rounded-xl bg-slate-900/80 border theme-border">
+              <div class="text-xs text-slate-400">系統顔タイプ診断</div>
+              <div class="font-bold text-sm text-white mt-0.5">${activeType.name}</div>
               <div class="text-xs text-slate-300 mt-1 leading-relaxed">${activeType.desc}</div>
             </div>
           `;
@@ -924,16 +992,16 @@
                 <span class="text-xs text-slate-400">適正RPGジョブ</span>
                 <span class="text-xs px-2 py-0.5 rounded bg-amber-950/80 border border-amber-500/50 text-amber-300 font-bold">${f1.rpg.rank}</span>
               </div>
-              <div class="font-bold text-base text-white mt-1">${f1.rpg.title}</div>
+              <div class="font-bold text-sm md:text-base text-white mt-1">${f1.rpg.title}</div>
               <div class="text-xs text-slate-300 mt-1 leading-relaxed">${f1.rpg.trait}</div>
             </div>
           `;
         } else if (STATE.mode === 'chemistry') {
           if (faces.length < 2) {
             panelContent.innerHTML = `
-              <div class="text-center py-2 text-amber-300">
-                <i data-lucide="users" class="w-6 h-6 mx-auto mb-1"></i>
-                画角内に2人目のターゲットを捉えてください
+              <div class="text-center py-2 text-amber-300 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5">
+                <i data-lucide="users" class="w-4 h-4"></i>
+                カメラ画角内に2人目の顔を検出してください
               </div>
             `;
             lucide.createIcons();
@@ -941,17 +1009,17 @@
           }
 
           const f2 = faces[1];
-          const synergyScore = Math.floor(80 + ((f1.power + f2.power) % 19));
+          const synergyScore = Math.floor(80 + ((f1.hash + f2.hash) % 20));
           const fortune = FORTUNE_ARCHETYPES[synergyScore % FORTUNE_ARCHETYPES.length];
 
           panelContent.innerHTML = `
             <div class="space-y-2">
-              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-pink-500/40">
+              <div class="flex items-center justify-between p-2 rounded-xl bg-slate-900/80 border border-pink-500/40">
                 <span class="text-xs text-slate-300">2人の運命相性度</span>
-                <span class="font-orbitron font-black text-lg text-pink-400">${synergyScore}%</span>
+                <span class="font-orbitron font-black text-base text-pink-400">${synergyScore}%</span>
               </div>
-              <div class="p-3 rounded-xl bg-slate-900/80 border theme-border">
-                <div class="font-bold text-sm text-pink-300">${fortune.title}</div>
+              <div class="p-2.5 rounded-xl bg-slate-900/80 border theme-border">
+                <div class="font-bold text-xs md:text-sm text-pink-300">${fortune.title}</div>
                 <div class="text-xs text-slate-300 mt-1 leading-relaxed">${fortune.desc}</div>
               </div>
             </div>
@@ -960,7 +1028,7 @@
       }
 
       captureSnapshot() {
-        soundEngine.playExplosion();
+        soundEngine.playClimaxLockSound();
 
         const exportCanvas = document.createElement('canvas');
         exportCanvas.width = this.canvas.width;
@@ -982,12 +1050,10 @@
         document.getElementById('capture-modal').classList.remove('hidden');
       }
 
-      startLoop() {
+      startRenderLoop() {
         const loop = () => {
-          const faces = this.detector.detect();
-          STATE.lastDetectedFaces = faces;
-          
-          this.renderer.render(faces);
+          this.updateSmoothFaces();
+          this.renderer.render(STATE.smoothFaces);
           requestAnimationFrame(loop);
         };
         requestAnimationFrame(loop);
