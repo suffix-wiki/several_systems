@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full bg-slate-950 text-slate-100 select-none">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CYBER SCOUTER - SF Face & Battle Power Analyzer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap');
+    
+    :root {
+      --theme-primary: #00ccff;
+      --theme-primary-rgb: 0, 204, 255;
+      --theme-secondary: #001a33;
+      --theme-glow: rgba(0, 204, 255, 0.4);
+      --theme-border: rgba(0, 204, 255, 0.35);
+      --theme-bg-panel: rgba(10, 20, 30, 0.88);
+    }
+
+    [data-theme="green"] {
+      --theme-primary: #00ff66;
+      --theme-primary-rgb: 0, 255, 102;
+      --theme-secondary: #003311;
+      --theme-glow: rgba(0, 255, 102, 0.4);
+      --theme-border: rgba(0, 255, 102, 0.35);
+      --theme-bg-panel: rgba(10, 30, 18, 0.88);
+    }
+
+    [data-theme="red"] {
+      --theme-primary: #ff3344;
+      --theme-primary-rgb: 255, 51, 68;
+      --theme-secondary: #330005;
+      --theme-glow: rgba(255, 51, 68, 0.4);
+      --theme-border: rgba(255, 51, 68, 0.35);
+      --theme-bg-panel: rgba(30, 10, 12, 0.88);
+    }
+
+    [data-theme="purple"] {
+      --theme-primary: #bf00ff;
+      --theme-primary-rgb: 191, 0, 255;
+      --theme-secondary: #240033;
+      --theme-glow: rgba(191, 0, 255, 0.4);
+      --theme-border: rgba(191, 0, 255, 0.35);
+      --theme-bg-panel: rgba(25, 10, 30, 0.88);
+    }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      overflow-x: hidden;
+      touch-action: manipulation;
+    }
+    .font-orbitron {
+      font-family: 'Orbitron', sans-serif;
+    }
+    
+    .theme-color-text {
+      color: var(--theme-primary);
+    }
+
+    .theme-border {
+      border-color: var(--theme-border);
+    }
+
+    .theme-glow-text {
+      text-shadow: 0 0 10px var(--theme-primary), 0 0 20px var(--theme-glow);
+    }
+
+    .theme-btn-primary {
+      background: linear-gradient(135deg, var(--theme-primary), rgba(var(--theme-primary-rgb), 0.7));
+      color: #030712;
+      box-shadow: 0 0 15px var(--theme-glow);
+    }
+
+    .scouter-panel {
+      background: var(--theme-bg-panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--theme-border);
+      box-shadow: 0 0 20px var(--theme-glow);
+    }
+
+    /* HUD Overlay Effects */
+    .scanlines {
+      background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0),
+        rgba(255,255,255,0) 50%,
+        rgba(0, 0, 0, 0.4) 50%,
+        rgba(0, 0, 0, 0.4)
+      );
+      background-size: 100% 4px;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.5);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--theme-primary);
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body id="app-body" data-theme="cyan" class="h-full flex flex-col bg-slate-950 text-cyan-400 transition-colors duration-500">
+
+  <header class="flex-none bg-slate-900/90 border-b theme-border px-4 py-2.5 flex justify-between items-center z-30 transition-colors duration-300">
+    <div class="flex items-center gap-2">
+      <i data-lucide="crosshair" class="w-6 h-6 theme-color-text animate-spin" style="animation-duration: 10s;"></i>
+      <h1 class="font-orbitron font-black text-base md:text-xl tracking-wider theme-color-text theme-glow-text">
+        CYBER SCOUTER <span class="text-xs text-slate-200 font-normal px-1.5 py-0.5 border theme-border rounded bg-slate-950/60">HUD v5.0</span>
+      </h1>
+    </div>
+
+    <!-- Controls: Theme Toggle, Audio Toggle, Camera Flip -->
+    <div class="flex items-center gap-2">
+      <button id="btn-theme" class="px-2.5 py-1 text-xs border theme-border rounded-lg flex items-center gap-1.5 bg-slate-950/60 hover:bg-slate-800/50 transition theme-color-text">
+        <i data-lucide="palette" class="w-3.5 h-3.5"></i>
+        <span id="theme-label" class="font-bold">CYAN</span>
+      </button>
+
+      <button id="btn-audio" class="p-1.5 border theme-border rounded-lg bg-slate-950/60 hover:bg-slate-800/50 transition theme-color-text" title="オーディオ切替">
+        <i id="icon-audio" data-lucide="volume-2" class="w-4 h-4"></i>
+      </button>
+
+      <button id="btn-camera-flip" class="p-1.5 border theme-border rounded-lg bg-slate-950/60 hover:bg-slate-800/50 transition theme-color-text" title="カメラ切替">
+        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+  <main class="flex-1 relative overflow-hidden flex flex-col justify-between">
+    
+    <!-- Camera Viewport & Canvas Overlay -->
+    <div class="absolute inset-0 z-0 flex items-center justify-center bg-black">
+      <video id="webcam" class="absolute w-full h-full object-cover transform -scale-x-100" playsinline autoplay muted></video>
+      <canvas id="scouter-canvas" class="absolute w-full h-full object-cover z-10 pointer-events-none"></canvas>
+      
+      <!-- Monocle Tint Overlay -->
+      <div id="scouter-tint" class="absolute inset-0 pointer-events-none transition-colors duration-500 bg-cyan-950/20 mix-blend-color-dodge"></div>
+      <div class="absolute inset-0 pointer-events-none scanlines z-10 opacity-60"></div>
+    </div>
+
+    <!-- Navigation Mode Tabs (Top Controls) -->
+    <div class="relative z-20 p-2.5 flex flex-col items-center gap-2">
+      <div class="inline-flex p-1 bg-slate-900/85 backdrop-blur-md rounded-xl border theme-border max-w-full overflow-x-auto gap-1">
+        <button data-mode="power" class="mode-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 bg-slate-800 text-white shadow-lg transition">
+          <i data-lucide="zap" class="w-4 h-4"></i> 戦闘力測定
+        </button>
+        <button data-mode="facetype" class="mode-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 theme-color-text hover:bg-slate-800/50 transition">
+          <i data-lucide="smile" class="w-4 h-4"></i> 顔タイプ＆美しさ
+        </button>
+        <button data-mode="rpg" class="mode-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 theme-color-text hover:bg-slate-800/50 transition">
+          <i data-lucide="sword" class="w-4 h-4"></i> RPGジョブ診断
+        </button>
+        <button data-mode="chemistry" class="mode-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 theme-color-text hover:bg-slate-800/50 transition">
+          <i data-lucide="heart-handshake" class="w-4 h-4"></i> 占い相性診断
+        </button>
+      </div>
+
+      <!-- Criteria Focus Selector (Only for Face Type Mode) -->
+      <div id="criteria-selector" class="hidden flex items-center gap-2 bg-slate-900/90 border theme-border px-3 py-1 rounded-full text-xs">
+        <span class="text-slate-300 font-bold">評価基準:</span>
+        <button id="btn-criteria-cool" class="px-2.5 py-0.5 rounded-full font-bold bg-slate-800 theme-color-text border theme-border transition">
+          かっこよさ
+        </button>
+        <button id="btn-criteria-beauty" class="px-2.5 py-0.5 rounded-full font-bold text-slate-400 hover:text-white transition">
+          美しさ
+        </button>
+      </div>
+    </div>
+
+    <!-- Power Alert Banner -->
+    <div id="alert-banner" class="relative z-20 self-center hidden transform transition-all duration-300 my-2">
+      <div class="bg-red-600/90 text-white font-black px-5 py-1.5 rounded-full border-2 border-yellow-300 shadow-2xl flex items-center gap-2 animate-bounce">
+        <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-300"></i>
+        <span id="alert-text" class="tracking-widest text-xs md:text-sm font-orbitron">WARNING: ENERGY OVERLOAD!</span>
+      </div>
+    </div>
+
+    <div class="relative z-20 p-3 md:p-5 flex flex-col items-center">
+      
+      <!-- Analysis Info Panel -->
+      <div id="analysis-panel" class="w-full max-w-xl mb-3 scouter-panel rounded-2xl p-4 text-xs md:text-sm shadow-2xl border theme-border hidden transition-all duration-300">
+        <div id="panel-content" class="space-y-3"></div>
+      </div>
+
+      <!-- Action Buttons Bar -->
+      <div class="w-full max-w-md flex justify-between items-center gap-3">
+        <button id="btn-scan" class="flex-1 py-3 px-4 theme-btn-primary font-orbitron font-black text-sm md:text-base rounded-xl transition active:scale-95 flex items-center justify-center gap-2">
+          <i data-lucide="radar" class="w-5 h-5"></i>
+          <span id="btn-scan-text">ターゲットスキャン</span>
+        </button>
+
+        <button id="btn-capture" class="p-3 bg-slate-900/90 border theme-border rounded-xl theme-color-text hover:bg-slate-800/80 active:scale-95 transition flex items-center justify-center shadow-lg" title="HUDショットを保存">
+          <i data-lucide="camera" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Snapshot Capture Result Modal -->
+  <div id="capture-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border theme-border rounded-2xl max-w-md w-full p-4 flex flex-col items-center space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center w-full border-b border-slate-800 pb-2">
+        <h3 class="font-orbitron font-bold theme-color-text flex items-center gap-2">
+          <i data-lucide="file-check" class="w-4 h-4"></i> SCOUTER DATA RECORD
+        </h3>
+        <button id="btn-modal-close" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      
+      <div class="w-full relative rounded-xl overflow-hidden border theme-border bg-black flex justify-center">
+        <img id="captured-image" class="w-full h-auto object-contain max-h-[60vh]" alt="Scouter Result">
+      </div>
+
+      <div class="flex gap-3 w-full">
+        <button id="btn-download" class="flex-1 py-2.5 theme-btn-primary font-bold text-xs md:text-sm rounded-xl transition flex items-center justify-center gap-2">
+          <i data-lucide="download" class="w-4 h-4"></i> 画像をダウンロード
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STATE = {
+      mode: 'power', // 'power' | 'facetype' | 'rpg' | 'chemistry'
+      theme: 'cyan',  // 'cyan' | 'green' | 'red' | 'purple'
+      criteria: 'cool', // 'cool' (かっこよさ) | 'beauty' (美しさ)
+      audioEnabled: true,
+      facingMode: 'user',
+      lastDetectedFaces: []
+    };
+
+    const THEMES = {
+      cyan: {
+        primary: '#00ccff',
+        rgb: '0, 204, 255',
+        tint: 'rgba(0, 204, 255, 0.15)',
+        name: 'CYAN'
+      },
+      green: {
+        primary: '#00ff66',
+        rgb: '0, 255, 102)',
+        tint: 'rgba(0, 255, 102, 0.15)',
+        name: 'GREEN'
+      },
+      red: {
+        primary: '#ff3344',
+        rgb: '255, 51, 68',
+        tint: 'rgba(255, 51, 68, 0.2)',
+        name: 'RED'
+      },
+      purple: {
+        primary: '#bf00ff',
+        rgb: '191, 0, 255',
+        tint: 'rgba(191, 0, 255, 0.2)',
+        name: 'PURPLE'
+      }
+    };
+
+    // Male Face Types
+    const MALE_TYPES = [
+      { name: "しょうゆ顔 (Soy)", desc: "癖がなく整った和風の王道で爽やかなバランス顔立ち" },
+      { name: "ソース顔 (Sauce)", desc: "彫りが深く目鼻立ちがはっきりとした濃いめワイルド顔" },
+      { name: "塩顔 (Salt)", desc: "目元があっさりとしたクールでシャープ・知的な顔立ち" },
+      { name: "砂糖顔 (Sugar)", desc: "甘い目元と丸みがあり親しみやすい可愛らしい愛され顔" },
+      { name: "ケチャップ顔 (Ketchup)", desc: "濃さとあっさり感の絶妙な和洋折衷イケメン顔" },
+      { name: "マヨネーズ顔 (Mayonnaise)", desc: "包容力と甘さの中に適度な色気があるミステリアス顔" },
+      { name: "酢顔 (Vinegar)", desc: "すっきりスリムでミステリアスな透明感あふれる極薄顔" }
+    ];
+
+    // Female Face Types
+    const FEMALE_TYPES = [
+      { name: "フェミニン (Feminine)", desc: "柔らかく華やかで女性らしい洗練された上品な顔立ち" },
+      { name: "エレガント (Elegant)", desc: "彫りが深く大人っぽく凛とした品格あふれる美意識高め顔" },
+      { name: "フレッシュ (Fresh)", desc: "爽やかで親しみやすく清潔感たっぷりのナチュラル顔" },
+      { name: "クール (Cool)", desc: "目元がシャープでスタイリッシュな洗練されたモダン顔" },
+      { name: "アクティブ (Active)", desc: "健康でハッキリとしたパーツが輝くエネルギッシュ顔" },
+      { name: "キュート (Cute)", desc: "丸みのあるパーツと明るい表情が愛くるしい童顔" }
+    ];
+
+    // Classic RPG Job Categories
+    const RPG_JOBS = [
+      { title: "勇者 (Hero)", trait: "万能な統率力と不屈の精神を持った光のリーダー", rank: "S-Rank" },
+      { title: "魔法使い (Mage)", trait: "圧倒的な知性と広範囲な状況変化を起こす術士", rank: "A-Rank" },
+      { title: "賢者 (Sage)", trait: "全知全能の知識で攻守両面を支える最高の頭脳", rank: "S-Rank" },
+      { title: "僧侶 (Cleric)", trait: "高い共感力と癒やしのオーラでチームを守る聖者", rank: "A-Rank" },
+      { title: "戦士 (Warrior)", trait: "強固な意志と圧倒的タフネスで前線を切り拓く傑物", rank: "A-Rank" },
+      { title: "武闘家 (Martial Artist)", trait: "超絶な身体能力と直感力で一撃を叩き込む達人", rank: "B-Rank" },
+      { title: "盗賊 (Thief)", trait: "鋭い洞察力と素早さでチャンスを見極める技巧派", rank: "B-Rank" },
+      { title: "魔王 (Demon King)", trait: "全周囲を圧倒するカリスマ性と絶大なオーラ", rank: "EX-Rank" }
+    ];
+
+    // Fortune Compatibility Archetypes
+    const FORTUNE_ARCHETYPES = [
+      { title: "運命のソウルメイト", desc: "前世からの深い絆。お互いの長所を高め合える最高の相性です。" },
+      { title: "最強の無敵バディ", desc: "直感と波長が完璧に合致。どんな困難も二人でクリアできます。" },
+      { title: "互いを高め合うライバル", desc: "切磋琢磨することで秘められた能力が覚醒する刺激的な関係。" },
+      { title: "天敵だが惹かれ合う磁石", desc: "正反対のタイプだからこそ、互いに自分にない魅力を強く補い合えます。" }
+    ];
+
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+      }
+
+      playBeep(freq = 1200, type = 'sine', duration = 0.08) {
+        if (!STATE.audioEnabled) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch(e) {}
+      }
+
+      playPowerUp() {
+        if (!STATE.audioEnabled) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(2000, this.ctx.currentTime + 0.6);
+          gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.6);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.6);
+        } catch(e) {}
+      }
+
+      playExplosion() {
+        if (!STATE.audioEnabled) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.4);
+          gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.4);
+        } catch(e) {}
+      }
+    }
+
+    const soundEngine = new SoundEngine();
+
+    class FaceDetector {
+      constructor(videoElement) {
+        this.video = videoElement;
+      }
+
+      detect() {
+        if (!this.video.videoWidth) return [];
+
+        const width = this.video.videoWidth;
+        const height = this.video.videoHeight;
+        const time = Date.now() * 0.0025;
+
+        // Target 1 (Primary)
+        const centerX = width * (0.5 + Math.sin(time * 0.6) * 0.03);
+        const centerY = height * (0.43 + Math.cos(time * 0.4) * 0.02);
+        const size = Math.min(width, height) * 0.36;
+
+        const powerSeed = Math.abs(Math.sin(time * 1.5)) + Math.cos(time * 1.2);
+        let basePower = Math.floor(3200 + powerSeed * 8400);
+
+        if (Math.sin(time * 0.2) > 0.9) {
+          basePower = Math.floor(65000 + Math.random() * 35000); // Surge
+        }
+
+        const gender1 = (Math.sin(time) > -0.2) ? 'Male' : 'Female';
+        const age1 = Math.floor(22 + (Math.abs(Math.cos(time * 0.5)) * 16));
+
+        const primaryFace = {
+          id: 'target-1',
+          x: centerX - size / 2,
+          y: centerY - size / 2,
+          width: size,
+          height: size * 1.25,
+          gender: gender1,
+          age: age1,
+          power: basePower,
+          charmScore: Math.min(99, Math.floor(81 + (basePower % 18))),
+          maleType: MALE_TYPES[Math.floor(basePower) % MALE_TYPES.length],
+          femaleType: FEMALE_TYPES[Math.floor(basePower) % FEMALE_TYPES.length],
+          rpg: RPG_JOBS[Math.floor(basePower * 2) % RPG_JOBS.length],
+          landmarks: this.generateLandmarks(centerX, centerY, size)
+        };
+
+        const faces = [primaryFace];
+
+        // Target 2 (Secondary - For Multi-Person Chemistry)
+        const secX = width * (0.22 + Math.cos(time * 0.7) * 0.03);
+        const secY = height * (0.47 + Math.sin(time * 0.5) * 0.03);
+        const secSize = size * 0.72;
+
+        const gender2 = (gender1 === 'Male') ? 'Female' : 'Male';
+        const age2 = Math.floor(20 + (Math.abs(Math.sin(time * 0.7)) * 14));
+
+        faces.push({
+          id: 'target-2',
+          x: secX - secSize / 2,
+          y: secY - secSize / 2,
+          width: secSize,
+          height: secSize * 1.25,
+          gender: gender2,
+          age: age2,
+          power: Math.floor(basePower * 0.85),
+          charmScore: Math.floor(75 + (basePower % 22)),
+          maleType: MALE_TYPES[(Math.floor(basePower) + 2) % MALE_TYPES.length],
+          femaleType: FEMALE_TYPES[(Math.floor(basePower) + 1) % FEMALE_TYPES.length],
+          rpg: RPG_JOBS[(Math.floor(basePower) + 3) % RPG_JOBS.length],
+          landmarks: this.generateLandmarks(secX, secY, secSize)
+        });
+
+        return faces;
+      }
+
+      generateLandmarks(cx, cy, size) {
+        const r = size * 0.28;
+        return {
+          leftEye: { x: cx - r * 0.5, y: cy - r * 0.35 },
+          rightEye: { x: cx + r * 0.5, y: cy - r * 0.35 },
+          nose: { x: cx, y: cy + r * 0.05 },
+          mouth: { x: cx, y: cy + r * 0.55 }
+        };
+      }
+    }
+
+    class HUDCanvasRenderer {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+      }
+
+      resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+      }
+
+      render(faces) {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        const theme = THEMES[STATE.theme];
+        const color = theme.primary;
+
+        this.drawBackgroundGrid(color);
+
+        if (!faces || faces.length === 0) {
+          this.drawSearchingText(color);
+          return;
+        }
+
+        // Modular Rendering Based on Current Mode
+        if (STATE.mode === 'chemistry') {
+          if (faces.length >= 2) {
+            this.drawTargetReticle(faces[0], color);
+            this.drawTargetReticle(faces[1], '#ff00aa');
+            this.drawChemistryHUD(faces[0], faces[1]);
+          } else {
+            this.drawTargetReticle(faces[0], color);
+          }
+        } else {
+          const face = faces[0];
+          this.drawTargetReticle(face, color);
+
+          if (STATE.mode === 'power') {
+            this.drawPowerLevelHUD(face, color);
+          } else if (STATE.mode === 'facetype') {
+            this.drawFaceTypeHUD(face, color);
+          } else if (STATE.mode === 'rpg') {
+            this.drawRPGHUD(face, color);
+          }
+        }
+      }
+
+      drawBackgroundGrid(color) {
+        const ctx = this.ctx;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.12;
+        ctx.lineWidth = 1;
+
+        ctx.beginPath();
+        ctx.arc(w / 2, h / 2, Math.min(w, h) * 0.35, 0, Math.PI * 2);
+        ctx.stroke();
+
+        const margin = 20;
+        const len = 35;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.4;
+
+        ctx.beginPath();
+        ctx.moveTo(margin, margin + len); ctx.lineTo(margin, margin); ctx.lineTo(margin + len, margin);
+        ctx.moveTo(w - margin - len, margin); ctx.lineTo(w - margin, margin); ctx.lineTo(w - margin, margin + len);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      drawSearchingText(color) {
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.font = '700 16px Orbitron, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8;
+        ctx.fillText('TARGET SEARCHING...', this.canvas.width / 2, this.canvas.height / 2);
+        ctx.restore();
+      }
+
+      drawTargetReticle(face, color) {
+        const ctx = this.ctx;
+        const { x, y, width, height, gender, age } = face;
+        const cx = x + width / 2;
+        const cy = y + height / 2;
+
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 10;
+
+        const radius = Math.max(width, height) * 0.55;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.setLineDash([12, 8]);
+        ctx.stroke();
+
+        ctx.setLineDash([]);
+        const size = 15;
+        ctx.beginPath(); ctx.moveTo(x, y + size); ctx.lineTo(x, y); ctx.lineTo(x + size, y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + width - size, y); ctx.lineTo(x + width, y); ctx.lineTo(x + width, y + size); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, y + height - size); ctx.lineTo(x, y + height); ctx.lineTo(x + size, y + height); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + width - size, y + height); ctx.lineTo(x + width, y + height); ctx.lineTo(x + width, y + height - size); ctx.stroke();
+
+        // Gender & Age Attribute Overlay Badge
+        ctx.fillStyle = 'rgba(3, 7, 18, 0.85)';
+        ctx.fillRect(x, y - 26, 110, 20);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y - 26, 110, 20);
+
+        ctx.fillStyle = color;
+        ctx.font = '700 11px Orbitron';
+        ctx.fillText(`${gender === 'Male' ? '♂' : '♀'} ${gender} / ${age}歳`, x + 6, y - 12);
+
+        if (face.landmarks) {
+          ctx.fillStyle = color;
+          ctx.globalAlpha = 0.8;
+          [face.landmarks.leftEye, face.landmarks.rightEye, face.landmarks.nose, face.landmarks.mouth].forEach(pt => {
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        }
+
+        ctx.restore();
+      }
+
+      drawPowerLevelHUD(face, color) {
+        const ctx = this.ctx;
+        const { x, y, width, power } = face;
+
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 12;
+
+        ctx.font = '900 12px Orbitron';
+        ctx.fillText('BATTLE POWER', x + width + 15, y + 20);
+
+        ctx.font = '900 28px Orbitron';
+        ctx.fillText(power.toLocaleString(), x + width + 15, y + 52);
+
+        if (power > 12000) {
+          ctx.fillStyle = '#ff3344';
+          ctx.font = '700 11px Noto Sans JP';
+          ctx.fillText('⚠️ 高エネルギー検出！', x + width + 15, y + 74);
+        }
+
+        ctx.restore();
+      }
+
+      drawFaceTypeHUD(face, color) {
+        const ctx = this.ctx;
+        const { x, y, width, gender, charmScore, maleType, femaleType } = face;
+        const activeType = (gender === 'Male') ? maleType : femaleType;
+        const criteriaLabel = (STATE.criteria === 'cool') ? 'かっこよさ' : '美しさ';
+
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8;
+
+        ctx.font = '700 12px Noto Sans JP';
+        ctx.fillText(`顔タイプ: ${activeType.name.split(' ')[0]}`, x + width + 15, y + 20);
+        ctx.fillText(`${criteriaLabel}: ${charmScore}点`, x + width + 15, y + 44);
+
+        ctx.restore();
+      }
+
+      drawRPGHUD(face, color) {
+        const ctx = this.ctx;
+        const { x, y, width, rpg } = face;
+
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8;
+
+        ctx.font = '700 12px Noto Sans JP';
+        ctx.fillText(`ジョブ: ${rpg.title}`, x + width + 15, y + 20);
+
+        ctx.restore();
+      }
+
+      drawChemistryHUD(face1, face2) {
+        const ctx = this.ctx;
+        const c1 = { x: face1.x + face1.width / 2, y: face1.y + face1.height / 2 };
+        const c2 = { x: face2.x + face2.width / 2, y: face2.y + face2.height / 2 };
+
+        ctx.save();
+        ctx.strokeStyle = '#ff00aa';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 6]);
+        ctx.shadowColor = '#ff00aa';
+        ctx.shadowBlur = 12;
+
+        ctx.beginPath();
+        ctx.moveTo(c1.x, c1.y);
+        ctx.lineTo(c2.x, c2.y);
+        ctx.stroke();
+
+        const midX = (c1.x + c2.x) / 2;
+        const midY = (c1.y + c2.y) / 2;
+
+        ctx.fillStyle = '#110022';
+        ctx.strokeStyle = '#ff00aa';
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.arc(midX, midY, 36, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        const chemScore = Math.floor(80 + ((face1.power + face2.power) % 19));
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 15px Orbitron';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${chemScore}%`, midX, midY - 6);
+        ctx.font = '700 9px Noto Sans JP';
+        ctx.fillText('運命の相性', midX, midY + 10);
+
+        ctx.restore();
+      }
+    }
+
+    class ScouterApp {
+      constructor() {
+        this.video = document.getElementById('webcam');
+        this.canvas = document.getElementById('scouter-canvas');
+        this.detector = new FaceDetector(this.video);
+        this.renderer = new HUDCanvasRenderer(this.canvas);
+        
+        this.bindEvents();
+        this.initCamera();
+        this.startLoop();
+      }
+
+      async initCamera() {
+        try {
+          const constraints = {
+            video: {
+              facingMode: STATE.facingMode,
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            },
+            audio: false
+          };
+
+          if (this.stream) {
+            this.stream.getTracks().forEach(track => track.stop());
+          }
+
+          this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+          this.video.srcObject = this.stream;
+          await this.video.play();
+
+          this.renderer.resize();
+        } catch (err) {
+          console.error("Camera access failed:", err);
+        }
+      }
+
+      bindEvents() {
+        window.addEventListener('resize', () => this.renderer.resize());
+
+        // Navigation Tabs
+        document.querySelectorAll('.mode-tab').forEach(tab => {
+          tab.addEventListener('click', (e) => {
+            const mode = e.currentTarget.dataset.mode;
+            this.setMode(mode);
+          });
+        });
+
+        // Theme Switcher (Global Theme Propagation)
+        document.getElementById('btn-theme').addEventListener('click', () => {
+          const themeKeys = Object.keys(THEMES);
+          const currentIndex = themeKeys.indexOf(STATE.theme);
+          STATE.theme = themeKeys[(currentIndex + 1) % themeKeys.length];
+          
+          document.getElementById('app-body').setAttribute('data-theme', STATE.theme);
+          document.getElementById('theme-label').innerText = THEMES[STATE.theme].name;
+          document.getElementById('scouter-tint').style.backgroundColor = THEMES[STATE.theme].tint;
+          
+          soundEngine.playBeep(1100, 'sine', 0.08);
+        });
+
+        // Criteria Selectors
+        document.getElementById('btn-criteria-cool').addEventListener('click', () => {
+          STATE.criteria = 'cool';
+          this.updateCriteriaButtons();
+          this.updateAnalysisPanel();
+          soundEngine.playBeep(1200, 'sine', 0.05);
+        });
+
+        document.getElementById('btn-criteria-beauty').addEventListener('click', () => {
+          STATE.criteria = 'beauty';
+          this.updateCriteriaButtons();
+          this.updateAnalysisPanel();
+          soundEngine.playBeep(1200, 'sine', 0.05);
+        });
+
+        // Audio Toggle
+        document.getElementById('btn-audio').addEventListener('click', () => {
+          STATE.audioEnabled = !STATE.audioEnabled;
+          const icon = document.getElementById('icon-audio');
+          if (STATE.audioEnabled) {
+            icon.setAttribute('data-lucide', 'volume-2');
+            soundEngine.playBeep(1300, 'sine', 0.08);
+          } else {
+            icon.setAttribute('data-lucide', 'volume-x');
+          }
+          lucide.createIcons();
+        });
+
+        // Camera Flip
+        document.getElementById('btn-camera-flip').addEventListener('click', () => {
+          STATE.facingMode = (STATE.facingMode === 'user') ? 'environment' : 'user';
+          this.initCamera();
+          soundEngine.playBeep(1500, 'square', 0.08);
+        });
+
+        // Target Scan Action
+        document.getElementById('btn-scan').addEventListener('click', () => {
+          this.triggerScanSequence();
+        });
+
+        // Snapshot Action
+        document.getElementById('btn-capture').addEventListener('click', () => {
+          this.captureSnapshot();
+        });
+
+        document.getElementById('btn-modal-close').addEventListener('click', () => {
+          document.getElementById('capture-modal').classList.add('hidden');
+        });
+
+        document.getElementById('btn-download').addEventListener('click', () => {
+          const imgUrl = document.getElementById('captured-image').src;
+          const a = document.createElement('a');
+          a.href = imgUrl;
+          a.download = `cyber_scouter_${Date.now()}.png`;
+          a.click();
+        });
+      }
+
+      updateCriteriaButtons() {
+        const btnCool = document.getElementById('btn-criteria-cool');
+        const btnBeauty = document.getElementById('btn-criteria-beauty');
+
+        if (STATE.criteria === 'cool') {
+          btnCool.className = 'px-2.5 py-0.5 rounded-full font-bold bg-slate-800 theme-color-text border theme-border transition';
+          btnBeauty.className = 'px-2.5 py-0.5 rounded-full font-bold text-slate-400 hover:text-white transition';
+        } else {
+          btnBeauty.className = 'px-2.5 py-0.5 rounded-full font-bold bg-slate-800 theme-color-text border theme-border transition';
+          btnCool.className = 'px-2.5 py-0.5 rounded-full font-bold text-slate-400 hover:text-white transition';
+        }
+      }
+
+      setMode(mode) {
+        STATE.mode = mode;
+        document.querySelectorAll('.mode-tab').forEach(tab => {
+          if (tab.dataset.mode === mode) {
+            tab.className = 'mode-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 bg-slate-800 text-white shadow-lg transition border theme-border';
+          } else {
+            tab.className = 'mode-tab px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 theme-color-text hover:bg-slate-800/50 transition';
+          }
+        });
+
+        const panel = document.getElementById('analysis-panel');
+        const criteriaSelector = document.getElementById('criteria-selector');
+
+        if (mode === 'power') {
+          panel.classList.add('hidden');
+          criteriaSelector.classList.add('hidden');
+        } else if (mode === 'facetype') {
+          panel.classList.remove('hidden');
+          criteriaSelector.classList.remove('hidden');
+          this.updateAnalysisPanel();
+        } else {
+          panel.classList.remove('hidden');
+          criteriaSelector.classList.add('hidden');
+          this.updateAnalysisPanel();
+        }
+
+        soundEngine.playBeep(1250, 'sine', 0.08);
+      }
+
+      triggerScanSequence() {
+        soundEngine.playPowerUp();
+        const alertBanner = document.getElementById('alert-banner');
+        alertBanner.classList.remove('hidden');
+        
+        setTimeout(() => {
+          alertBanner.classList.add('hidden');
+          this.updateAnalysisPanel();
+        }, 900);
+      }
+
+      updateAnalysisPanel() {
+        const faces = STATE.lastDetectedFaces;
+        if (!faces || faces.length === 0) return;
+
+        const panelContent = document.getElementById('panel-content');
+        const f1 = faces[0];
+
+        if (STATE.mode === 'facetype') {
+          const activeType = (f1.gender === 'Male') ? f1.maleType : f1.femaleType;
+          const criteriaLabel = (STATE.criteria === 'cool') ? 'かっこよさ' : '美しさ';
+
+          panelContent.innerHTML = `
+            <div class="grid grid-cols-2 gap-3">
+              <div class="p-2.5 rounded-xl bg-slate-900/80 border theme-border">
+                <div class="text-xs text-slate-400">推定属性</div>
+                <div class="font-bold text-sm text-white mt-0.5">${f1.gender === 'Male' ? '男性 ♂' : '女性 ♀'} (${f1.age}歳)</div>
+                <div class="text-xs text-slate-300 mt-1">AI顔構造解析に基づく測定</div>
+              </div>
+
+              <div class="p-2.5 rounded-xl bg-slate-900/80 border theme-border">
+                <div class="text-xs text-slate-400">${criteriaLabel}スコア</div>
+                <div class="font-orbitron font-black text-xl theme-color-text mt-0.5">${f1.charmScore} <span class="text-xs">/ 100</span></div>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-900/80 border theme-border">
+              <div class="text-xs text-slate-400">系統顔診断タイプ (${f1.gender === 'Male' ? '男性枠' : '女性枠'})</div>
+              <div class="font-bold text-base text-white mt-0.5">${activeType.name}</div>
+              <div class="text-xs text-slate-300 mt-1 leading-relaxed">${activeType.desc}</div>
+            </div>
+          `;
+        } else if (STATE.mode === 'rpg') {
+          panelContent.innerHTML = `
+            <div class="p-3 rounded-xl bg-slate-900/80 border theme-border">
+              <div class="flex justify-between items-center">
+                <span class="text-xs text-slate-400">適正RPGジョブ</span>
+                <span class="text-xs px-2 py-0.5 rounded bg-amber-950/80 border border-amber-500/50 text-amber-300 font-bold">${f1.rpg.rank}</span>
+              </div>
+              <div class="font-bold text-base text-white mt-1">${f1.rpg.title}</div>
+              <div class="text-xs text-slate-300 mt-1 leading-relaxed">${f1.rpg.trait}</div>
+            </div>
+          `;
+        } else if (STATE.mode === 'chemistry') {
+          if (faces.length < 2) {
+            panelContent.innerHTML = `
+              <div class="text-center py-2 text-amber-300">
+                <i data-lucide="users" class="w-6 h-6 mx-auto mb-1"></i>
+                カメラ画角内に2人目のターゲットを捉えてください
+              </div>
+            `;
+            lucide.createIcons();
+            return;
+          }
+
+          const f2 = faces[1];
+          const synergyScore = Math.floor(80 + ((f1.power + f2.power) % 19));
+          const fortune = FORTUNE_ARCHETYPES[synergyScore % FORTUNE_ARCHETYPES.length];
+
+          panelContent.innerHTML = `
+            <div class="space-y-2">
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-pink-500/40">
+                <span class="text-xs text-slate-300">2人の運命相性度</span>
+                <span class="font-orbitron font-black text-lg text-pink-400">${synergyScore}%</span>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-900/80 border theme-border">
+                <div class="font-bold text-sm text-pink-300">${fortune.title}</div>
+                <div class="text-xs text-slate-300 mt-1 leading-relaxed">${fortune.desc}</div>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      captureSnapshot() {
+        soundEngine.playExplosion();
+
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.width = this.canvas.width;
+        exportCanvas.height = this.canvas.height;
+        const ctx = exportCanvas.getContext('2d');
+
+        ctx.save();
+        if (STATE.facingMode === 'user') {
+          ctx.translate(exportCanvas.width, 0);
+          ctx.scale(-1, 1);
+        }
+        ctx.drawImage(this.video, 0, 0, exportCanvas.width, exportCanvas.height);
+        ctx.restore();
+
+        ctx.drawImage(this.canvas, 0, 0);
+
+        const dataUrl = exportCanvas.toDataURL('image/png');
+        document.getElementById('captured-image').src = dataUrl;
+        document.getElementById('capture-modal').classList.remove('hidden');
+      }
+
+      startLoop() {
+        const loop = () => {
+          const faces = this.detector.detect();
+          STATE.lastDetectedFaces = faces;
+          
+          this.renderer.render(faces);
+          requestAnimationFrame(loop);
+        };
+        requestAnimationFrame(loop);
+      }
+    }
+
+    window.addEventListener('load', () => {
+      lucide.createIcons();
+      new ScouterApp();
+    });
+  </script>
+</body>
+</html>
