@@ -622,7 +622,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V27';
+    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V28';
     let appData = {
       quizzes: [],
       histories: [],
@@ -854,7 +854,6 @@
       return TITLE_STEPS[TITLE_STEPS.length - 1];
     }
 
-    /* 修正：音声入力時に穴埋め問題（cloze）も含めて確実にデータをバインドして保持するように改善 */
     function startSpeechRecognition(targetInputId, questionId = null, subIndex = null) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
@@ -1520,17 +1519,18 @@
       const savedAns = activeSession.userAnswers[q.id];
 
       if (q.type === 'cloze') {
-        qContainer.innerHTML = `<p class="text-xs text-slate-400 mb-1.5">空欄（プレースホルダ）に当てはまる言葉を入力してください。</p>`;
+        qContainer.innerHTML = `<p class="text-xs text-slate-400 mb-1.5">空欄に当てはまる言葉を入力してください。</p>`;
         const pairs = q.clozePairs || [];
         const userVals = Array.isArray(savedAns) ? savedAns : Array(pairs.length).fill('');
 
         let html = `<div class="flex flex-wrap items-center gap-y-3 gap-x-1.5 text-base sm:text-lg text-slate-800 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200">`;
         pairs.forEach((pair, pIdx) => {
           const inputId = `cloze-ans-field-${pIdx}`;
+          // 修正：placeholderに実際の答え（pair.answer）を表示していたのを「空欄の答えを入力」に変更し、解答が見えないように保護
           html += `
             <span>${escapeHtml(pair.prefix || '')}</span>
             <span class="inline-flex items-center gap-1 my-0.5">
-              <input type="text" id="${inputId}" value="${escapeHtml(userVals[pIdx] || '')}" oninput="saveClozeAnswer('${q.id}', ${pIdx}, this.value)" placeholder="${escapeHtml(pair.answer || '答え')}" class="border-2 border-indigo-400 rounded-lg px-2.5 py-1 text-sm sm:text-base font-bold text-indigo-900 bg-white w-32 sm:w-40 focus:ring-2 focus:ring-indigo-500 shadow-sm">
+              <input type="text" id="${inputId}" value="${escapeHtml(userVals[pIdx] || '')}" oninput="saveClozeAnswer('${q.id}', ${pIdx}, this.value)" placeholder="空欄の答えを入力" class="border-2 border-indigo-400 rounded-lg px-2.5 py-1 text-sm sm:text-base font-bold text-indigo-900 bg-white w-32 sm:w-40 focus:ring-2 focus:ring-indigo-500 shadow-sm">
               <button type="button" onclick="startSpeechRecognition('${inputId}', '${q.id}', ${pIdx})" class="text-indigo-600 px-1"><i class="fa-solid fa-microphone"></i></button>
             </span>
             <span>${escapeHtml(pair.suffix || '')}</span>
