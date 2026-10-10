@@ -18,43 +18,33 @@
     input, select, textarea, button { touch-action: manipulation; }
 
     /* プレミアムカードデザイン（高画質グラデーション＆フレーム） */
-    /* 1. 一般学生：グリーン系 (初心者マーク＆エメラルド) */
     .card-theme-green { background: linear-gradient(135deg, #065f46 0%, #022c22 100%); border: 2px solid #34d399; box-shadow: 0 8px 20px -4px rgba(52, 211, 153, 0.3); color: #ecfdf5; }
     .card-theme-green .card-accent { color: #6ee7b7; border-color: #34d399; background: rgba(6, 95, 70, 0.8); }
 
-    /* 2. 特待生：イエロー系 */
     .card-theme-yellow { background: linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%); border: 2px solid #78350f; box-shadow: 0 8px 20px -4px rgba(250, 204, 21, 0.4); color: #422006; }
     .card-theme-yellow .card-accent { color: #fef08a; border-color: #78350f; background: rgba(120, 53, 15, 0.85); }
 
-    /* 3. 一般研究員：レッド系 */
     .card-theme-red { background: linear-gradient(135deg, #991b1b 0%, #450a0a 100%); border: 2px solid #fca5a5; box-shadow: 0 8px 20px -4px rgba(252, 165, 165, 0.3); color: #fef2f2; }
     .card-theme-red .card-accent { color: #fca5a5; border-color: #fca5a5; background: rgba(153, 27, 27, 0.8); }
 
-    /* 4. 主任講師：ブルー系 */
     .card-theme-blue { background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%); border: 2px solid #93c5fd; box-shadow: 0 8px 20px -4px rgba(147, 197, 253, 0.3); color: #eff6ff; }
     .card-theme-blue .card-accent { color: #93c5fd; border-color: #93c5fd; background: rgba(30, 64, 175, 0.8); }
 
-    /* 5. 名誉教授：ブラウン系 */
     .card-theme-brown { background: linear-gradient(135deg, #5c2c16 0%, #291208 100%); border: 2px solid #d97706; box-shadow: 0 8px 20px -4px rgba(217, 119, 6, 0.3); color: #fffbeb; }
     .card-theme-brown .card-accent { color: #fcd34d; border-color: #d97706; background: rgba(92, 44, 22, 0.8); }
 
-    /* 6. 学習マスター：ブロンズ系 (#CD7F32) */
     .card-theme-bronze { background: linear-gradient(135deg, #a0522d 0%, #cd7f32 50%, #5c2c16 100%); border: 2px solid #f3d19c; box-shadow: 0 8px 20px -4px rgba(205, 127, 50, 0.5); color: #fff8f0; }
     .card-theme-bronze .card-accent { color: #f3d19c; border-color: #f3d19c; background: rgba(160, 82, 45, 0.8); }
 
-    /* 7. 真理の探究者：シルバー系 (#C0C0C0) */
     .card-theme-silver { background: linear-gradient(135deg, #64748b 0%, #c0c0c0 50%, #334155 100%); border: 2px solid #ffffff; box-shadow: 0 8px 20px -4px rgba(192, 192, 192, 0.5); color: #f8fafc; }
     .card-theme-silver .card-accent { color: #ffffff; border-color: #ffffff; background: rgba(100, 116, 139, 0.8); }
 
-    /* 8. 千里の求道者：ゴールド系 (#D4AF37) */
     .card-theme-gold { background: linear-gradient(135deg, #854d0e 0%, #d4af37 50%, #422006 100%); border: 2px solid #fef08a; box-shadow: 0 8px 22px -4px rgba(212, 175, 55, 0.6); color: #fefce8; }
     .card-theme-gold .card-accent { color: #fef08a; border-color: #fef08a; background: rgba(133, 77, 14, 0.8); }
 
-    /* 9. 学究の賢者：プラチナ系 */
     .card-theme-platinum { background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 40%, #cbd5e1 70%, #94a3b8 100%); border: 2px solid #ffffff; box-shadow: 0 10px 25px -2px rgba(255, 255, 255, 0.8), 0 0 15px rgba(226, 232, 240, 0.6); color: #0f172a; }
     .card-theme-platinum .card-accent { color: #0f172a; border-color: #ffffff; background: rgba(255, 255, 255, 0.9); }
 
-    /* 10. 叡智の覇王：ダイヤモンド系 (キラキラとピカピカ光る点滅アニメーション) */
     .card-theme-diamond {
       background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
       border: 2px solid #ffffff;
@@ -64,56 +54,34 @@
       animation: diamondPulse 2.5s infinite ease-in-out alternate;
     }
     @keyframes diamondPulse {
-      0% {
-        box-shadow: 0 0 12px rgba(255, 255, 255, 0.6), 0 0 4px rgba(186, 230, 253, 0.4);
-      }
-      50% {
-        box-shadow: 0 0 30px rgba(255, 255, 255, 1), 0 0 20px rgba(147, 197, 253, 0.9), 0 0 35px rgba(224, 231, 255, 0.8);
-      }
-      100% {
-        box-shadow: 0 0 15px rgba(255, 255, 255, 0.7), 0 0 8px rgba(186, 230, 253, 0.5);
-      }
+      0% { box-shadow: 0 0 12px rgba(255, 255, 255, 0.6), 0 0 4px rgba(186, 230, 253, 0.4); }
+      50% { box-shadow: 0 0 30px rgba(255, 255, 255, 1), 0 0 20px rgba(147, 197, 253, 0.9), 0 0 35px rgba(224, 231, 255, 0.8); }
+      100% { box-shadow: 0 0 15px rgba(255, 255, 255, 0.7), 0 0 8px rgba(186, 230, 253, 0.5); }
     }
     .card-theme-diamond::after {
-      content: '';
-      position: absolute;
-      inset: 0;
+      content: ''; position: absolute; inset: 0;
       background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
-      opacity: 0.3;
-      pointer-events: none;
-      animation: sparkleFlash 1.8s infinite ease-in-out alternate;
+      opacity: 0.3; pointer-events: none; animation: sparkleFlash 1.8s infinite ease-in-out alternate;
     }
     @keyframes sparkleFlash {
       0% { opacity: 0.2; transform: scale(0.95); }
       100% { opacity: 0.6; transform: scale(1.05); }
     }
     .card-theme-diamond .card-accent {
-      color: #0369a1;
-      border-color: #ffffff;
-      background: rgba(255, 255, 255, 0.95);
-      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+      color: #0369a1; border-color: #ffffff; background: rgba(255, 255, 255, 0.95); box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
     }
 
-    /* 11. 全知の至高神：ブラック系 (漆黒×統一された純金ゴールド #ffd700) */
     .card-theme-black {
       background: linear-gradient(135deg, #18181b 0%, #0a0a0c 60%, #000000 100%);
       border: 1px solid #ffd700;
       box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.9), 0 0 15px rgba(255, 215, 0, 0.3);
       color: #ffd700;
     }
-    /* 白飛びを排除した単色ゴールド (#ffd700) */
     .card-theme-black .gold-text {
-      color: #ffd700 !important;
-      -webkit-text-fill-color: #ffd700 !important;
-      background: none !important;
-      font-weight: 800;
-      opacity: 1 !important;
+      color: #ffd700 !important; -webkit-text-fill-color: #ffd700 !important; background: none !important; font-weight: 800; opacity: 1 !important;
     }
     .card-theme-black .card-accent {
-      color: #ffd700;
-      border-color: #ffd700;
-      background: rgba(24, 24, 27, 0.95);
-      box-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
+      color: #ffd700; border-color: #ffd700; background: rgba(24, 24, 27, 0.95); box-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
     }
   </style>
 </head>
@@ -122,21 +90,18 @@
   <!-- ヘッダー -->
   <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-40">
     <div class="max-w-6xl mx-auto px-4 py-2.5 flex justify-between items-center gap-2">
-      <!-- タイトル ＆ 隠しデバッグ起動トリガー（3回連続クリック） -->
-      <h1 class="text-base sm:text-xl font-bold flex items-center gap-2 cursor-pointer select-none" onclick="showScreen('list-screen')">
+      <h1 class="text-base sm:text-xl font-bold flex items-center gap-2 cursor-pointer select-none" onclick="handleLogoClick()">
         <i class="fa-solid fa-graduation-cap text-xl sm:text-2xl text-amber-300"></i>
         <span>学習マスター</span>
       </h1>
 
       <div class="flex items-center gap-2 sm:gap-3">
-        <!-- 今日のミッションボタン -->
         <button onclick="openDailyMissionsModal()" class="flex items-center gap-1.5 bg-indigo-700/80 hover:bg-indigo-800 px-3 py-1.5 rounded-full border border-indigo-400/40 text-xs font-semibold transition shadow-inner relative">
           <i class="fa-solid fa-calendar-check text-amber-300"></i>
           <span>今日のミッション</span>
           <span id="header-mission-badge" class="bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full hidden">達成</span>
         </button>
 
-        <!-- プレイヤーレベルステータス -->
         <button onclick="openStatusModal()" class="flex items-center gap-2 sm:gap-3 bg-indigo-700/90 hover:bg-indigo-800 px-3 py-1.5 rounded-full border border-indigo-400/40 transition text-left shadow-inner">
           <div class="flex items-center gap-1">
             <i class="fa-solid fa-shield-halved text-amber-300 text-xs sm:text-sm"></i>
@@ -157,8 +122,6 @@
 
     <!-- 1. 設問一覧画面 & ダッシュボード -->
     <section id="list-screen" class="screen active space-y-6">
-      
-      <!-- ダッシュボードカード -->
       <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div onclick="openCalendarModal()" class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-indigo-400 transition cursor-pointer flex items-center gap-3">
           <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
@@ -201,7 +164,6 @@
         </div>
       </div>
 
-      <!-- アクションコントロール -->
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h2 class="text-xl sm:text-2xl font-bold text-slate-800">問題集一覧</h2>
@@ -224,7 +186,6 @@
         </div>
       </div>
 
-      <!-- テーブル表示 -->
       <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
         <div class="overflow-x-auto">
           <table class="w-full text-left border-collapse min-w-[650px]">
@@ -306,21 +267,17 @@
     <!-- 3. 設問回答画面 -->
     <section id="answer-screen" class="screen">
       <div class="max-w-2xl lg:max-w-3xl mx-auto space-y-4 sm:space-y-5">
-        
         <div class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between gap-2">
           <div class="text-xs font-semibold text-slate-700 truncate max-w-[200px] sm:max-w-[350px]" id="answer-quiz-title-display">問題集</div>
-
           <div id="timer-container" class="hidden flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs font-bold">
             <i class="fa-solid fa-stopwatch animate-pulse"></i>
             <span>残り: <span id="timer-display">00:00</span></span>
           </div>
-
           <div class="text-xs text-slate-400">
             配点: <span id="answer-score-info" class="font-bold text-slate-700">10点</span>
           </div>
         </div>
 
-        <!-- ダイレクトジャンプ用パレット -->
         <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 space-y-1.5">
           <div class="flex justify-between items-center text-[11px] text-slate-500">
             <span>設問ジャンプ:</span>
@@ -329,24 +286,18 @@
           <div id="question-jump-palette" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pt-1"></div>
         </div>
 
-        <!-- 問題カード -->
         <div class="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
           <div class="flex items-start justify-between gap-2">
             <span id="question-type-badge" class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-md border border-indigo-200">4択問題</span>
           </div>
-
-          <!-- 問題文表示エリア -->
           <div id="answer-question-container" class="text-base sm:text-lg font-bold text-slate-800 leading-relaxed"></div>
-
           <div id="answer-input-area" class="space-y-2.5 pt-1"></div>
         </div>
 
-        <!-- ボタンエリア -->
         <div class="flex flex-wrap sm:flex-nowrap justify-between items-center gap-2 pt-1">
           <button onclick="confirmExitAnswer()" class="order-3 sm:order-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-medium px-4 py-2.5 rounded-lg text-xs sm:text-sm transition flex items-center gap-1">
             <i class="fa-solid fa-right-from-bracket"></i> 中断して一覧へ
           </button>
-
           <div class="order-1 sm:order-2 flex gap-2 w-full sm:w-auto justify-end">
             <button id="btn-prev-q" onclick="prevQuestion()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-4 py-2.5 rounded-lg text-xs sm:text-sm transition">
               <i class="fa-solid fa-chevron-left"></i> 前へ
@@ -365,12 +316,10 @@
     <!-- 4. 採点結果画面 -->
     <section id="result-screen" class="screen">
       <div class="max-w-3xl mx-auto space-y-5 sm:space-y-6">
-        
         <div id="result-header-card" class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border text-center space-y-3 sm:space-y-4 transition-all">
           <div id="result-icon-container" class="text-5xl sm:text-6xl mb-1">🎉</div>
           <h2 id="result-title" class="text-2xl sm:text-3xl font-extrabold text-slate-800">成績結果</h2>
           <p id="result-subtitle" class="text-xs sm:text-sm text-slate-500">成果を確認して復習に活かしましょう。</p>
-
           <div class="py-3 my-2 border-y border-slate-100 flex justify-around items-center">
             <div>
               <p class="text-[10px] sm:text-xs text-slate-400">獲得スコア</p>
@@ -387,14 +336,12 @@
               <p class="text-2xl sm:text-3xl font-black text-amber-500">+<span id="res-exp">0</span></p>
             </div>
           </div>
-
           <div class="flex justify-center gap-3 pt-1">
             <button onclick="showScreen('list-screen')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-5 py-2.5 rounded-lg text-xs sm:text-sm transition">
               問題集一覧に戻る
             </button>
           </div>
         </div>
-
         <div class="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
           <h3 class="text-base sm:text-lg font-bold text-slate-800 border-b pb-3">回答詳細と解説</h3>
           <div id="result-detail-list" class="space-y-4"></div>
@@ -414,7 +361,6 @@
         </button>
       </div>
 
-      <!-- サマリーカード -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center gap-3">
           <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg flex-shrink-0">
@@ -515,9 +461,7 @@
         </h3>
         <button onclick="closeModal('daily-missions-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-
       <div id="modal-daily-missions-container" class="space-y-2.5"></div>
-
       <p class="text-[10px] text-slate-400 text-center pt-1">ミッションは毎日午前 0:00 に自動更新されます。</p>
     </div>
   </div>
@@ -532,13 +476,10 @@
         <button onclick="closeModal('status-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
 
-      <!-- 動的テーマカード -->
       <div id="st-card-element" class="card-theme-green p-5 rounded-xl space-y-4 relative overflow-hidden transition-all duration-500">
         <div class="flex justify-between items-start relative z-10">
           <div>
-            <p class="text-xs font-bold tracking-wider st-text-node" id="st-user-title">
-              一般学生
-            </p>
+            <p class="text-xs font-bold tracking-wider st-text-node" id="st-user-title">一般学生</p>
             <p class="text-2xl font-black tracking-wide mt-0.5 st-text-node">Level <span id="st-user-level">1</span></p>
           </div>
           <div id="st-card-icon-wrapper" class="w-12 h-12 rounded-full card-accent border-2 flex items-center justify-center text-xl shadow">
@@ -569,7 +510,6 @@
         </div>
       </div>
 
-      <!-- レベル肩書き ＆ ロードマップ -->
       <div class="space-y-2 pt-1">
         <h4 class="text-xs font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-map text-indigo-600"></i> レベル肩書き ＆ 必要学習時間目安</h4>
         <div id="title-roadmap-container" class="space-y-1.5 max-h-56 overflow-y-auto pr-1"></div>
@@ -592,7 +532,6 @@
         </h3>
         <button onclick="closeModal('debug-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
       </div>
-
       <div class="space-y-3">
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">ランク指定 (一発切り替え)</label>
@@ -611,14 +550,11 @@
             <option value="80">Lv.80〜 全知の至高神（ブラック）</option>
           </select>
         </div>
-
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">レベル数値入力 (1〜100)</label>
           <div class="flex items-center gap-2">
             <input type="number" id="debug-target-lv" min="1" max="100" placeholder="例: 80" class="w-full p-2 border border-slate-300 rounded-lg text-xs">
-            <button onclick="debugSetLevelDirect()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs flex-shrink-0 transition">
-              設定
-            </button>
+            <button onclick="debugSetLevelDirect()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs flex-shrink-0 transition">設定</button>
           </div>
         </div>
       </div>
@@ -634,15 +570,12 @@
         </h3>
         <button onclick="closeModal('calendar-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-
       <div class="flex justify-between items-center px-1">
         <button onclick="changeCalMonth(-1)" class="p-1 text-slate-500 hover:text-indigo-600"><i class="fa-solid fa-chevron-left"></i> 前月</button>
         <span id="cal-month-title" class="font-bold text-slate-800 text-sm">2026年10月</span>
         <button onclick="changeCalMonth(1)" class="p-1 text-slate-500 hover:text-indigo-600">翌月 <i class="fa-solid fa-chevron-right"></i></button>
       </div>
-
       <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center text-xs"></div>
-
       <div id="cal-date-detail" class="p-3 bg-indigo-50/60 border border-indigo-100 rounded-xl text-xs space-y-1">
         <p class="font-bold text-indigo-900 flex items-center gap-1"><i class="fa-solid fa-circle-info"></i> カレンダーのマークを押すと詳細が表示されます</p>
       </div>
@@ -689,7 +622,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V24';
+    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V27';
     let appData = {
       quizzes: [],
       histories: [],
@@ -702,13 +635,7 @@
         streakDays: 0,
         unlockedBadges: [],
         dailyStudyLogs: {},
-        dailyMissions: {
-          lastDate: '',
-          login: false,
-          solved10: false,
-          passedOne: false,
-          completedCount: 0
-        }
+        dailyMissions: { lastDate: '', login: false, solved10: false, passedOne: false, completedCount: 0 }
       }
     };
 
@@ -728,7 +655,6 @@
       { id: 'b7', title: '学習マスター', desc: 'プレイヤーレベルが10に到達', icon: 'fa-crown', check: u => u.level >= 10 }
     ];
 
-    /* 全11ランクの称号＆カラーテーマ定義 */
     const TITLE_STEPS = [
       { minLv: 80, title: '全知の至高神', estTime: '800時間〜', cardTheme: 'card-theme-black', icon: 'fa-kaaba', color: 'text-amber-400 font-black', badgeBg: 'bg-zinc-900 text-amber-300' },
       { minLv: 70, title: '叡智の覇王', estTime: '500〜800時間', cardTheme: 'card-theme-diamond', icon: 'fa-gem', color: 'text-sky-600 font-extrabold', badgeBg: 'bg-sky-100 text-sky-800' },
@@ -818,6 +744,15 @@
       checkAndResetDailyMissions();
       renderDashboard();
       renderQuizList();
+
+      setInterval(() => {
+        checkAndResetDailyMissions();
+      }, 60000);
+    });
+
+    window.addEventListener('focus', () => {
+      checkAndResetDailyMissions();
+      renderDashboard();
     });
 
     function loadLocalStorage() {
@@ -852,6 +787,7 @@
         m.passedOne = false;
         m.allClearedRecorded = false;
         saveLocalStorage();
+        updateHeaderMissionBadge();
       }
     }
 
@@ -870,6 +806,7 @@
     }
 
     function openDailyMissionsModal() {
+      checkAndResetDailyMissions();
       const container = document.getElementById('modal-daily-missions-container');
       container.innerHTML = '';
       const m = appData.user.dailyMissions;
@@ -912,13 +849,12 @@
 
     function getUserTitleInfo(level) {
       for (const step of TITLE_STEPS) {
-        if (level >= step.minLv) {
-          return step;
-        }
+        if (level >= step.minLv) return step;
       }
       return TITLE_STEPS[TITLE_STEPS.length - 1];
     }
 
+    /* 修正：音声入力時に穴埋め問題（cloze）も含めて確実にデータをバインドして保持するように改善 */
     function startSpeechRecognition(targetInputId, questionId = null, subIndex = null) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
@@ -931,19 +867,37 @@
       recognition.interimResults = false;
 
       const targetEl = document.getElementById(targetInputId);
+      if (!targetEl) return;
+
+      const originalPlaceholder = targetEl.placeholder || '';
+      targetEl.placeholder = '🎤 音声を聞き取っています...（お話ください）';
+      targetEl.classList.add('bg-indigo-50/80', 'ring-2', 'ring-indigo-400');
 
       recognition.onresult = function(event) {
         const transcript = event.results[0][0].transcript;
-        if (targetEl) {
-          targetEl.value = (targetEl.value ? targetEl.value + ' ' : '') + transcript;
-          targetEl.dispatchEvent(new Event('input', { bubbles: true }));
-          targetEl.dispatchEvent(new Event('change', { bubbles: true }));
+        targetEl.value = (targetEl.value ? targetEl.value + ' ' : '') + transcript;
+        targetEl.dispatchEvent(new Event('input', { bubbles: true }));
+        targetEl.dispatchEvent(new Event('change', { bubbles: true }));
 
-          if (questionId && activeSession) {
-            saveCurrentAnswer(questionId, targetEl.value, false, subIndex);
+        if (questionId && activeSession) {
+          if (subIndex !== null && subIndex !== undefined) {
+            saveClozeAnswer(questionId, subIndex, targetEl.value);
+          } else {
+            saveCurrentAnswer(questionId, targetEl.value, false);
           }
         }
       };
+
+      recognition.onerror = function() {
+        targetEl.placeholder = originalPlaceholder;
+        targetEl.classList.remove('bg-indigo-50/80', 'ring-2', 'ring-indigo-400');
+      };
+
+      recognition.onend = function() {
+        targetEl.placeholder = originalPlaceholder;
+        targetEl.classList.remove('bg-indigo-50/80', 'ring-2', 'ring-indigo-400');
+      };
+
       recognition.start();
     }
 
@@ -964,12 +918,14 @@
       window.scrollTo(0, 0);
 
       if (screenId === 'list-screen') {
+        checkAndResetDailyMissions();
         renderDashboard();
         renderQuizList();
       }
     }
 
     function renderDashboard() {
+      checkAndResetDailyMissions();
       const u = appData.user;
       const lvlInfo = calculateLevelFromExp(u.exp || 0);
       u.level = lvlInfo.level;
@@ -1032,15 +988,9 @@
                   <i class="fa-solid fa-bolt"></i> 弱点(${weakCount})
                 </button>
               ` : ''}
-              <button onclick="openEditForm('${quiz.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2 py-1.5 rounded text-xs font-medium transition">
-                編集
-              </button>
-              <button onclick="viewHistoryList('${quiz.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2 py-1.5 rounded text-xs font-medium transition">
-                分析
-              </button>
-              <button onclick="deleteQuiz('${quiz.id}')" class="text-slate-400 hover:text-red-600 p-1 rounded transition">
-                <i class="fa-solid fa-trash"></i>
-              </button>
+              <button onclick="openEditForm('${quiz.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2 py-1.5 rounded text-xs font-medium transition">編集</button>
+              <button onclick="viewHistoryList('${quiz.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2 py-1.5 rounded text-xs font-medium transition">分析</button>
+              <button onclick="deleteQuiz('${quiz.id}')" class="text-slate-400 hover:text-red-600 p-1 rounded transition"><i class="fa-solid fa-trash"></i></button>
             </div>
           </td>
         `;
@@ -1059,11 +1009,9 @@
     function getWeakQuestions(quizId) {
       const quiz = appData.quizzes.find(q => q.id === quizId);
       if (!quiz) return [];
-
       const latestHist = appData.histories.find(h => h.quizId === quizId);
       if (!latestHist || !latestHist.details) return [];
-
-      const wrongQIds = latestHist.details.filter(d => !d.isCorrect).map(d => d.question.id);
+      const wrongQIds = latestHist.details.filter(d => !d.isCorrect).map(d => d.question ? d.question.id : null).filter(Boolean);
       return quiz.questions.filter(q => wrongQIds.includes(q.id));
     }
 
@@ -1130,18 +1078,15 @@
       const explanation = qData ? (qData.explanation || '') : '';
       const cardId = 'card_' + Math.random().toString(36).substring(2, 9);
       card.dataset.cardId = cardId;
-
       const qExpId = `q-exp-input-${cardId}`;
 
       card.innerHTML = `
         <button type="button" onclick="this.closest('.q-card').remove(); reindexQuestionCards();" class="absolute top-4 right-4 text-slate-400 hover:text-red-500">
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
-
         <div class="flex items-center gap-2 mb-1">
           <span class="q-number bg-slate-200 text-slate-700 font-bold px-2.5 py-0.5 rounded text-xs">設問 ${qIndex + 1}</span>
         </div>
-
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div class="sm:col-span-2">
             <label class="block text-xs font-medium text-slate-600 mb-1">設問タイプ</label>
@@ -1158,9 +1103,7 @@
             <input type="number" min="1" value="${score}" class="q-score w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm">
           </div>
         </div>
-
         <div class="q-options-area bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-3"></div>
-
         <div>
           <label class="block text-xs font-medium text-slate-600 mb-1">解説（任意）</label>
           <div class="flex gap-2">
@@ -1192,7 +1135,14 @@
         const isMulti = type === 'multi';
         const defaultCount = 4;
         const text = qData ? qData.text : '';
-        const answer = qData ? qData.answer : (isMulti ? ['0'] : '0');
+        
+        let answer = qData ? qData.answer : (isMulti ? ['0'] : '0');
+        if (isMulti && !Array.isArray(answer)) {
+          answer = [String(answer)];
+        } else if (isMulti && Array.isArray(answer)) {
+          answer = answer.map(v => String(v));
+        }
+
         const qTextId = `q-text-${cardId}`;
 
         let html = `
@@ -1208,9 +1158,8 @@
 
         for (let idx = 0; idx < defaultCount; idx++) {
           const optVal = (qData && qData.options && qData.options[idx] !== undefined) ? qData.options[idx] : '';
-          const isChecked = isMulti 
-            ? (Array.isArray(answer) && answer.includes(String(idx)))
-            : String(answer) === String(idx);
+          const idxStr = String(idx);
+          const isChecked = isMulti ? (Array.isArray(answer) && answer.includes(idxStr)) : (String(answer) === idxStr);
           const optInputId = `q-opt-${cardId}-${idx}`;
 
           html += `
@@ -1279,7 +1228,7 @@
 
         let clozeHtml = `
           <label class="block text-xs font-semibold text-slate-700">穴埋め文章設定（前文 ＋ ［穴］ ＋ 後文）</label>
-          <p class="text-[11px] text-slate-500">穴の前後に文章を配置し、正解となる言葉をプレースホルダーからスムーズに入力できます。</p>
+          <p class="text-[11px] text-slate-500">穴の前後に文章を配置します。</p>
           <div class="cloze-pairs-container space-y-3">
         `;
 
@@ -1714,8 +1663,8 @@
           const pairs = q.clozePairs || [];
           isCorrect = true;
           pairs.forEach((pair, i) => {
-            const uStr = (uArr[i] || '').trim().toLowerCase();
-            const aStr = (pair.answer || '').trim().toLowerCase();
+            const uStr = (uArr[i] || '').trim().toLowerCase().replace(/[。.、,\s]/g, '');
+            const aStr = (pair.answer || '').trim().toLowerCase().replace(/[。.、,\s]/g, '');
             if (uStr !== aStr) isCorrect = false;
           });
         }
@@ -1821,7 +1770,7 @@
       listContainer.innerHTML = '';
 
       record.details.forEach((item, idx) => {
-        const q = item.question;
+        const q = item.question || { text: '(削除された設問)', type: 'text', score: 0, explanation: '' };
         const div = document.createElement('div');
         div.className = `p-3.5 sm:p-4 rounded-xl border ${item.isCorrect ? 'border-emerald-200 bg-emerald-50/30' : 'border-red-200 bg-red-50/30'} space-y-2`;
 
@@ -1859,8 +1808,8 @@
 
     function formatAnsDisplay(q, ans) {
       if (ans === undefined || ans === null || ans === '' || (Array.isArray(ans) && ans.length === 0)) return '(未回答)';
-      if (q.type === 'choice4' || q.type === 'tf') return escapeHtml(q.options[parseInt(ans)] || ans);
-      if (q.type === 'multi') return (Array.isArray(ans) ? ans : [ans]).map(i => escapeHtml(q.options[parseInt(i)])).join(', ');
+      if (q.type === 'choice4' || q.type === 'tf') return escapeHtml(q.options ? (q.options[parseInt(ans)] || ans) : ans);
+      if (q.type === 'multi') return (Array.isArray(ans) ? ans : [ans]).map(i => escapeHtml(q.options ? (q.options[parseInt(i)] || i) : i)).join(', ');
       if (q.type === 'cloze') return (Array.isArray(ans) ? ans : [ans]).join(', ');
       return escapeHtml(ans);
     }
@@ -1919,7 +1868,7 @@
 
         histories.forEach(h => {
           if (h.details) {
-            const detail = h.details.find(d => d.question.id === q.id);
+            const detail = h.details.find(d => d.question && d.question.id === q.id);
             if (detail) {
               totalAnsCount++;
               if (detail.isCorrect) correctAnsCount++;
@@ -1967,9 +1916,7 @@
           </td>
           <td class="p-3 text-center text-slate-500 text-xs font-semibold">${timeText}</td>
           <td class="p-3 text-center">
-            <button onclick="deleteSingleHistory('${h.id}')" class="text-red-400 hover:text-red-600 p-1 text-xs" title="削除">
-              <i class="fa-solid fa-trash"></i>
-            </button>
+            <button onclick="deleteSingleHistory('${h.id}')" class="text-red-400 hover:text-red-600 p-1 text-xs" title="削除"><i class="fa-solid fa-trash"></i></button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -2056,7 +2003,6 @@
       cardEl.className = `${titleInfo.cardTheme} p-5 rounded-xl space-y-4 relative overflow-hidden transition-all duration-500`;
       document.getElementById('st-card-icon').className = `fa-solid ${titleInfo.icon}`;
 
-      /* 至高の全知神（ブラック）の場合、カード内のテキストノードをすべて純金ゴールド(#ffd700)化 */
       const textNodes = cardEl.querySelectorAll('.st-text-node');
       if (titleInfo.cardTheme === 'card-theme-black') {
         textNodes.forEach(el => el.classList.add('gold-text'));
@@ -2104,32 +2050,24 @@
     function debugSetLevelDirect() {
       let targetLv = parseInt(document.getElementById('debug-target-lv').value);
       if (isNaN(targetLv) || targetLv < 1 || targetLv > 100) return;
-      
       let expSum = 0;
       for (let l = 1; l < targetLv; l++) expSum += getExpForNextLevel(l);
       appData.user.exp = expSum;
       saveLocalStorage();
       renderDashboard();
-      
-      if (!document.getElementById('status-modal').classList.contains('hidden')) {
-        openStatusModal();
-      }
+      if (!document.getElementById('status-modal').classList.contains('hidden')) openStatusModal();
       closeModal('debug-modal');
     }
 
     function debugSetRankDirect(targetLvVal) {
       if (!targetLvVal) return;
       let targetLv = parseInt(targetLvVal);
-      
       let expSum = 0;
       for (let l = 1; l < targetLv; l++) expSum += getExpForNextLevel(l);
       appData.user.exp = expSum;
       saveLocalStorage();
       renderDashboard();
-      
-      if (!document.getElementById('status-modal').classList.contains('hidden')) {
-        openStatusModal();
-      }
+      if (!document.getElementById('status-modal').classList.contains('hidden')) openStatusModal();
       closeModal('debug-modal');
       document.getElementById('debug-rank-select').value = "";
     }
