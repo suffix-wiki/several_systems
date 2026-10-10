@@ -16,30 +16,139 @@
     .screen { display: none; }
     .screen.active { display: block; }
     input, select, textarea, button { touch-action: manipulation; }
+
+    /* プレミアムカードデザイン（高画質グラデーション＆フレーム） */
+    /* 1. 一般学生：グリーン系 (初心者マーク＆エメラルド) */
+    .card-theme-green { background: linear-gradient(135deg, #065f46 0%, #022c22 100%); border: 2px solid #34d399; box-shadow: 0 8px 20px -4px rgba(52, 211, 153, 0.3); color: #ecfdf5; }
+    .card-theme-green .card-accent { color: #6ee7b7; border-color: #34d399; background: rgba(6, 95, 70, 0.8); }
+
+    /* 2. 特待生：イエロー系 */
+    .card-theme-yellow { background: linear-gradient(135deg, #facc15 0%, #eab308 50%, #ca8a04 100%); border: 2px solid #78350f; box-shadow: 0 8px 20px -4px rgba(250, 204, 21, 0.4); color: #422006; }
+    .card-theme-yellow .card-accent { color: #fef08a; border-color: #78350f; background: rgba(120, 53, 15, 0.85); }
+
+    /* 3. 一般研究員：レッド系 */
+    .card-theme-red { background: linear-gradient(135deg, #991b1b 0%, #450a0a 100%); border: 2px solid #fca5a5; box-shadow: 0 8px 20px -4px rgba(252, 165, 165, 0.3); color: #fef2f2; }
+    .card-theme-red .card-accent { color: #fca5a5; border-color: #fca5a5; background: rgba(153, 27, 27, 0.8); }
+
+    /* 4. 主任講師：ブルー系 */
+    .card-theme-blue { background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%); border: 2px solid #93c5fd; box-shadow: 0 8px 20px -4px rgba(147, 197, 253, 0.3); color: #eff6ff; }
+    .card-theme-blue .card-accent { color: #93c5fd; border-color: #93c5fd; background: rgba(30, 64, 175, 0.8); }
+
+    /* 5. 名誉教授：ブラウン系 */
+    .card-theme-brown { background: linear-gradient(135deg, #5c2c16 0%, #291208 100%); border: 2px solid #d97706; box-shadow: 0 8px 20px -4px rgba(217, 119, 6, 0.3); color: #fffbeb; }
+    .card-theme-brown .card-accent { color: #fcd34d; border-color: #d97706; background: rgba(92, 44, 22, 0.8); }
+
+    /* 6. 学習マスター：ブロンズ系 (#CD7F32) */
+    .card-theme-bronze { background: linear-gradient(135deg, #a0522d 0%, #cd7f32 50%, #5c2c16 100%); border: 2px solid #f3d19c; box-shadow: 0 8px 20px -4px rgba(205, 127, 50, 0.5); color: #fff8f0; }
+    .card-theme-bronze .card-accent { color: #f3d19c; border-color: #f3d19c; background: rgba(160, 82, 45, 0.8); }
+
+    /* 7. 真理の探究者：シルバー系 (#C0C0C0) */
+    .card-theme-silver { background: linear-gradient(135deg, #64748b 0%, #c0c0c0 50%, #334155 100%); border: 2px solid #ffffff; box-shadow: 0 8px 20px -4px rgba(192, 192, 192, 0.5); color: #f8fafc; }
+    .card-theme-silver .card-accent { color: #ffffff; border-color: #ffffff; background: rgba(100, 116, 139, 0.8); }
+
+    /* 8. 千里の求道者：ゴールド系 (#D4AF37) */
+    .card-theme-gold { background: linear-gradient(135deg, #854d0e 0%, #d4af37 50%, #422006 100%); border: 2px solid #fef08a; box-shadow: 0 8px 22px -4px rgba(212, 175, 55, 0.6); color: #fefce8; }
+    .card-theme-gold .card-accent { color: #fef08a; border-color: #fef08a; background: rgba(133, 77, 14, 0.8); }
+
+    /* 9. 学究の賢者：プラチナ系 */
+    .card-theme-platinum { background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 40%, #cbd5e1 70%, #94a3b8 100%); border: 2px solid #ffffff; box-shadow: 0 10px 25px -2px rgba(255, 255, 255, 0.8), 0 0 15px rgba(226, 232, 240, 0.6); color: #0f172a; }
+    .card-theme-platinum .card-accent { color: #0f172a; border-color: #ffffff; background: rgba(255, 255, 255, 0.9); }
+
+    /* 10. 叡智の覇王：ダイヤモンド系 (キラキラとピカピカ光る点滅アニメーション) */
+    .card-theme-diamond {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+      border: 2px solid #ffffff;
+      color: #0f172a;
+      position: relative;
+      overflow: hidden;
+      animation: diamondPulse 2.5s infinite ease-in-out alternate;
+    }
+    @keyframes diamondPulse {
+      0% {
+        box-shadow: 0 0 12px rgba(255, 255, 255, 0.6), 0 0 4px rgba(186, 230, 253, 0.4);
+      }
+      50% {
+        box-shadow: 0 0 30px rgba(255, 255, 255, 1), 0 0 20px rgba(147, 197, 253, 0.9), 0 0 35px rgba(224, 231, 255, 0.8);
+      }
+      100% {
+        box-shadow: 0 0 15px rgba(255, 255, 255, 0.7), 0 0 8px rgba(186, 230, 253, 0.5);
+      }
+    }
+    .card-theme-diamond::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
+      opacity: 0.3;
+      pointer-events: none;
+      animation: sparkleFlash 1.8s infinite ease-in-out alternate;
+    }
+    @keyframes sparkleFlash {
+      0% { opacity: 0.2; transform: scale(0.95); }
+      100% { opacity: 0.6; transform: scale(1.05); }
+    }
+    .card-theme-diamond .card-accent {
+      color: #0369a1;
+      border-color: #ffffff;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    }
+
+    /* 11. 全知の至高神：ブラック系 (漆黒×統一された純金ゴールド #ffd700) */
+    .card-theme-black {
+      background: linear-gradient(135deg, #18181b 0%, #0a0a0c 60%, #000000 100%);
+      border: 1px solid #ffd700;
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.9), 0 0 15px rgba(255, 215, 0, 0.3);
+      color: #ffd700;
+    }
+    /* 白飛びを排除した単色ゴールド (#ffd700) */
+    .card-theme-black .gold-text {
+      color: #ffd700 !important;
+      -webkit-text-fill-color: #ffd700 !important;
+      background: none !important;
+      font-weight: 800;
+      opacity: 1 !important;
+    }
+    .card-theme-black .card-accent {
+      color: #ffd700;
+      border-color: #ffd700;
+      background: rgba(24, 24, 27, 0.95);
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased">
 
   <!-- ヘッダー -->
   <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-40">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-      <h1 class="text-lg sm:text-xl font-bold flex items-center gap-2 cursor-pointer" onclick="showScreen('list-screen')">
-        <i class="fa-solid fa-graduation-cap text-2xl text-amber-300"></i>
+    <div class="max-w-6xl mx-auto px-4 py-2.5 flex justify-between items-center gap-2">
+      <!-- タイトル ＆ 隠しデバッグ起動トリガー（3回連続クリック） -->
+      <h1 class="text-base sm:text-xl font-bold flex items-center gap-2 cursor-pointer select-none" onclick="handleLogoClick()">
+        <i class="fa-solid fa-graduation-cap text-xl sm:text-2xl text-amber-300"></i>
         <span>学習マスター</span>
       </h1>
 
-      <!-- プレイヤーレベルステータス -->
-      <button onclick="openStatusModal()" class="flex items-center gap-2 sm:gap-3 bg-indigo-700/90 hover:bg-indigo-800 px-3 py-1.5 rounded-full border border-indigo-400/40 transition text-left shadow-inner">
-        <div class="flex items-center gap-1">
-          <i class="fa-solid fa-shield-halved text-amber-300 text-xs sm:text-sm"></i>
-          <span class="text-xs font-bold text-amber-200">Lv.<span id="user-level">1</span></span>
-        </div>
-        <div class="w-16 sm:w-20 bg-indigo-950 rounded-full h-2 overflow-hidden hidden xs:block">
-          <div id="user-exp-bar" class="bg-amber-400 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
-        </div>
-        <span id="user-title" class="text-xs font-medium text-indigo-100 hidden sm:inline">見習いチャレンジャー</span>
-        <i class="fa-solid fa-id-card text-xs text-indigo-300"></i>
-      </button>
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- 今日のミッションボタン -->
+        <button onclick="openDailyMissionsModal()" class="flex items-center gap-1.5 bg-indigo-700/80 hover:bg-indigo-800 px-3 py-1.5 rounded-full border border-indigo-400/40 text-xs font-semibold transition shadow-inner relative">
+          <i class="fa-solid fa-calendar-check text-amber-300"></i>
+          <span>今日のミッション</span>
+          <span id="header-mission-badge" class="bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full hidden">達成</span>
+        </button>
+
+        <!-- プレイヤーレベルステータス -->
+        <button onclick="openStatusModal()" class="flex items-center gap-2 sm:gap-3 bg-indigo-700/90 hover:bg-indigo-800 px-3 py-1.5 rounded-full border border-indigo-400/40 transition text-left shadow-inner">
+          <div class="flex items-center gap-1">
+            <i class="fa-solid fa-shield-halved text-amber-300 text-xs sm:text-sm"></i>
+            <span class="text-xs font-bold text-amber-200">Lv.<span id="user-level">1</span></span>
+          </div>
+          <div class="w-16 sm:w-20 bg-indigo-950 rounded-full h-2 overflow-hidden hidden md:block">
+            <div id="user-exp-bar" class="bg-amber-400 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <span id="user-title" class="text-xs font-medium text-amber-200 hidden sm:inline">一般学生</span>
+          <i class="fa-solid fa-id-card text-xs text-indigo-300"></i>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -51,46 +160,42 @@
       
       <!-- ダッシュボードカード -->
       <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <!-- 連続学習日数 -->
         <div onclick="openCalendarModal()" class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-indigo-400 transition cursor-pointer flex items-center gap-3">
           <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
             <i class="fa-solid fa-calendar-days"></i>
           </div>
           <div class="overflow-hidden">
-            <p class="text-[11px] sm:text-xs text-slate-400 font-medium">連続学習日数 <i class="fa-solid fa-magnifying-glass text-[9px]"></i></p>
+            <p class="text-[11px] sm:text-xs text-slate-400 font-medium">連続学習日数</p>
             <p class="text-lg sm:text-xl font-extrabold text-slate-800"><span id="dash-streak">0</span> <span class="text-xs font-normal">日</span></p>
           </div>
         </div>
 
-        <!-- 累計解いた問題 -->
         <div onclick="openQuizStatsModal()" class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-emerald-400 transition cursor-pointer flex items-center gap-3">
           <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
             <i class="fa-solid fa-book-open"></i>
           </div>
           <div class="overflow-hidden">
-            <p class="text-[11px] sm:text-xs text-slate-400 font-medium">累計解いた問題 <i class="fa-solid fa-magnifying-glass text-[9px]"></i></p>
+            <p class="text-[11px] sm:text-xs text-slate-400 font-medium">累計解いた問題</p>
             <p class="text-lg sm:text-xl font-extrabold text-slate-800"><span id="dash-total-q">0</span> <span class="text-xs font-normal">問</span></p>
           </div>
         </div>
 
-        <!-- 総学習時間 -->
         <div onclick="openTimeStatsModal()" class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-amber-400 transition cursor-pointer flex items-center gap-3">
           <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
             <i class="fa-solid fa-clock"></i>
           </div>
           <div class="overflow-hidden">
-            <p class="text-[11px] sm:text-xs text-slate-400 font-medium">総学習時間 <i class="fa-solid fa-magnifying-glass text-[9px]"></i></p>
+            <p class="text-[11px] sm:text-xs text-slate-400 font-medium">総学習時間</p>
             <p class="text-lg sm:text-xl font-extrabold text-slate-800"><span id="dash-study-time">0</span> <span class="text-xs font-normal">分</span></p>
           </div>
         </div>
 
-        <!-- 解放した称号 -->
         <div onclick="openBadgesModal()" class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-purple-400 transition cursor-pointer flex items-center gap-3">
           <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
             <i class="fa-solid fa-award"></i>
           </div>
           <div class="overflow-hidden">
-            <p class="text-[11px] sm:text-xs text-slate-400 font-medium">解放した称号 <i class="fa-solid fa-magnifying-glass text-[9px]"></i></p>
+            <p class="text-[11px] sm:text-xs text-slate-400 font-medium">解放した称号</p>
             <p class="text-lg sm:text-xl font-extrabold text-slate-800"><span id="dash-badge-count">0</span> <span class="text-xs font-normal">個</span></p>
           </div>
         </div>
@@ -230,7 +335,8 @@
             <span id="question-type-badge" class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-md border border-indigo-200">4択問題</span>
           </div>
 
-          <h3 id="answer-question-text" class="text-base sm:text-lg font-bold text-slate-800 whitespace-pre-line leading-relaxed"></h3>
+          <!-- 問題文表示エリア -->
+          <div id="answer-question-container" class="text-base sm:text-lg font-bold text-slate-800 leading-relaxed"></div>
 
           <div id="answer-input-area" class="space-y-2.5 pt-1"></div>
         </div>
@@ -308,6 +414,37 @@
         </button>
       </div>
 
+      <!-- サマリーカード -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg flex-shrink-0">
+            <i class="fa-solid fa-stopwatch"></i>
+          </div>
+          <div>
+            <p class="text-[11px] text-slate-400 font-medium">この問題集の合計学習時間</p>
+            <p class="text-lg font-extrabold text-slate-800"><span id="analytics-total-time">0</span></p>
+          </div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg flex-shrink-0">
+            <i class="fa-solid fa-rotate-right"></i>
+          </div>
+          <div>
+            <p class="text-[11px] text-slate-400 font-medium">総挑戦回数</p>
+            <p class="text-lg font-extrabold text-slate-800"><span id="analytics-total-runs">0</span> <span class="text-xs font-normal">回</span></p>
+          </div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-lg flex-shrink-0">
+            <i class="fa-solid fa-bullseye"></i>
+          </div>
+          <div>
+            <p class="text-[11px] text-slate-400 font-medium">平均正解率</p>
+            <p class="text-lg font-extrabold text-slate-800"><span id="analytics-avg-ratio">0%</span></p>
+          </div>
+        </div>
+      </div>
+
       <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-3">
         <div class="flex justify-between items-center">
           <h3 class="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
@@ -355,7 +492,7 @@
                 <th class="p-3 font-semibold">実施日時</th>
                 <th class="p-3 font-semibold text-center">スコア</th>
                 <th class="p-3 font-semibold text-center">正解率</th>
-                <th class="p-3 font-semibold text-center">時間</th>
+                <th class="p-3 font-semibold text-center">所要時間</th>
                 <th class="p-3 font-semibold text-center w-24">操作</th>
               </tr>
             </thead>
@@ -369,9 +506,25 @@
 
   <!-- モーダルダイアログ群 -->
 
-  <!-- プレイヤーステータスモーダル -->
+  <!-- デイリーミッション モーダル -->
+  <div id="daily-missions-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-calendar-check text-indigo-600"></i> 今日のミッション
+        </h3>
+        <button onclick="closeModal('daily-missions-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div id="modal-daily-missions-container" class="space-y-2.5"></div>
+
+      <p class="text-[10px] text-slate-400 text-center pt-1">ミッションは毎日午前 0:00 に自動更新されます。</p>
+    </div>
+  </div>
+
+  <!-- プレイヤーステータス モーダル -->
   <div id="status-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-sm w-full shadow-2xl space-y-4">
+    <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b pb-3">
         <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
           <i class="fa-solid fa-id-card text-indigo-600"></i> プレイヤーステータス
@@ -379,44 +532,95 @@
         <button onclick="closeModal('status-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
 
-      <div class="bg-gradient-to-br from-indigo-900 to-slate-900 text-white p-5 rounded-xl space-y-4 shadow-inner">
-        <div class="flex justify-between items-start">
+      <!-- 動的テーマカード -->
+      <div id="st-card-element" class="card-theme-green p-5 rounded-xl space-y-4 relative overflow-hidden transition-all duration-500">
+        <div class="flex justify-between items-start relative z-10">
           <div>
-            <p class="text-amber-400 text-xs font-semibold" id="st-user-title">見習いチャレンジャー</p>
-            <p class="text-2xl font-black tracking-wide">Level <span id="st-user-level" class="text-amber-300">1</span></p>
+            <p class="text-xs font-bold tracking-wider st-text-node" id="st-user-title">
+              一般学生
+            </p>
+            <p class="text-2xl font-black tracking-wide mt-0.5 st-text-node">Level <span id="st-user-level">1</span></p>
           </div>
-          <div class="w-12 h-12 rounded-full bg-indigo-700/80 border-2 border-amber-300 flex items-center justify-center text-xl text-amber-300 shadow">
-            <i class="fa-solid fa-crown"></i>
+          <div id="st-card-icon-wrapper" class="w-12 h-12 rounded-full card-accent border-2 flex items-center justify-center text-xl shadow">
+            <i class="fa-solid fa-crown" id="st-card-icon"></i>
           </div>
         </div>
 
-        <div class="space-y-1">
-          <div class="flex justify-between text-xs text-indigo-200">
+        <div class="space-y-1 relative z-10">
+          <div class="flex justify-between text-xs st-text-node">
             <span>Next Level まで:</span>
-            <span class="font-bold text-amber-300"><span id="st-need-exp">100</span> EXP</span>
+            <span class="font-bold"><span id="st-need-exp">100</span> EXP</span>
           </div>
-          <div class="w-full bg-indigo-950 rounded-full h-3 p-0.5 border border-indigo-700">
+          <div class="w-full bg-black/40 rounded-full h-3 p-0.5 border border-amber-300/30">
             <div id="st-exp-bar" class="bg-amber-400 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
           </div>
-          <p class="text-[10px] text-right text-indigo-300">現在のレベル内EXP: <span id="st-curr-exp">0</span> / 100</p>
+          <p class="text-[10px] text-right st-text-node">現在のレベル内EXP: <span id="st-curr-exp">0</span> / <span id="st-max-exp-in-lv">100</span></p>
         </div>
 
-        <div class="border-t border-indigo-800/80 pt-3 grid grid-cols-2 gap-2 text-xs">
+        <div class="border-t border-amber-300/30 pt-3 grid grid-cols-2 gap-2 text-xs relative z-10">
           <div>
-            <p class="text-indigo-300 text-[10px]">累計獲得EXP</p>
-            <p class="font-bold text-white text-sm" id="st-total-exp">0 pt</p>
+            <p class="text-[10px] st-text-node">累計獲得EXP</p>
+            <p class="font-bold text-sm st-text-node" id="st-total-exp">0 pt</p>
           </div>
           <div>
-            <p class="text-indigo-300 text-[10px]">解放称号数</p>
-            <p class="font-bold text-white text-sm" id="st-badge-count">0 個</p>
+            <p class="text-[10px] st-text-node">連続学習日数</p>
+            <p class="font-bold text-sm st-text-node" id="st-streak-days">0 日</p>
           </div>
         </div>
       </div>
 
+      <!-- レベル肩書き ＆ ロードマップ -->
+      <div class="space-y-2 pt-1">
+        <h4 class="text-xs font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-map text-indigo-600"></i> レベル肩書き ＆ 必要学習時間目安</h4>
+        <div id="title-roadmap-container" class="space-y-1.5 max-h-56 overflow-y-auto pr-1"></div>
+      </div>
+
       <div class="flex justify-end pt-1">
         <button onclick="closeModal('status-modal'); openBadgesModal();" class="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition">
-          <i class="fa-solid fa-award"></i> 称号コレクションを見る
+          <i class="fa-solid fa-award"></i> 獲得した称号（実績バッジ）を見る
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 開発者用 隠しデバッグモーダル -->
+  <div id="debug-modal" class="fixed inset-0 bg-slate-900/60 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl p-5 max-w-sm w-full shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="text-sm font-bold text-amber-900 flex items-center gap-1.5">
+          <i class="fa-solid fa-bug text-amber-600"></i> デバッグレベルテスト
+        </h3>
+        <button onclick="closeModal('debug-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">ランク指定 (一発切り替え)</label>
+          <select id="debug-rank-select" onchange="debugSetRankDirect(this.value)" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs bg-slate-50 font-medium">
+            <option value="">-- ランクを選択してください --</option>
+            <option value="1">Lv.1〜 一般学生（グリーン）</option>
+            <option value="5">Lv.5〜 特待生（イエロー）</option>
+            <option value="10">Lv.10〜 一般研究員（レッド）</option>
+            <option value="15">Lv.15〜 主任講師（ブルー）</option>
+            <option value="20">Lv.20〜 名誉教授（ブラウン）</option>
+            <option value="30">Lv.30〜 学習マスター（ブロンズ）</option>
+            <option value="40">Lv.40〜 真理の探究者（シルバー）</option>
+            <option value="50">Lv.50〜 千里の求道者（ゴールド）</option>
+            <option value="60">Lv.60〜 学究の賢者（プラチナ）</option>
+            <option value="70">Lv.70〜 叡智の覇王（ダイヤモンド）</option>
+            <option value="80">Lv.80〜 全知の至高神（ブラック）</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">レベル数値入力 (1〜100)</label>
+          <div class="flex items-center gap-2">
+            <input type="number" id="debug-target-lv" min="1" max="100" placeholder="例: 80" class="w-full p-2 border border-slate-300 rounded-lg text-xs">
+            <button onclick="debugSetLevelDirect()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs flex-shrink-0 transition">
+              設定
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -485,7 +689,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V8';
+    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V24';
     let appData = {
       quizzes: [],
       histories: [],
@@ -497,7 +701,14 @@
         lastStudyDate: null,
         streakDays: 0,
         unlockedBadges: [],
-        dailyStudyLogs: {}
+        dailyStudyLogs: {},
+        dailyMissions: {
+          lastDate: '',
+          login: false,
+          solved10: false,
+          passedOne: false,
+          completedCount: 0
+        }
       }
     };
 
@@ -512,10 +723,48 @@
       { id: 'b2', title: '継続の力', desc: '3日連続で学習を行った', icon: 'fa-fire', check: u => u.streakDays >= 3 },
       { id: 'b3', title: '習慣化達成', desc: '7日連続で学習を行った', icon: 'fa-calendar-check', check: u => u.streakDays >= 7 },
       { id: 'b4', title: '問題ハンター', desc: '累計50問以上回答した', icon: 'fa-bullseye', check: u => u.totalQuestionsSolved >= 50 },
-      { id: 'b5', title: '学習マニア', desc: '累計総学習時間が180分を超えた', icon: 'fa-hourglass-high', check: u => u.totalStudySeconds >= 10800 },
-      { id: 'b6', title: '月間目標達成', desc: '今月の学習時間が5時間を突破した', icon: 'fa-trophy', check: u => getCurrentMonthStudySeconds(u) >= 18000 },
-      { id: 'b7', title: '学習マスター', desc: 'プレイヤーレベルが5に到達', icon: 'fa-crown', check: u => u.level >= 5 }
+      { id: 'b5', title: 'デイリーマスター', desc: 'デイリーミッションを通算5回全てクリア', icon: 'fa-sun', check: u => (u.dailyMissions && u.dailyMissions.completedCount >= 5) },
+      { id: 'b6', title: '学習マニア', desc: '累計総学習時間が180分を超えた', icon: 'fa-hourglass-high', check: u => u.totalStudySeconds >= 10800 },
+      { id: 'b7', title: '学習マスター', desc: 'プレイヤーレベルが10に到達', icon: 'fa-crown', check: u => u.level >= 10 }
     ];
+
+    /* 全11ランクの称号＆カラーテーマ定義 */
+    const TITLE_STEPS = [
+      { minLv: 80, title: '全知の至高神', estTime: '800時間〜', cardTheme: 'card-theme-black', icon: 'fa-kaaba', color: 'text-amber-400 font-black', badgeBg: 'bg-zinc-900 text-amber-300' },
+      { minLv: 70, title: '叡智の覇王', estTime: '500〜800時間', cardTheme: 'card-theme-diamond', icon: 'fa-gem', color: 'text-sky-600 font-extrabold', badgeBg: 'bg-sky-100 text-sky-800' },
+      { minLv: 60, title: '学究の賢者', estTime: '300〜500時間', cardTheme: 'card-theme-platinum', icon: 'fa-certificate', color: 'text-slate-700 font-bold', badgeBg: 'bg-slate-200 text-slate-800' },
+      { minLv: 50, title: '千里の求道者', estTime: '150〜200時間', cardTheme: 'card-theme-gold', icon: 'fa-ring', color: 'text-amber-600 font-bold', badgeBg: 'bg-amber-100 text-amber-900' },
+      { minLv: 40, title: '真理の探究者', estTime: '80〜100時間', cardTheme: 'card-theme-silver', icon: 'fa-eye', color: 'text-slate-600 font-bold', badgeBg: 'bg-slate-200 text-slate-800' },
+      { minLv: 30, title: '学習マスター', estTime: '40〜50時間', cardTheme: 'card-theme-bronze', icon: 'fa-award', color: 'text-amber-800 font-bold', badgeBg: 'bg-amber-200 text-amber-950' },
+      { minLv: 20, title: '名誉教授', estTime: '20時間', cardTheme: 'card-theme-brown', icon: 'fa-graduation-cap', color: 'text-amber-900 font-bold', badgeBg: 'bg-amber-100 text-amber-900' },
+      { minLv: 15, title: '主任講師', estTime: '10時間', cardTheme: 'card-theme-blue', icon: 'fa-user-tie', color: 'text-blue-600 font-medium', badgeBg: 'bg-blue-100 text-blue-800' },
+      { minLv: 10, title: '一般研究員', estTime: '5時間', cardTheme: 'card-theme-red', icon: 'fa-microscope', color: 'text-red-600 font-medium', badgeBg: 'bg-red-100 text-red-800' },
+      { minLv: 5,  title: '特待生', estTime: '1時間', cardTheme: 'card-theme-yellow', icon: 'fa-book-open', color: 'text-amber-600', badgeBg: 'bg-amber-100 text-amber-800' },
+      { minLv: 1,  title: '一般学生', estTime: '学習開始段階', cardTheme: 'card-theme-green', icon: 'fa-seedling', color: 'text-emerald-600', badgeBg: 'bg-emerald-100 text-emerald-800' }
+    ];
+
+    function getExpForNextLevel(lv) {
+      if (lv >= 100) return 999999;
+      if (lv <= 10) return 100;
+      if (lv <= 30) return 200 + (lv - 10) * 30;
+      if (lv <= 60) return 800 + (lv - 30) * 100;
+      return 3800 + (lv - 60) * 300;
+    }
+
+    function calculateLevelFromExp(totalExp) {
+      let lv = 1;
+      let expLeft = totalExp;
+      while (lv < 100) {
+        let req = getExpForNextLevel(lv);
+        if (expLeft >= req) {
+          expLeft -= req;
+          lv++;
+        } else {
+          break;
+        }
+      }
+      return { level: lv, currentExp: expLeft, requiredExp: getExpForNextLevel(lv) };
+    }
 
     const sampleData = {
       quizzes: [
@@ -538,30 +787,14 @@
             },
             {
               id: 'q2',
-              type: 'multi',
-              text: 'プログラミング言語に分類されるものを全て選んでください。',
-              score: 20,
-              explanation: 'PythonとJavaがプログラミング言語です。',
-              options: ['Python', 'HTML', 'Java', 'PNG'],
-              answer: ['0', '2']
-            },
-            {
-              id: 'q3',
-              type: 'tf',
-              text: 'HTTP通信の標準ポート番号は「443」である。',
+              type: 'cloze',
+              clozePairs: [
+                { prefix: 'Webブラウザ上で動的処理を実行する言語は', answer: 'JavaScript', suffix: 'である。' }
+              ],
               score: 10,
-              explanation: '誤りです。標準のHTTPポートは「80」です。',
-              options: ['○（正しい）', '×（誤り）'],
-              answer: '1'
-            },
-            {
-              id: 'q4',
-              type: 'text',
-              text: 'データベースを操作・定義するための標準的な記述言語（略称3文字）を入力してください。',
-              score: 10,
-              explanation: 'SQL (Structured Query Language) です。',
+              explanation: 'JavaScriptは動的な処理を実現する標準言語です。',
               options: [],
-              answer: 'SQL'
+              answer: 'JavaScript'
             }
           ]
         }
@@ -575,12 +808,14 @@
         lastStudyDate: null,
         streakDays: 0,
         unlockedBadges: [],
-        dailyStudyLogs: {}
+        dailyStudyLogs: {},
+        dailyMissions: { lastDate: '', login: false, solved10: false, passedOne: false, completedCount: 0 }
       }
     };
 
     window.addEventListener('DOMContentLoaded', () => {
       loadLocalStorage();
+      checkAndResetDailyMissions();
       renderDashboard();
       renderQuizList();
     });
@@ -592,6 +827,8 @@
           appData = JSON.parse(stored);
           if (!appData.user) appData.user = sampleData.user;
           if (!appData.user.dailyStudyLogs) appData.user.dailyStudyLogs = {};
+          if (!appData.user.unlockedBadges) appData.user.unlockedBadges = [];
+          if (!appData.user.dailyMissions) appData.user.dailyMissions = { lastDate: '', login: false, solved10: false, passedOne: false, completedCount: 0 };
         } catch (e) {
           appData = sampleData;
         }
@@ -605,11 +842,87 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
     }
 
-    // --- 音声入力Web Speech API対応 (バグ修正: 音声入力時の回答保存連動) ---
-    function startSpeechRecognition(targetInputId, questionId = null) {
+    function checkAndResetDailyMissions() {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const m = appData.user.dailyMissions;
+      if (m.lastDate !== todayStr) {
+        m.lastDate = todayStr;
+        m.login = true;
+        m.solved10 = false;
+        m.passedOne = false;
+        m.allClearedRecorded = false;
+        saveLocalStorage();
+      }
+    }
+
+    function updateHeaderMissionBadge() {
+      const m = appData.user.dailyMissions;
+      const todayLog = (appData.user.dailyStudyLogs || {})[new Date().toISOString().slice(0, 10)];
+      const todaySolvedCount = (typeof todayLog === 'object') ? (todayLog.questionsSolved || 0) : 0;
+      if (todaySolvedCount >= 10) m.solved10 = true;
+
+      const badge = document.getElementById('header-mission-badge');
+      if (m.login && m.solved10 && m.passedOne) {
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function openDailyMissionsModal() {
+      const container = document.getElementById('modal-daily-missions-container');
+      container.innerHTML = '';
+      const m = appData.user.dailyMissions;
+
+      const todayLog = (appData.user.dailyStudyLogs || {})[new Date().toISOString().slice(0, 10)];
+      const todaySolvedCount = (typeof todayLog === 'object') ? (todayLog.questionsSolved || 0) : 0;
+      if (todaySolvedCount >= 10) m.solved10 = true;
+
+      const missions = [
+        { key: 'login', title: '☀️ 今日のログイン', desc: 'アプリを起動して学習準備完了', done: m.login },
+        { key: 'solved10', title: '✍️ 本日10問回答', desc: `今日解いた問題: ${todaySolvedCount}/10問`, done: m.solved10 },
+        { key: 'passedOne', title: '🎯 本日1回合格クリア', desc: '任意の問題集で合格基準を達成', done: m.passedOne }
+      ];
+
+      let allCleared = true;
+      missions.forEach(item => {
+        if (!item.done) allCleared = false;
+        container.innerHTML += `
+          <div class="p-3 rounded-xl border flex items-center justify-between text-xs ${item.done ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600'}">
+            <div>
+              <p class="font-bold text-sm">${item.title}</p>
+              <p class="text-xs text-slate-500">${item.desc}</p>
+            </div>
+            <div>
+              ${item.done ? '<span class="px-2.5 py-1 bg-emerald-600 text-white text-xs rounded-full font-bold">達成！</span>' : '<span class="px-2.5 py-1 bg-slate-200 text-slate-500 text-xs rounded-full">未達成</span>'}
+            </div>
+          </div>
+        `;
+      });
+
+      if (allCleared && !m.allClearedRecorded) {
+        m.allClearedRecorded = true;
+        m.completedCount = (m.completedCount || 0) + 1;
+        saveLocalStorage();
+      }
+
+      updateHeaderMissionBadge();
+      document.getElementById('daily-missions-modal').classList.remove('hidden');
+    }
+
+    function getUserTitleInfo(level) {
+      for (const step of TITLE_STEPS) {
+        if (level >= step.minLv) {
+          return step;
+        }
+      }
+      return TITLE_STEPS[TITLE_STEPS.length - 1];
+    }
+
+    function startSpeechRecognition(targetInputId, questionId = null, subIndex = null) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        alert('お使いのブラウザは音声入力に対応していません。Google ChromeやEdgeなどでお試しください。');
+        alert('お使いのブラウザは音声入力に対応していません。');
         return;
       }
 
@@ -619,44 +932,29 @@
 
       const targetEl = document.getElementById(targetInputId);
 
-      recognition.onstart = function() {
-        if (targetEl) targetEl.placeholder = '音声を聞き取り中...';
-      };
-
       recognition.onresult = function(event) {
         const transcript = event.results[0][0].transcript;
         if (targetEl) {
-          const newVal = (targetEl.value ? targetEl.value + ' ' : '') + transcript;
-          targetEl.value = newVal;
-
-          // イベントを明示的にトリガー
+          targetEl.value = (targetEl.value ? targetEl.value + ' ' : '') + transcript;
           targetEl.dispatchEvent(new Event('input', { bubbles: true }));
           targetEl.dispatchEvent(new Event('change', { bubbles: true }));
 
-          // 回答画面での音声入力時、内部のアクティブセッション状態も即座に更新
           if (questionId && activeSession) {
-            saveCurrentAnswer(questionId, newVal, false);
+            saveCurrentAnswer(questionId, targetEl.value, false, subIndex);
           }
         }
       };
-
-      recognition.onerror = function() {
-        alert('音声認識でエラーが発生しました。');
-      };
-
       recognition.start();
     }
 
     function confirmResetAllData() {
-      if (confirm('【注意】これまでの回答履歴、総学習時間、称号、レベルなど全てのデータを完全に初期化しますか？')) {
-        if (confirm('本当によろしいですか？この操作は取り消せません。')) {
-          localStorage.removeItem(STORAGE_KEY);
-          appData = JSON.parse(JSON.stringify(sampleData));
-          saveLocalStorage();
-          renderDashboard();
-          renderQuizList();
-          alert('全ての学習データを初期化しました。');
-        }
+      if (confirm('【注意】全てのデータ（回答履歴・レベル・称号）を初期化しますか？')) {
+        localStorage.removeItem(STORAGE_KEY);
+        appData = JSON.parse(JSON.stringify(sampleData));
+        saveLocalStorage();
+        renderDashboard();
+        renderQuizList();
+        alert('初期化しました。');
       }
     }
 
@@ -671,26 +969,10 @@
       }
     }
 
-    function getCurrentMonthStudySeconds(u) {
-      const now = new Date();
-      const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      let total = 0;
-      Object.keys(u.dailyStudyLogs || {}).forEach(dateStr => {
-        if (dateStr.startsWith(prefix)) {
-          const log = u.dailyStudyLogs[dateStr];
-          total += (typeof log === 'object') ? log.seconds : log;
-        }
-      });
-      return total;
-    }
-
     function renderDashboard() {
       const u = appData.user;
-      u.level = Math.floor(u.exp / 100) + 1;
-      const expInLevel = u.exp % 100;
-
-      document.getElementById('user-level').innerText = u.level;
-      document.getElementById('user-exp-bar').style.width = `${expInLevel}%`;
+      const lvlInfo = calculateLevelFromExp(u.exp || 0);
+      u.level = lvlInfo.level;
 
       BADGES.forEach(b => {
         if (!u.unlockedBadges.includes(b.id) && b.check(u)) {
@@ -698,13 +980,19 @@
         }
       });
 
-      const titles = ['見習いチャレンジャー', '知識の探究者', '資格ハンター', '学問の達人', '学習マスター'];
-      document.getElementById('user-title').innerText = titles[Math.min(u.level - 1, titles.length - 1)];
+      const titleInfo = getUserTitleInfo(u.level);
+
+      document.getElementById('user-level').innerText = u.level;
+      const expPercent = Math.min(100, Math.round((lvlInfo.currentExp / lvlInfo.requiredExp) * 100));
+      document.getElementById('user-exp-bar').style.width = `${expPercent}%`;
+      document.getElementById('user-title').innerText = titleInfo.title;
 
       document.getElementById('dash-streak').innerText = u.streakDays || 0;
       document.getElementById('dash-total-q').innerText = u.totalQuestionsSolved || 0;
       document.getElementById('dash-study-time').innerText = Math.floor((u.totalStudySeconds || 0) / 60);
       document.getElementById('dash-badge-count').innerText = u.unlockedBadges.length;
+
+      updateHeaderMissionBadge();
     }
 
     function renderQuizList() {
@@ -739,13 +1027,11 @@
               <button onclick="startQuizDirect('${quiz.id}', false)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-medium transition flex items-center gap-1">
                 <i class="fa-solid fa-play"></i> 回答
               </button>
-
               ${weakCount > 0 ? `
                 <button onclick="startQuizDirect('${quiz.id}', true)" class="bg-red-500 hover:bg-red-600 text-white px-2.5 py-1.5 rounded text-xs font-medium transition flex items-center gap-1">
                   <i class="fa-solid fa-bolt"></i> 弱点(${weakCount})
                 </button>
               ` : ''}
-
               <button onclick="openEditForm('${quiz.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2 py-1.5 rounded text-xs font-medium transition">
                 編集
               </button>
@@ -792,7 +1078,6 @@
       }
     }
 
-    // --- 問題編集機能 ---
     function openCreateForm() {
       currentEditingQuizId = null;
       document.getElementById('edit-screen-title').innerText = '新規問題集の作成';
@@ -841,13 +1126,11 @@
       card.className = 'q-card bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-4 relative';
       
       const type = qData ? qData.type : 'choice4';
-      const text = qData ? qData.text : '';
       const score = qData ? qData.score : 10;
       const explanation = qData ? (qData.explanation || '') : '';
       const cardId = 'card_' + Math.random().toString(36).substring(2, 9);
       card.dataset.cardId = cardId;
 
-      const qTextId = `q-text-input-${cardId}`;
       const qExpId = `q-exp-input-${cardId}`;
 
       card.innerHTML = `
@@ -867,6 +1150,7 @@
               <option value="multi" ${type==='multi'?'selected':''}>複数選択問題（チェックボックス）</option>
               <option value="tf" ${type==='tf'?'selected':''}>○×問題</option>
               <option value="text" ${type==='text'?'selected':''}>自由記述問題</option>
+              <option value="cloze" ${type==='cloze'?'selected':''}>穴埋め問題（前文 ＋ 穴 ＋ 後文）</option>
             </select>
           </div>
           <div>
@@ -875,17 +1159,7 @@
           </div>
         </div>
 
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">問題文 <span class="text-red-500">*</span></label>
-          <div class="flex gap-2">
-            <textarea id="${qTextId}" rows="2" required placeholder="問題文を入力" class="q-text w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm">${escapeHtml(text)}</textarea>
-            <button type="button" onclick="startSpeechRecognition('${qTextId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0" title="音声入力">
-              <i class="fa-solid fa-microphone"></i>
-            </button>
-          </div>
-        </div>
-
-        <div class="q-options-area bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-2"></div>
+        <div class="q-options-area bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-3"></div>
 
         <div>
           <label class="block text-xs font-medium text-slate-600 mb-1">解説（任意）</label>
@@ -917,55 +1191,193 @@
       if (type === 'choice4' || type === 'multi') {
         const isMulti = type === 'multi';
         const defaultCount = 4;
+        const text = qData ? qData.text : '';
         const answer = qData ? qData.answer : (isMulti ? ['0'] : '0');
+        const qTextId = `q-text-${cardId}`;
 
-        area.innerHTML = `<label class="block text-xs font-semibold text-slate-600 mb-1">選択肢と正解チェック</label>`;
+        let html = `
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">問題文 <span class="text-red-500">*</span></label>
+            <div class="flex gap-2">
+              <textarea id="${qTextId}" rows="2" required placeholder="問題文を入力" class="q-text w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm bg-white">${escapeHtml(text)}</textarea>
+              <button type="button" onclick="startSpeechRecognition('${qTextId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-microphone"></i></button>
+            </div>
+          </div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1 pt-1">選択肢と正解チェック</label>
+        `;
+
         for (let idx = 0; idx < defaultCount; idx++) {
           const optVal = (qData && qData.options && qData.options[idx] !== undefined) ? qData.options[idx] : '';
           const isChecked = isMulti 
             ? (Array.isArray(answer) && answer.includes(String(idx)))
             : String(answer) === String(idx);
-
-          const inputType = isMulti ? 'checkbox' : 'radio';
-          const nameAttr = `q-radio-${cardId}`;
           const optInputId = `q-opt-${cardId}-${idx}`;
 
-          area.innerHTML += `
+          html += `
             <div class="flex items-center gap-2">
-              <input type="${inputType}" name="${nameAttr}" value="${idx}" class="q-ans-check w-4 h-4 text-indigo-600" ${isChecked ? 'checked' : ''}>
-              <input type="text" id="${optInputId}" value="${escapeHtml(optVal)}" placeholder="選択肢 ${idx + 1}" required class="q-opt-text flex-grow border border-slate-300 rounded px-2.5 py-1 text-xs sm:text-sm">
-              <button type="button" onclick="startSpeechRecognition('${optInputId}')" class="text-indigo-600 px-2 py-1 text-xs" title="音声入力"><i class="fa-solid fa-microphone"></i></button>
+              <input type="${isMulti ? 'checkbox' : 'radio'}" name="q-radio-${cardId}" value="${idx}" class="q-ans-check w-4 h-4 text-indigo-600" ${isChecked ? 'checked' : ''}>
+              <input type="text" id="${optInputId}" value="${escapeHtml(optVal)}" placeholder="選択肢 ${idx + 1}" required class="q-opt-text flex-grow border border-slate-300 rounded px-2.5 py-1 text-xs sm:text-sm bg-white">
+              <button type="button" onclick="startSpeechRecognition('${optInputId}')" class="text-indigo-600 px-2 py-1 text-xs"><i class="fa-solid fa-microphone"></i></button>
             </div>
           `;
         }
+        area.innerHTML = html;
+
       } else if (type === 'tf') {
+        const text = qData ? qData.text : '';
         const answer = qData ? qData.answer : '0';
-        const nameAttr = `q-tf-${cardId}`;
+        const qTextId = `q-text-${cardId}`;
 
         area.innerHTML = `
-          <label class="block text-xs font-semibold text-slate-600 mb-1">正解を選択</label>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">問題文 <span class="text-red-500">*</span></label>
+            <div class="flex gap-2">
+              <textarea id="${qTextId}" rows="2" required placeholder="問題文を入力" class="q-text w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm bg-white">${escapeHtml(text)}</textarea>
+              <button type="button" onclick="startSpeechRecognition('${qTextId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-microphone"></i></button>
+            </div>
+          </div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1 pt-1">正解を選択</label>
           <div class="flex gap-6">
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="${nameAttr}" value="0" class="q-ans-check w-4 h-4 text-indigo-600" ${String(answer)==='0'?'checked':''}>
+              <input type="radio" name="q-tf-${cardId}" value="0" class="q-ans-check w-4 h-4 text-indigo-600" ${String(answer)==='0'?'checked':''}>
               <span class="text-xs sm:text-sm">○（正しい）</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="${nameAttr}" value="1" class="q-ans-check w-4 h-4 text-indigo-600" ${String(answer)==='1'?'checked':''}>
+              <input type="radio" name="q-tf-${cardId}" value="1" class="q-ans-check w-4 h-4 text-indigo-600" ${String(answer)==='1'?'checked':''}>
               <span class="text-xs sm:text-sm">×（誤り）</span>
             </label>
           </div>
         `;
+
       } else if (type === 'text') {
+        const text = qData ? qData.text : '';
         const answer = qData ? qData.answer : '';
+        const qTextId = `q-text-${cardId}`;
         const optTextAnsId = `q-text-ans-${cardId}`;
+
         area.innerHTML = `
-          <label class="block text-xs font-semibold text-slate-600 mb-1">正解キーワード</label>
-          <div class="flex gap-2">
-            <input type="text" id="${optTextAnsId}" value="${escapeHtml(answer)}" required placeholder="正解キーワードを入力" class="q-text-ans w-full border border-slate-300 rounded px-3 py-1.5 text-xs sm:text-sm bg-white">
-            <button type="button" onclick="startSpeechRecognition('${optTextAnsId}')" class="text-indigo-600 px-2.5 py-1 text-xs border border-indigo-200 rounded" title="音声入力"><i class="fa-solid fa-microphone"></i></button>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">問題文 <span class="text-red-500">*</span></label>
+            <div class="flex gap-2">
+              <textarea id="${qTextId}" rows="2" required placeholder="問題文を入力" class="q-text w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm bg-white">${escapeHtml(text)}</textarea>
+              <button type="button" onclick="startSpeechRecognition('${qTextId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-microphone"></i></button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">正解キーワード</label>
+            <div class="flex gap-2">
+              <input type="text" id="${optTextAnsId}" value="${escapeHtml(answer)}" required placeholder="正解となる言葉を入力" class="q-text-ans w-full border border-slate-300 rounded px-3 py-1.5 text-xs sm:text-sm bg-white">
+              <button type="button" onclick="startSpeechRecognition('${optTextAnsId}')" class="text-indigo-600 px-2.5 py-1 text-xs border border-indigo-200 rounded"><i class="fa-solid fa-microphone"></i></button>
+            </div>
           </div>
         `;
+
+      } else if (type === 'cloze') {
+        const clozePairs = (qData && qData.clozePairs) ? qData.clozePairs : [
+          { prefix: '', answer: '', suffix: '' }
+        ];
+
+        let clozeHtml = `
+          <label class="block text-xs font-semibold text-slate-700">穴埋め文章設定（前文 ＋ ［穴］ ＋ 後文）</label>
+          <p class="text-[11px] text-slate-500">穴の前後に文章を配置し、正解となる言葉をプレースホルダーからスムーズに入力できます。</p>
+          <div class="cloze-pairs-container space-y-3">
+        `;
+
+        clozePairs.forEach((pair, pIdx) => {
+          const preId = `cloze-pre-${cardId}-${pIdx}`;
+          const ansId = `cloze-ans-${cardId}-${pIdx}`;
+          const sufId = `cloze-suf-${cardId}-${pIdx}`;
+
+          clozeHtml += `
+            <div class="cloze-pair-row p-3 bg-white rounded-xl border border-slate-300 space-y-2 relative">
+              <div class="flex justify-between items-center">
+                <span class="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">穴埋め箇所 ${pIdx + 1}</span>
+                ${pIdx > 0 ? `<button type="button" onclick="this.closest('.cloze-pair-row').remove()" class="text-red-500 text-xs hover:underline"><i class="fa-solid fa-trash"></i> 削除</button>` : ''}
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>
+                  <label class="block text-[10px] text-slate-500 font-medium">前の本文 (前文)</label>
+                  <div class="flex gap-1">
+                    <input type="text" id="${preId}" value="${escapeHtml(pair.prefix || '')}" placeholder="例：日本の首都は" class="cloze-prefix-input w-full border border-slate-300 rounded p-1.5 text-xs">
+                    <button type="button" onclick="startSpeechRecognition('${preId}')" class="text-indigo-600 text-xs px-1"><i class="fa-solid fa-microphone"></i></button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-[10px] text-amber-700 font-bold">［ 穴の正解 ］</label>
+                  <div class="flex gap-1">
+                    <input type="text" id="${ansId}" value="${escapeHtml(pair.answer || '')}" placeholder="例：東京" class="cloze-answer-input w-full border-2 border-amber-400 rounded p-1.5 text-xs font-bold text-amber-900 bg-amber-50" required>
+                    <button type="button" onclick="startSpeechRecognition('${ansId}')" class="text-amber-700 text-xs px-1"><i class="fa-solid fa-microphone"></i></button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-[10px] text-slate-500 font-medium">後ろの本文 (後文)</label>
+                  <div class="flex gap-1">
+                    <input type="text" id="${sufId}" value="${escapeHtml(pair.suffix || '')}" placeholder="例：である。" class="cloze-suffix-input w-full border border-slate-300 rounded p-1.5 text-xs" required>
+                    <button type="button" onclick="startSpeechRecognition('${sufId}')" class="text-indigo-600 text-xs px-1"><i class="fa-solid fa-microphone"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        clozeHtml += `
+          </div>
+          <button type="button" onclick="addClozePairRow(this.closest('.q-card'))" class="mt-2 bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded text-xs font-medium transition flex items-center gap-1">
+            <i class="fa-solid fa-plus"></i> 追加で穴を作る（複数穴問題）
+          </button>
+        `;
+        area.innerHTML = clozeHtml;
       }
+    }
+
+    function addClozePairRow(card) {
+      const container = card.querySelector('.cloze-pairs-container');
+      const cardId = card.dataset.cardId;
+      const pIdx = container.children.length;
+
+      const preId = `cloze-pre-${cardId}-${pIdx}`;
+      const ansId = `cloze-ans-${cardId}-${pIdx}`;
+      const sufId = `cloze-suf-${cardId}-${pIdx}`;
+
+      const row = document.createElement('div');
+      row.className = 'cloze-pair-row p-3 bg-white rounded-xl border border-slate-300 space-y-2 relative';
+      row.innerHTML = `
+        <div class="flex justify-between items-center">
+          <span class="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">穴埋め箇所 ${pIdx + 1}</span>
+          <button type="button" onclick="this.closest('.cloze-pair-row').remove()" class="text-red-500 text-xs hover:underline"><i class="fa-solid fa-trash"></i> 削除</button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div>
+            <label class="block text-[10px] text-slate-500 font-medium">前の本文 (前文)</label>
+            <div class="flex gap-1">
+              <input type="text" id="${preId}" value="" placeholder="続く前の文" class="cloze-prefix-input w-full border border-slate-300 rounded p-1.5 text-xs">
+              <button type="button" onclick="startSpeechRecognition('${preId}')" class="text-indigo-600 text-xs px-1"><i class="fa-solid fa-microphone"></i></button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] text-amber-700 font-bold">［ 穴の正解 ］</label>
+            <div class="flex gap-1">
+              <input type="text" id="${ansId}" value="" placeholder="例：東京" class="cloze-answer-input w-full border-2 border-amber-400 rounded p-1.5 text-xs font-bold text-amber-900 bg-amber-50" required>
+              <button type="button" onclick="startSpeechRecognition('${ansId}')" class="text-amber-700 text-xs px-1"><i class="fa-solid fa-microphone"></i></button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] text-slate-500 font-medium">後ろの本文 (後文)</label>
+            <div class="flex gap-1">
+              <input type="text" id="${sufId}" value="" placeholder="後ろの文" class="cloze-suffix-input w-full border border-slate-300 rounded p-1.5 text-xs" required>
+              <button type="button" onclick="startSpeechRecognition('${sufId}')" class="text-indigo-600 text-xs px-1"><i class="fa-solid fa-microphone"></i></button>
+            </div>
+          </div>
+        </div>
+      `;
+      container.appendChild(row);
     }
 
     function saveQuiz(e) {
@@ -987,14 +1399,16 @@
 
       cardNodes.forEach((card, idx) => {
         const type = card.querySelector('.q-type').value;
-        const text = card.querySelector('.q-text').value.trim();
         const score = parseInt(card.querySelector('.q-score').value) || 10;
         const explanation = card.querySelector('.q-explanation').value.trim();
 
+        let text = '';
         let options = [];
         let answer = null;
+        let clozePairs = [];
 
         if (type === 'choice4' || type === 'multi') {
+          text = card.querySelector('.q-text').value.trim();
           const optInputs = card.querySelectorAll('.q-opt-text');
           optInputs.forEach(i => options.push(i.value.trim()));
 
@@ -1004,21 +1418,31 @@
             isValid = false;
             return;
           }
-
           if (type === 'multi') answer = Array.from(checked).map(c => c.value);
           else answer = checked[0].value;
         } else if (type === 'tf') {
+          text = card.querySelector('.q-text').value.trim();
           options = ['○（正しい）', '×（誤り）'];
           const checked = card.querySelector('.q-ans-check:checked');
           answer = checked ? checked.value : '0';
         } else if (type === 'text') {
+          text = card.querySelector('.q-text').value.trim();
           options = [];
           answer = card.querySelector('.q-text-ans').value.trim();
+        } else if (type === 'cloze') {
+          card.querySelectorAll('.cloze-pair-row').forEach(row => {
+            clozePairs.push({
+              prefix: row.querySelector('.cloze-prefix-input').value,
+              answer: row.querySelector('.cloze-answer-input').value.trim(),
+              suffix: row.querySelector('.cloze-suffix-input').value
+            });
+          });
+          answer = clozePairs.map(p => p.answer).join(', ');
         }
 
         questions.push({
           id: 'q_' + Math.random().toString(36).substr(2, 9),
-          type, text, score, explanation, options, answer
+          type, text, score, explanation, options, answer, clozePairs
         });
       });
 
@@ -1055,7 +1479,6 @@
       renderQuizList();
     }
 
-    // --- 回答セッション開始 ---
     function startQuizDirect(quizId, isWeakOnly = false) {
       const quiz = appData.quizzes.find(q => q.id === quizId);
       if (!quiz) return;
@@ -1123,7 +1546,8 @@
       palette.innerHTML = '';
       activeSession.questions.forEach((item, idx) => {
         const isCurrent = idx === activeSession.currentIndex;
-        const hasAnswered = activeSession.userAnswers[item.id] !== undefined && activeSession.userAnswers[item.id] !== '' && (!Array.isArray(activeSession.userAnswers[item.id]) || activeSession.userAnswers[item.id].length > 0);
+        const saved = activeSession.userAnswers[item.id];
+        const hasAnswered = saved !== undefined && saved !== '' && (Array.isArray(saved) ? saved.some(v => v !== '') : true);
 
         let btnStyle = "bg-slate-100 border-slate-300 text-slate-600";
         if (hasAnswered) btnStyle = "bg-indigo-100 border-indigo-300 text-indigo-700 font-bold";
@@ -1136,45 +1560,70 @@
         `;
       });
 
-      const badgeMap = { choice4: '4択問題', multi: '複数選択問題', tf: '○×問題', text: '自由記述問題' };
+      const badgeMap = { choice4: '4択問題', multi: '複数選択問題', tf: '○×問題', text: '自由記述問題', cloze: '穴埋め問題' };
       document.getElementById('question-type-badge').innerText = badgeMap[q.type] || '問題';
-      document.getElementById('answer-question-text').innerText = q.text;
 
+      const qContainer = document.getElementById('answer-question-container');
+      qContainer.innerHTML = '';
       const area = document.getElementById('answer-input-area');
       area.innerHTML = '';
+
       const savedAns = activeSession.userAnswers[q.id];
 
-      if (q.type === 'choice4' || q.type === 'tf') {
-        q.options.forEach((opt, idx) => {
-          const isChecked = savedAns === String(idx);
-          area.innerHTML += `
-            <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-indigo-50/50 cursor-pointer transition">
-              <input type="radio" name="ans-group" value="${idx}" onchange="saveCurrentAnswer('${q.id}', '${idx}', true)" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-indigo-600">
-              <span class="text-xs sm:text-sm font-medium text-slate-700">${escapeHtml(opt)}</span>
-            </label>
+      if (q.type === 'cloze') {
+        qContainer.innerHTML = `<p class="text-xs text-slate-400 mb-1.5">空欄（プレースホルダ）に当てはまる言葉を入力してください。</p>`;
+        const pairs = q.clozePairs || [];
+        const userVals = Array.isArray(savedAns) ? savedAns : Array(pairs.length).fill('');
+
+        let html = `<div class="flex flex-wrap items-center gap-y-3 gap-x-1.5 text-base sm:text-lg text-slate-800 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200">`;
+        pairs.forEach((pair, pIdx) => {
+          const inputId = `cloze-ans-field-${pIdx}`;
+          html += `
+            <span>${escapeHtml(pair.prefix || '')}</span>
+            <span class="inline-flex items-center gap-1 my-0.5">
+              <input type="text" id="${inputId}" value="${escapeHtml(userVals[pIdx] || '')}" oninput="saveClozeAnswer('${q.id}', ${pIdx}, this.value)" placeholder="${escapeHtml(pair.answer || '答え')}" class="border-2 border-indigo-400 rounded-lg px-2.5 py-1 text-sm sm:text-base font-bold text-indigo-900 bg-white w-32 sm:w-40 focus:ring-2 focus:ring-indigo-500 shadow-sm">
+              <button type="button" onclick="startSpeechRecognition('${inputId}', '${q.id}', ${pIdx})" class="text-indigo-600 px-1"><i class="fa-solid fa-microphone"></i></button>
+            </span>
+            <span>${escapeHtml(pair.suffix || '')}</span>
           `;
         });
-      } else if (q.type === 'multi') {
-        q.options.forEach((opt, idx) => {
-          const isChecked = Array.isArray(savedAns) && savedAns.includes(String(idx));
-          area.innerHTML += `
-            <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-indigo-50/50 cursor-pointer transition">
-              <input type="checkbox" value="${idx}" onchange="saveMultiAnswer('${q.id}')" ${isChecked ? 'checked' : ''} class="q-multi-check w-4 h-4 text-indigo-600 rounded">
-              <span class="text-xs sm:text-sm font-medium text-slate-700">${escapeHtml(opt)}</span>
-            </label>
+        html += `</div>`;
+        qContainer.innerHTML += html;
+
+      } else {
+        qContainer.innerText = q.text;
+        if (q.type === 'choice4' || q.type === 'tf') {
+          q.options.forEach((opt, idx) => {
+            const isChecked = savedAns === String(idx);
+            area.innerHTML += `
+              <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-indigo-50/50 cursor-pointer transition">
+                <input type="radio" name="ans-group" value="${idx}" onchange="saveCurrentAnswer('${q.id}', '${idx}', true)" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-indigo-600">
+                <span class="text-xs sm:text-sm font-medium text-slate-700">${escapeHtml(opt)}</span>
+              </label>
+            `;
+          });
+        } else if (q.type === 'multi') {
+          q.options.forEach((opt, idx) => {
+            const isChecked = Array.isArray(savedAns) && savedAns.includes(String(idx));
+            area.innerHTML += `
+              <label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-indigo-50/50 cursor-pointer transition">
+                <input type="checkbox" value="${idx}" onchange="saveMultiAnswer('${q.id}')" ${isChecked ? 'checked' : ''} class="q-multi-check w-4 h-4 text-indigo-600 rounded">
+                <span class="text-xs sm:text-sm font-medium text-slate-700">${escapeHtml(opt)}</span>
+              </label>
+            `;
+          });
+        } else if (q.type === 'text') {
+          const val = savedAns || '';
+          const userTextAnswerId = `user-text-ans-input`;
+          area.innerHTML = `
+            <div class="flex gap-2">
+              <input type="text" id="${userTextAnswerId}" value="${escapeHtml(val)}" oninput="saveCurrentAnswer('${q.id}', this.value, false)" placeholder="回答を入力してください" class="w-full border border-slate-300 rounded-lg p-3 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500">
+              <button type="button" onclick="startSpeechRecognition('${userTextAnswerId}', '${q.id}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0" title="音声回答">
+                <i class="fa-solid fa-microphone"></i>
+              </button>
+            </div>
           `;
-        });
-      } else if (q.type === 'text') {
-        const val = savedAns || '';
-        const userTextAnswerId = `user-text-ans-input`;
-        area.innerHTML = `
-          <div class="flex gap-2">
-            <input type="text" id="${userTextAnswerId}" value="${escapeHtml(val)}" oninput="saveCurrentAnswer('${q.id}', this.value, false)" placeholder="回答を入力してください" class="w-full border border-slate-300 rounded-lg p-3 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500">
-            <button type="button" onclick="startSpeechRecognition('${userTextAnswerId}', '${q.id}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0" title="音声回答">
-              <i class="fa-solid fa-microphone"></i>
-            </button>
-          </div>
-        `;
+        }
       }
 
       const btnPrev = document.getElementById('btn-prev-q');
@@ -1198,14 +1647,21 @@
 
     function saveCurrentAnswer(qId, val, shouldReRender = false) {
       activeSession.userAnswers[qId] = val;
-      if (shouldReRender) {
-        renderAnswerCard();
-      }
+      if (shouldReRender) renderAnswerCard();
     }
 
     function saveMultiAnswer(qId) {
       const checked = document.querySelectorAll('.q-multi-check:checked');
       activeSession.userAnswers[qId] = Array.from(checked).map(c => c.value);
+    }
+
+    function saveClozeAnswer(qId, pIdx, val) {
+      const q = activeSession.questions.find(item => item.id === qId);
+      const pairsCount = q.clozePairs ? q.clozePairs.length : 1;
+      if (!Array.isArray(activeSession.userAnswers[qId])) {
+        activeSession.userAnswers[qId] = Array(pairsCount).fill('');
+      }
+      activeSession.userAnswers[qId][pIdx] = val;
     }
 
     function prevQuestion() {
@@ -1229,7 +1685,6 @@
       }
     }
 
-    // --- 採点＆学習時間・ログ記録 ---
     function gradeCurrentSession() {
       if (timerInterval) clearInterval(timerInterval);
 
@@ -1254,15 +1709,27 @@
           const uStr = (userAns || '').trim().toLowerCase();
           const aStr = (q.answer || '').trim().toLowerCase();
           isCorrect = uStr === aStr && uStr !== '';
+        } else if (q.type === 'cloze') {
+          const uArr = Array.isArray(userAns) ? userAns : [];
+          const pairs = q.clozePairs || [];
+          isCorrect = true;
+          pairs.forEach((pair, i) => {
+            const uStr = (uArr[i] || '').trim().toLowerCase();
+            const aStr = (pair.answer || '').trim().toLowerCase();
+            if (uStr !== aStr) isCorrect = false;
+          });
         }
 
         if (isCorrect) obtainedScore += q.score;
-
         details.push({ question: q, userAns: userAns, isCorrect: isCorrect });
       });
 
       const ratio = totalMaxScore > 0 ? Math.round((obtainedScore / totalMaxScore) * 100) : 0;
       const passTarget = activeSession.passRatio || 80;
+
+      if (ratio >= passTarget) {
+        appData.user.dailyMissions.passedOne = true;
+      }
 
       const correctCount = details.filter(d => d.isCorrect).length;
       let earnedExp = correctCount * 10;
@@ -1326,7 +1793,6 @@
       const icon = document.getElementById('result-icon-container');
       const title = document.getElementById('result-title');
       const subtitle = document.getElementById('result-subtitle');
-
       const passTarget = record.passRatio || 80;
 
       if (record.ratio === 100) {
@@ -1343,17 +1809,11 @@
         subtitle.innerText = `目標合格基準 (${passTarget}%) をクリアしました！`;
         headerCard.className = 'bg-white p-6 sm:p-8 rounded-2xl shadow-lg border-2 border-emerald-400 text-center space-y-3 sm:space-y-4';
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      } else if (record.ratio >= 50) {
-        icon.innerText = '💡';
-        title.innerText = 'あと一歩！惜しい！';
-        title.className = 'text-2xl sm:text-3xl font-extrabold text-indigo-600';
-        subtitle.innerText = `合格基準 (${passTarget}%) まであと少し。復習を行いましょう。`;
-        headerCard.className = 'bg-white p-6 sm:p-8 rounded-2xl shadow border-2 border-indigo-200 text-center space-y-3 sm:space-y-4';
       } else {
         icon.innerText = '✍️';
         title.innerText = 'じっくり復習しましょう';
         title.className = 'text-2xl sm:text-3xl font-extrabold text-slate-700';
-        subtitle.innerText = '復習こそが成長の鍵です。解説を確認して再挑戦しましょう！';
+        subtitle.innerText = '解説を確認して再挑戦しましょう！';
         headerCard.className = 'bg-white p-6 sm:p-8 rounded-2xl shadow border border-slate-200 text-center space-y-3 sm:space-y-4';
       }
 
@@ -1366,7 +1826,12 @@
         div.className = `p-3.5 sm:p-4 rounded-xl border ${item.isCorrect ? 'border-emerald-200 bg-emerald-50/30' : 'border-red-200 bg-red-50/30'} space-y-2`;
 
         const userAnsText = formatAnsDisplay(q, item.userAns);
-        const correctAnsText = formatAnsDisplay(q, q.answer);
+        const correctAnsText = formatAnsDisplay(q, q.type === 'cloze' ? (q.clozePairs ? q.clozePairs.map(p => p.answer) : q.answer) : q.answer);
+
+        let qDisplay = q.text;
+        if (q.type === 'cloze' && q.clozePairs) {
+          qDisplay = q.clozePairs.map(p => `${p.prefix} [ 穴 ] ${p.suffix}`).join(' ');
+        }
 
         div.innerHTML = `
           <div class="flex items-center justify-between text-xs sm:text-sm">
@@ -1374,7 +1839,7 @@
               <i class="fa-solid ${item.isCorrect ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> 問${idx + 1} (${item.isCorrect ? '+' + q.score : '0'}点)
             </span>
           </div>
-          <p class="font-semibold text-slate-800 text-xs sm:text-sm">${escapeHtml(q.text)}</p>
+          <p class="font-semibold text-slate-800 text-xs sm:text-sm">${escapeHtml(qDisplay)}</p>
           <div class="text-xs space-y-0.5 text-slate-600">
             <p><span class="font-semibold">回答:</span> <span class="${item.isCorrect ? 'text-emerald-700' : 'text-red-600'} font-medium">${userAnsText}</span></p>
             <p><span class="font-semibold">正解:</span> <span class="text-slate-800 font-medium">${correctAnsText}</span></p>
@@ -1396,10 +1861,10 @@
       if (ans === undefined || ans === null || ans === '' || (Array.isArray(ans) && ans.length === 0)) return '(未回答)';
       if (q.type === 'choice4' || q.type === 'tf') return escapeHtml(q.options[parseInt(ans)] || ans);
       if (q.type === 'multi') return (Array.isArray(ans) ? ans : [ans]).map(i => escapeHtml(q.options[parseInt(i)])).join(', ');
+      if (q.type === 'cloze') return (Array.isArray(ans) ? ans : [ans]).join(', ');
       return escapeHtml(ans);
     }
 
-    // --- 分析画面 ---
     let currentAnalyticsQuizId = null;
 
     function viewHistoryList(quizId) {
@@ -1411,6 +1876,25 @@
       document.getElementById('analytics-target-ratio').innerText = targetPassRatio;
 
       const histories = appData.histories.filter(h => h.quizId === quizId);
+
+      let quizTotalSec = 0;
+      let totalScoreSum = 0;
+      let totalMaxScoreSum = 0;
+
+      histories.forEach(h => {
+        quizTotalSec += (h.elapsedSeconds || 0);
+        totalScoreSum += h.score;
+        totalMaxScoreSum += h.maxScore;
+      });
+
+      const qMin = Math.floor(quizTotalSec / 60);
+      const qSec = quizTotalSec % 60;
+      document.getElementById('analytics-total-time').innerText = `${qMin}分 ${qSec}秒`;
+      document.getElementById('analytics-total-runs').innerText = histories.length;
+
+      const avgRatio = totalMaxScoreSum > 0 ? Math.round((totalScoreSum / totalMaxScoreSum) * 100) : 0;
+      document.getElementById('analytics-avg-ratio').innerText = histories.length > 0 ? `${avgRatio}%` : '0%';
+
       renderChart(histories, targetPassRatio);
       renderQuestionAnalytics(quiz, histories);
       renderHistoryTable(histories);
@@ -1444,10 +1928,14 @@
         });
 
         const ratio = totalAnsCount > 0 ? Math.round((correctAnsCount / totalAnsCount) * 100) : 0;
+        let qTextDisplay = q.text;
+        if (q.type === 'cloze' && q.clozePairs) {
+          qTextDisplay = q.clozePairs.map(p => `${p.prefix} [ 穴 ] ${p.suffix}`).join(' ');
+        }
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="p-2.5 font-medium text-slate-800">問${idx + 1}. ${escapeHtml(q.text)}</td>
+          <td class="p-2.5 font-medium text-slate-800">問${idx + 1}. ${escapeHtml(qTextDisplay)}</td>
           <td class="p-2.5 text-center text-slate-600">${totalAnsCount}回</td>
           <td class="p-2.5 text-center text-slate-600">${correctAnsCount}回</td>
           <td class="p-2.5 text-center font-bold ${ratio >= targetRatio ? 'text-emerald-600' : (totalAnsCount === 0 ? 'text-slate-400' : 'text-red-500')}">${totalAnsCount > 0 ? ratio + '%' : '-'}</td>
@@ -1477,7 +1965,7 @@
           <td class="p-3 text-center">
             <span class="px-2 py-0.5 rounded text-xs font-bold ${h.ratio >= targetPass ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${h.ratio}%</span>
           </td>
-          <td class="p-3 text-center text-slate-500 text-xs">${timeText}</td>
+          <td class="p-3 text-center text-slate-500 text-xs font-semibold">${timeText}</td>
           <td class="p-3 text-center">
             <button onclick="deleteSingleHistory('${h.id}')" class="text-red-400 hover:text-red-600 p-1 text-xs" title="削除">
               <i class="fa-solid fa-trash"></i>
@@ -1497,7 +1985,7 @@
 
     function clearQuizHistory() {
       if (!confirm('この問題集の過去回答履歴を全て削除しますか？')) return;
-      appData.histories = appData.histories.filter(h => h.quizId === currentAnalyticsQuizId);
+      appData.histories = appData.histories.filter(h => h.quizId !== currentAnalyticsQuizId);
       saveLocalStorage();
       viewHistoryList(currentAnalyticsQuizId);
     }
@@ -1547,22 +2035,103 @@
 
     function openStatusModal() {
       const u = appData.user;
-      const level = u.level || 1;
-      const currExp = u.exp % 100;
-      const needExp = 100 - currExp;
+      const lvlInfo = calculateLevelFromExp(u.exp || 0);
+      const level = lvlInfo.level;
+      const titleInfo = getUserTitleInfo(level);
 
-      const titles = ['見習いチャレンジャー', '知識の探究者', '資格ハンター', '学問の達人', '学習マスター'];
-      const titleStr = titles[Math.min(level - 1, titles.length - 1)];
+      const titleEl = document.getElementById('st-user-title');
+      titleEl.innerHTML = `<i class="fa-solid ${titleInfo.icon}"></i> ${titleInfo.title}`;
 
-      document.getElementById('st-user-title').innerText = titleStr;
       document.getElementById('st-user-level').innerText = level;
-      document.getElementById('st-need-exp').innerText = needExp;
-      document.getElementById('st-curr-exp').innerText = currExp;
-      document.getElementById('st-exp-bar').style.width = `${currExp}%`;
-      document.getElementById('st-total-exp').innerText = `${u.exp} pt`;
-      document.getElementById('st-badge-count').innerText = `${u.unlockedBadges.length} 個`;
+      document.getElementById('st-need-exp').innerText = lvlInfo.requiredExp - lvlInfo.currentExp;
+      document.getElementById('st-curr-exp').innerText = lvlInfo.currentExp;
+      document.getElementById('st-max-exp-in-lv').innerText = lvlInfo.requiredExp;
+
+      const expPercent = Math.min(100, Math.round((lvlInfo.currentExp / lvlInfo.requiredExp) * 100));
+      document.getElementById('st-exp-bar').style.width = `${expPercent}%`;
+      document.getElementById('st-total-exp').innerText = `${u.exp || 0} pt`;
+      document.getElementById('st-streak-days').innerText = `${u.streakDays || 0} 日`;
+
+      const cardEl = document.getElementById('st-card-element');
+      cardEl.className = `${titleInfo.cardTheme} p-5 rounded-xl space-y-4 relative overflow-hidden transition-all duration-500`;
+      document.getElementById('st-card-icon').className = `fa-solid ${titleInfo.icon}`;
+
+      /* 至高の全知神（ブラック）の場合、カード内のテキストノードをすべて純金ゴールド(#ffd700)化 */
+      const textNodes = cardEl.querySelectorAll('.st-text-node');
+      if (titleInfo.cardTheme === 'card-theme-black') {
+        textNodes.forEach(el => el.classList.add('gold-text'));
+      } else {
+        textNodes.forEach(el => el.classList.remove('gold-text'));
+      }
+
+      const mapContainer = document.getElementById('title-roadmap-container');
+      mapContainer.innerHTML = '';
+
+      TITLE_STEPS.slice().reverse().forEach((step) => {
+        const isReached = level >= step.minLv;
+        const isCurrent = (titleInfo.title === step.title);
+
+        mapContainer.innerHTML += `
+          <div class="p-2 rounded-lg border flex items-center justify-between text-xs ${isCurrent ? 'bg-indigo-50 border-indigo-400 font-bold ring-2 ring-indigo-300' : (isReached ? 'bg-slate-50 border-slate-300 text-slate-800' : 'bg-slate-100 border-slate-200 text-slate-600')}">
+            <div class="flex items-center gap-2">
+              <span class="w-12 text-[10px] font-bold px-1.5 py-0.5 rounded text-center ${isReached ? step.badgeBg : 'bg-slate-300 text-slate-700'}">Lv.${step.minLv}〜</span>
+              <span class="${step.color}">${step.title}</span>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] block text-slate-500 font-normal">目安: ${step.estTime}</span>
+              ${isCurrent ? '<span class="text-[9px] bg-amber-400 text-slate-900 px-1.5 py-0.2 rounded font-extrabold">現在地</span>' : ''}
+            </div>
+          </div>
+        `;
+      });
 
       document.getElementById('status-modal').classList.remove('hidden');
+    }
+
+    let logoClickCount = 0;
+    let logoClickTimer = null;
+    function handleLogoClick() {
+      logoClickCount++;
+      if (logoClickCount === 1) {
+        logoClickTimer = setTimeout(() => { logoClickCount = 0; }, 1000);
+      } else if (logoClickCount >= 3) {
+        clearTimeout(logoClickTimer);
+        logoClickCount = 0;
+        document.getElementById('debug-modal').classList.remove('hidden');
+      }
+    }
+
+    function debugSetLevelDirect() {
+      let targetLv = parseInt(document.getElementById('debug-target-lv').value);
+      if (isNaN(targetLv) || targetLv < 1 || targetLv > 100) return;
+      
+      let expSum = 0;
+      for (let l = 1; l < targetLv; l++) expSum += getExpForNextLevel(l);
+      appData.user.exp = expSum;
+      saveLocalStorage();
+      renderDashboard();
+      
+      if (!document.getElementById('status-modal').classList.contains('hidden')) {
+        openStatusModal();
+      }
+      closeModal('debug-modal');
+    }
+
+    function debugSetRankDirect(targetLvVal) {
+      if (!targetLvVal) return;
+      let targetLv = parseInt(targetLvVal);
+      
+      let expSum = 0;
+      for (let l = 1; l < targetLv; l++) expSum += getExpForNextLevel(l);
+      appData.user.exp = expSum;
+      saveLocalStorage();
+      renderDashboard();
+      
+      if (!document.getElementById('status-modal').classList.contains('hidden')) {
+        openStatusModal();
+      }
+      closeModal('debug-modal');
+      document.getElementById('debug-rank-select').value = "";
     }
 
     function openCalendarModal() {
@@ -1583,35 +2152,22 @@
 
       const grid = document.getElementById('calendar-grid');
       grid.innerHTML = '';
-
-      const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-      dayNames.forEach(d => {
+      ['日', '月', '火', '水', '木', '金', '土'].forEach(d => {
         grid.innerHTML += `<div class="font-bold text-slate-400 py-1">${d}</div>`;
       });
 
       const firstDay = new Date(year, month, 1).getDay();
       const lastDate = new Date(year, month + 1, 0).getDate();
-
-      for (let i = 0; i < firstDay; i++) {
-        grid.innerHTML += `<div></div>`;
-      }
+      for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div></div>`;
 
       const logs = appData.user.dailyStudyLogs || {};
-
       for (let date = 1; date <= lastDate; date++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
-        const logData = logs[dateStr];
-        const hasLog = !!logData;
-
-        let markHtml = '';
-        if (hasLog) {
-          markHtml = `<div class="mt-0.5 text-xs text-amber-500 font-bold">🔥</div>`;
-        }
-
+        const hasLog = !!logs[dateStr];
         grid.innerHTML += `
           <div onclick="showCalDateDetail('${dateStr}')" class="p-1 min-h-[44px] rounded-lg border ${hasLog ? 'bg-amber-50/80 border-amber-300 font-bold cursor-pointer hover:scale-105 transition' : 'border-slate-100 text-slate-400'} flex flex-col items-center justify-between">
             <span class="text-xs">${date}</span>
-            ${markHtml}
+            ${hasLog ? '<div class="mt-0.5 text-xs text-amber-500 font-bold">🔥</div>' : ''}
           </div>
         `;
       }
@@ -1620,20 +2176,16 @@
     function showCalDateDetail(dateStr) {
       const logData = (appData.user.dailyStudyLogs || {})[dateStr];
       const detailEl = document.getElementById('cal-date-detail');
-
       if (!logData) {
         detailEl.innerHTML = `<p class="font-bold text-slate-600">${dateStr}</p><p class="text-slate-400">学習記録はありません。</p>`;
         return;
       }
-
       let sec = (typeof logData === 'object') ? logData.seconds : logData;
       let qSolved = (typeof logData === 'object') ? logData.questionsSolved : '-';
-      let min = Math.floor(sec / 60);
-
       detailEl.innerHTML = `
         <p class="font-bold text-indigo-900 border-b border-indigo-200 pb-1 flex items-center gap-1.5"><i class="fa-solid fa-fire text-amber-500"></i> ${dateStr} の学習実績</p>
         <div class="grid grid-cols-2 gap-2 pt-1 text-slate-700">
-          <div><span class="text-slate-400">学習時間:</span> <strong>${min}分 ${sec % 60}秒</strong></div>
+          <div><span class="text-slate-400">学習時間:</span> <strong>${Math.floor(sec/60)}分 ${sec%60}秒</strong></div>
           <div><span class="text-slate-400">解いた問題:</span> <strong>${qSolved} 問</strong></div>
         </div>
       `;
@@ -1642,85 +2194,33 @@
     function openQuizStatsModal() {
       const container = document.getElementById('quiz-stats-container');
       container.innerHTML = '';
-
       if (appData.quizzes.length === 0) {
         container.innerHTML = `<p class="text-center text-xs text-slate-400 p-4">問題集が登録されていません。</p>`;
       } else {
         appData.quizzes.forEach(quiz => {
           const histories = appData.histories.filter(h => h.quizId === quiz.id);
-          const totalRunCount = histories.length;
-
-          let totalQuestionsSolved = 0;
-          let totalScore = 0;
-          let totalMax = 0;
-
-          histories.forEach(h => {
-            totalQuestionsSolved += (h.details ? h.details.length : 0);
-            totalScore += h.score;
-            totalMax += h.maxScore;
-          });
-
-          const avgRatio = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
-          const targetRatio = quiz.passRatio || 80;
-
           container.innerHTML += `
             <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
               <div class="flex justify-between items-center border-b border-slate-200 pb-2">
                 <span class="font-bold text-slate-800 text-sm">${escapeHtml(quiz.title)}</span>
-                <span class="text-xs bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-semibold">解いた回数: ${totalRunCount}回</span>
-              </div>
-              <div class="grid grid-cols-2 gap-2 text-xs text-slate-600">
-                <div>解いた総問題数: <strong class="text-slate-800">${totalQuestionsSolved} 問</strong></div>
-                <div>平均正解率: <strong class="${avgRatio >= targetRatio ? 'text-emerald-600' : 'text-slate-800'}">${totalRunCount > 0 ? avgRatio + '%' : '-'}</strong> (目標:${targetRatio}%)</div>
+                <span class="text-xs bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-semibold">解いた回数: ${histories.length}回</span>
               </div>
             </div>
           `;
         });
       }
-
       document.getElementById('quiz-stats-modal').classList.remove('hidden');
     }
 
     function openTimeStatsModal() {
       const u = appData.user;
-      const logs = u.dailyStudyLogs || {};
-      const container = document.getElementById('time-stats-container');
-      
       const totalMin = Math.floor((u.totalStudySeconds || 0) / 60);
-      const daysCount = Object.keys(logs).length || 1;
-      const avgMinPerDay = Math.round((totalMin / daysCount) * 10) / 10;
-
-      const monthMap = {};
-      Object.keys(logs).forEach(d => {
-        const m = d.slice(0, 7);
-        const sec = (typeof logs[d] === 'object') ? logs[d].seconds : logs[d];
-        monthMap[m] = (monthMap[m] || 0) + sec;
-      });
-
-      let monthHtml = '';
-      Object.keys(monthMap).sort().reverse().forEach(m => {
-        const mMin = Math.floor(monthMap[m] / 60);
-        monthHtml += `<div class="flex justify-between p-2 bg-slate-50 rounded border text-xs"><span>${m}</span><span class="font-bold text-slate-700">${mMin}分</span></div>`;
-      });
-
-      container.innerHTML = `
-        <div class="grid grid-cols-2 gap-3 mb-4">
-          <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-center">
-            <p class="text-[10px] text-slate-500">学習実施日 平均</p>
-            <p class="text-lg font-black text-amber-600">${avgMinPerDay} <span class="text-xs font-normal">分/日</span></p>
-          </div>
-          <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-200 text-center">
-            <p class="text-[10px] text-slate-500">累計学習時間</p>
-            <p class="text-lg font-black text-indigo-600">${totalMin} <span class="text-xs font-normal">分</span></p>
-          </div>
-        </div>
-
-        <h4 class="font-bold text-slate-700 mb-2">月別学習時間実績</h4>
-        <div class="space-y-1.5 max-h-48 overflow-y-auto">
-          ${monthHtml || '<p class="text-xs text-slate-400">データがありません。</p>'}
+      document.getElementById('time-stats-container').innerHTML = `
+        <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-200 text-center">
+          <p class="text-[10px] text-slate-500">累計学習時間</p>
+          <p class="text-lg font-black text-indigo-600">${totalMin} 分</p>
         </div>
       `;
-
       document.getElementById('time-stats-modal').classList.remove('hidden');
     }
 
@@ -1728,7 +2228,6 @@
       const u = appData.user;
       const container = document.getElementById('modal-badges-container');
       container.innerHTML = '';
-
       BADGES.forEach(b => {
         const isUnlocked = u.unlockedBadges.includes(b.id);
         container.innerHTML += `
@@ -1743,7 +2242,6 @@
           </div>
         `;
       });
-
       document.getElementById('badges-modal').classList.remove('hidden');
     }
 
@@ -1760,35 +2258,22 @@
     function importData(e) {
       const file = e.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = function(evt) {
         try {
-          const imported = JSON.parse(evt.target.result);
-          if (imported.quizzes && Array.isArray(imported.quizzes)) {
-            appData = imported;
-            saveLocalStorage();
-            renderDashboard();
-            renderQuizList();
-            alert('データを正常に読み込みました。');
-          } else {
-            alert('無効なデータ形式です。');
-          }
-        } catch (err) {
-          alert('JSONファイルの読み込みに失敗しました。');
-        }
+          appData = JSON.parse(evt.target.result);
+          saveLocalStorage();
+          renderDashboard();
+          renderQuizList();
+          alert('読込成功');
+        } catch (err) { alert('失敗'); }
       };
       reader.readAsText(file);
     }
 
     function escapeHtml(str) {
       if (!str) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
   </script>
 </body>
