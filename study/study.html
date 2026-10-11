@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>学習マスター - 自作問題＆単語帳学習Webアプリ</title>
+  <title>学習マスター - スマホ省スクロール対応版</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js (グラフ表示用) -->
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Canvas Confetti (お祝い演出用) -->
+  <!-- Canvas Confetti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -16,6 +16,11 @@
     .screen { display: none; }
     .screen.active { display: block; }
     input, select, textarea, button { touch-action: manipulation; }
+
+    /* 回答画面（answer-screen / wordbook-answer-screen）アクティブ時はダッシュボードを非表示にして省スクロール化 */
+    body.in-session #dashboard-cards {
+      display: none !important;
+    }
 
     /* プレミアムカードデザイン */
     .card-theme-green { background: linear-gradient(135deg, #065f46 0%, #022c22 100%); border: 2px solid #34d399; box-shadow: 0 8px 20px -4px rgba(52, 211, 153, 0.3); color: #ecfdf5; }
@@ -47,10 +52,7 @@
 
     .card-theme-diamond {
       background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
-      border: 2px solid #ffffff;
-      color: #0f172a;
-      position: relative;
-      overflow: hidden;
+      border: 2px solid #ffffff; color: #0f172a; position: relative; overflow: hidden;
       animation: diamondPulse 2.5s infinite ease-in-out alternate;
     }
     @keyframes diamondPulse {
@@ -59,192 +61,168 @@
       100% { box-shadow: 0 0 15px rgba(255, 255, 255, 0.7), 0 0 8px rgba(186, 230, 253, 0.5); }
     }
     .card-theme-diamond::after {
-      content: ''; position: absolute; inset: 0;
-      background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
+      content: ''; position: absolute; inset: 0; background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
       opacity: 0.3; pointer-events: none; animation: sparkleFlash 1.8s infinite ease-in-out alternate;
     }
-    @keyframes sparkleFlash {
-      0% { opacity: 0.2; transform: scale(0.95); }
-      100% { opacity: 0.6; transform: scale(1.05); }
-    }
-    .card-theme-diamond .card-accent {
-      color: #0369a1; border-color: #ffffff; background: rgba(255, 255, 255, 0.95); box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
-    }
+    @keyframes sparkleFlash { 0% { opacity: 0.2; transform: scale(0.95); } 100% { opacity: 0.6; transform: scale(1.05); } }
+    .card-theme-diamond .card-accent { color: #0369a1; border-color: #ffffff; background: rgba(255, 255, 255, 0.95); box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
 
     .card-theme-black {
       background: linear-gradient(135deg, #18181b 0%, #0a0a0c 60%, #000000 100%);
-      border: 1px solid #ffd700;
-      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.9), 0 0 15px rgba(255, 215, 0, 0.3);
-      color: #ffd700;
+      border: 1px solid #ffd700; box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.9), 0 0 15px rgba(255, 215, 0, 0.3); color: #ffd700;
     }
-    .card-theme-black .gold-text {
-      color: #ffd700 !important; -webkit-text-fill-color: #ffd700 !important; background: none !important; font-weight: 800; opacity: 1 !important;
-    }
-    .card-theme-black .card-accent {
-      color: #ffd700; border-color: #ffd700; background: rgba(24, 24, 27, 0.95); box-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
-    }
+    .card-theme-black .card-accent { color: #ffd700; border-color: #ffd700; background: rgba(24, 24, 27, 0.95); box-shadow: 0 0 12px rgba(255, 215, 0, 0.5); }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased">
 
   <!-- ヘッダー -->
   <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-40">
-    <div class="max-w-6xl mx-auto px-4 py-2.5 flex justify-between items-center gap-2">
+    <div class="max-w-6xl mx-auto px-3 py-2 flex justify-between items-center gap-1.5">
       <h1 class="text-base sm:text-xl font-bold flex items-center gap-2 cursor-pointer select-none" onclick="showScreen('list-screen')">
-        <i class="fa-solid fa-graduation-cap text-xl sm:text-2xl text-amber-300"></i>
+        <i class="fa-solid fa-graduation-cap text-lg sm:text-xl text-amber-300"></i>
         <span>学習マスター</span>
       </h1>
 
-      <div class="flex items-center gap-2 sm:gap-3">
-        <!-- 共通データ操作アイコン -->
+      <div class="flex items-center gap-1.5 sm:gap-3">
+        <!-- データ操作 -->
         <div class="flex items-center bg-indigo-700/80 rounded-lg border border-indigo-400/30 overflow-hidden text-xs">
-          <button onclick="exportData()" title="データを保存 (エクスポート)" class="px-2.5 py-1.5 hover:bg-indigo-800 text-emerald-300 transition flex items-center gap-1">
+          <button onclick="exportData()" title="保存" class="px-2 py-1 hover:bg-indigo-800 text-emerald-300 transition flex items-center gap-1">
             <i class="fa-solid fa-download"></i><span class="hidden md:inline">保存</span>
           </button>
-          <label title="データを読込 (インポート)" class="px-2.5 py-1.5 hover:bg-indigo-800 text-amber-300 transition flex items-center gap-1 cursor-pointer border-x border-indigo-500/50">
+          <label title="読込" class="px-2 py-1 hover:bg-indigo-800 text-amber-300 transition flex items-center gap-1 cursor-pointer border-x border-indigo-500/50">
             <i class="fa-solid fa-upload"></i><span class="hidden md:inline">読込</span>
             <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
           </label>
-          <button onclick="confirmResetAllData()" title="全データ＆ステータスを初期化" class="px-2.5 py-1.5 hover:bg-red-700 text-red-300 transition flex items-center gap-1">
+          <button onclick="confirmResetAllData()" title="リセット" class="px-2 py-1 hover:bg-red-700 text-red-300 transition flex items-center gap-1">
             <i class="fa-solid fa-rotate-right"></i><span class="hidden md:inline">リセット</span>
           </button>
         </div>
 
-        <button onclick="openDailyMissionsModal()" class="flex items-center gap-1.5 bg-indigo-700/80 hover:bg-indigo-800 px-3 py-1.5 rounded-full border border-indigo-400/40 text-xs font-semibold transition shadow-inner relative">
+        <button onclick="openDailyMissionsModal()" class="flex items-center gap-1 bg-indigo-700/80 hover:bg-indigo-800 px-2.5 py-1 rounded-full border border-indigo-400/40 text-[11px] font-semibold transition relative">
           <i class="fa-solid fa-calendar-check text-amber-300"></i>
-          <span>今日のミッション</span>
-          <span id="header-mission-badge" class="bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full hidden">達成</span>
+          <span class="hidden sm:inline">ミッション</span>
+          <span id="header-mission-badge" class="bg-emerald-500 text-white text-[9px] font-bold px-1 rounded-full hidden">済</span>
         </button>
 
-        <button onclick="openStatusModal()" class="flex items-center gap-2 sm:gap-3 bg-indigo-700/90 hover:bg-indigo-800 px-3 py-1.5 rounded-full border border-indigo-400/40 transition text-left shadow-inner">
-          <div class="flex items-center gap-1">
-            <i class="fa-solid fa-shield-halved text-amber-300 text-xs sm:text-sm"></i>
-            <span class="text-xs font-bold text-amber-200">Lv.<span id="user-level">1</span></span>
-          </div>
-          <div class="w-16 sm:w-20 bg-indigo-950 rounded-full h-2 overflow-hidden hidden md:block">
-            <div id="user-exp-bar" class="bg-amber-400 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
-          </div>
+        <button onclick="openStatusModal()" class="flex items-center gap-1.5 bg-indigo-700/90 hover:bg-indigo-800 px-2.5 py-1 rounded-full border border-indigo-400/40 transition text-left">
+          <i class="fa-solid fa-shield-halved text-amber-300 text-xs"></i>
+          <span class="text-xs font-bold text-amber-200">Lv.<span id="user-level">1</span></span>
           <span id="user-title" class="text-xs font-medium text-amber-200 hidden sm:inline">一般学生</span>
-          <i class="fa-solid fa-id-card text-xs text-indigo-300"></i>
         </button>
       </div>
     </div>
   </header>
 
   <!-- メインコンテンツ -->
-  <main class="max-w-6xl w-full mx-auto p-3 sm:p-5 lg:p-6 flex-grow space-y-8 sm:space-y-10">
+  <main class="max-w-6xl w-full mx-auto p-2.5 sm:p-5 lg:p-6 flex-grow space-y-4 sm:space-y-8">
 
-    <!-- ダッシュボードカード -->
-    <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      <div onclick="openCalendarModal()" class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-indigo-400 transition cursor-pointer flex items-center gap-3">
-        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
+    <!-- ダッシュボードカード (回答画面表示時は 自動的に css で非表示になります) -->
+    <div id="dashboard-cards" class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+      <div onclick="openCalendarModal()" class="bg-white p-2.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-indigo-400 transition cursor-pointer flex items-center gap-2.5">
+        <div class="w-8 h-8 sm:w-11 sm:h-11 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm sm:text-xl flex-shrink-0">
           <i class="fa-solid fa-calendar-days"></i>
         </div>
         <div class="overflow-hidden">
-          <p class="text-[11px] sm:text-xs text-slate-400 font-medium">連続学習日数</p>
-          <p class="text-lg sm:text-xl font-extrabold text-slate-800"><span id="dash-streak">0</span> <span class="text-xs font-normal">日</span></p>
+          <p class="text-[10px] sm:text-xs text-slate-400 font-medium">連続学習日数</p>
+          <p class="text-base sm:text-xl font-extrabold text-slate-800"><span id="dash-streak">0</span> <span class="text-[10px] sm:text-xs font-normal">日</span></p>
         </div>
       </div>
 
-      <div onclick="openQuizStatsModal()" class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-emerald-400 transition cursor-pointer flex items-center gap-3">
-        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
+      <div onclick="openQuizStatsModal()" class="bg-white p-2.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-emerald-400 transition cursor-pointer flex items-center gap-2.5">
+        <div class="w-8 h-8 sm:w-11 sm:h-11 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm sm:text-xl flex-shrink-0">
           <i class="fa-solid fa-book-open"></i>
         </div>
         <div class="overflow-hidden">
-          <p class="text-[11px] sm:text-xs text-slate-400 font-medium">累計解いた問題</p>
-          <p class="text-lg sm:text-xl font-extrabold text-slate-800"><span id="dash-total-q">0</span> <span class="text-xs font-normal">問</span></p>
+          <p class="text-[10px] sm:text-xs text-slate-400 font-medium">累計解いた問題</p>
+          <p class="text-base sm:text-xl font-extrabold text-slate-800"><span id="dash-total-q">0</span> <span class="text-[10px] sm:text-xs font-normal">問</span></p>
         </div>
       </div>
 
-      <div onclick="openTimeStatsModal()" class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-amber-400 transition cursor-pointer flex items-center gap-3">
-        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
+      <div onclick="openTimeStatsModal()" class="bg-white p-2.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-amber-400 transition cursor-pointer flex items-center gap-2.5">
+        <div class="w-8 h-8 sm:w-11 sm:h-11 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-sm sm:text-xl flex-shrink-0">
           <i class="fa-solid fa-clock"></i>
         </div>
         <div class="overflow-hidden">
-          <p class="text-[11px] sm:text-xs text-slate-400 font-medium">総学習時間</p>
-          <p class="text-lg sm:text-xl font-extrabold text-slate-800"><span id="dash-study-time">0</span> <span class="text-xs font-normal">分</span></p>
+          <p class="text-[10px] sm:text-xs text-slate-400 font-medium">総学習時間</p>
+          <p class="text-base sm:text-xl font-extrabold text-slate-800"><span id="dash-study-time">0</span> <span class="text-[10px] sm:text-xs font-normal">分</span></p>
         </div>
       </div>
 
-      <div onclick="openBadgesModal()" class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-purple-400 transition cursor-pointer flex items-center gap-3">
-        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
+      <div onclick="openBadgesModal()" class="bg-white p-2.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-purple-400 transition cursor-pointer flex items-center gap-2.5">
+        <div class="w-8 h-8 sm:w-11 sm:h-11 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-sm sm:text-xl flex-shrink-0">
           <i class="fa-solid fa-award"></i>
         </div>
         <div class="overflow-hidden">
-          <p class="text-[11px] sm:text-xs text-slate-400 font-medium">解放した称号</p>
-          <p class="text-lg sm:text-xl font-extrabold text-slate-800"><span id="dash-badge-count">0</span> <span class="text-xs font-normal">個</span></p>
+          <p class="text-[10px] sm:text-xs text-slate-400 font-medium">獲得した称号</p>
+          <p class="text-base sm:text-xl font-extrabold text-slate-800"><span id="dash-badge-count">0</span> <span class="text-[10px] sm:text-xs font-normal">個</span></p>
         </div>
       </div>
     </div>
 
-    <!-- 1. 一覧画面 (問題集 & 単語帳) -->
-    <section id="list-screen" class="screen active space-y-10">
+    <!-- 1. 一覧画面 -->
+    <section id="list-screen" class="screen active space-y-6 sm:space-y-8">
       
-      <!-- セクション区切り（空間のゆとりを追加） -->
-      <div class="pt-2">
-        <!-- 問題集セクション -->
-        <div class="space-y-4">
-          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-1 border-b border-slate-200/60">
-            <div>
-              <h2 class="text-xl sm:text-2xl font-bold text-slate-800 flex items-center gap-2">
-                <i class="fa-solid fa-list-check text-indigo-600"></i> 問題集一覧
-              </h2>
-              <p class="text-xs sm:text-sm text-slate-500 mt-0.5">4択・穴埋め・自由記述などの自作問題集</p>
-            </div>
-            <div>
-              <button onclick="openCreateForm()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow flex items-center justify-center gap-1.5 transition text-xs sm:text-sm">
-                <i class="fa-solid fa-plus"></i> 新規問題集を作成
-              </button>
-            </div>
-          </div>
-
-          <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
-            <div class="overflow-x-auto">
-              <table class="w-full text-left border-collapse min-w-[650px]">
-                <thead>
-                  <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 text-xs uppercase">
-                    <th class="p-3.5 font-semibold">タイトル</th>
-                    <th class="p-3.5 font-semibold text-center w-16">設問</th>
-                    <th class="p-3.5 font-semibold text-center w-24">合格基準</th>
-                    <th class="p-3.5 font-semibold text-center w-24">制限時間</th>
-                    <th class="p-3.5 font-semibold text-center w-28">順序シャッフル</th>
-                    <th class="p-3.5 font-semibold text-center w-64">操作</th>
-                  </tr>
-                </thead>
-                <tbody id="quiz-table-body" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 単語帳セクション -->
-      <div class="space-y-4 pt-2">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-1 border-b border-slate-200/60">
+      <!-- 問題集セクション -->
+      <div class="space-y-3">
+        <div class="flex flex-row justify-between items-center gap-2 pb-1 border-b border-slate-200/60">
           <div>
-            <h2 class="text-xl sm:text-2xl font-bold text-slate-800 flex items-center gap-2">
-              <i class="fa-solid fa-book text-amber-600"></i> 単語帳一覧
+            <h2 class="text-lg sm:text-2xl font-bold text-slate-800 flex items-center gap-1.5">
+              <i class="fa-solid fa-list-check text-indigo-600"></i> 問題集一覧
             </h2>
-            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">自己採点式フラッシュカードで暗記学習</p>
           </div>
           <div>
-            <button onclick="openWordbookCreateForm()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg font-medium shadow flex items-center justify-center gap-1.5 transition text-xs sm:text-sm">
-              <i class="fa-solid fa-plus"></i> 新規単語帳を作成
+            <button onclick="openCreateForm()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-medium shadow flex items-center gap-1 transition text-xs sm:text-sm">
+              <i class="fa-solid fa-plus"></i> 新規問題集
             </button>
           </div>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
           <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse min-w-[650px]">
+            <table class="w-full text-left border-collapse min-w-[620px]">
               <thead>
                 <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 text-xs uppercase">
-                  <th class="p-3.5 font-semibold">単語帳タイトル</th>
-                  <th class="p-3.5 font-semibold text-center w-20">登録単語数</th>
-                  <th class="p-3.5 font-semibold text-center w-24">合格基準</th>
-                  <th class="p-3.5 font-semibold text-center w-24">制限時間</th>
-                  <th class="p-3.5 font-semibold text-center w-28">順序シャッフル</th>
-                  <th class="p-3.5 font-semibold text-center w-64">操作</th>
+                  <th class="p-3 font-semibold">タイトル</th>
+                  <th class="p-3 font-semibold text-center w-16">設問</th>
+                  <th class="p-3 font-semibold text-center w-20">合格基準</th>
+                  <th class="p-3 font-semibold text-center w-20">制限時間</th>
+                  <th class="p-3 font-semibold text-center w-24">順序ランダム</th>
+                  <th class="p-3 font-semibold text-center w-60">操作</th>
+                </tr>
+              </thead>
+              <tbody id="quiz-table-body" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 単語帳セクション -->
+      <div class="space-y-3">
+        <div class="flex flex-row justify-between items-center gap-2 pb-1 border-b border-slate-200/60">
+          <div>
+            <h2 class="text-lg sm:text-2xl font-bold text-slate-800 flex items-center gap-1.5">
+              <i class="fa-solid fa-book text-amber-600"></i> 単語帳一覧
+            </h2>
+          </div>
+          <div>
+            <button onclick="openWordbookCreateForm()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg font-medium shadow flex items-center gap-1 transition text-xs sm:text-sm">
+              <i class="fa-solid fa-plus"></i> 新規単語帳
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[620px]">
+              <thead>
+                <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 text-xs uppercase">
+                  <th class="p-3 font-semibold">単語帳タイトル</th>
+                  <th class="p-3 font-semibold text-center w-20">登録単語数</th>
+                  <th class="p-3 font-semibold text-center w-20">合格基準</th>
+                  <th class="p-3 font-semibold text-center w-20">制限時間</th>
+                  <th class="p-3 font-semibold text-center w-24">順序ランダム</th>
+                  <th class="p-3 font-semibold text-center w-60">操作</th>
                 </tr>
               </thead>
               <tbody id="wordbook-table-body" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
@@ -257,58 +235,54 @@
 
     <!-- 2. 問題集 作成・編集画面 -->
     <section id="edit-screen" class="screen">
-      <div class="flex justify-between items-center mb-4 sm:mb-6">
-        <h2 id="edit-screen-title" class="text-xl sm:text-2xl font-bold text-slate-800">問題集の作成・編集</h2>
-        <button onclick="showScreen('list-screen')" class="text-slate-500 hover:text-slate-700 px-3 py-1 rounded-md border border-slate-300 bg-white text-xs sm:text-sm">
-          <i class="fa-solid fa-arrow-left"></i> キャンセル
+      <div class="flex justify-between items-center mb-3">
+        <h2 id="edit-screen-title" class="text-lg sm:text-2xl font-bold text-slate-800">問題集の作成・編集</h2>
+        <button onclick="showScreen('list-screen')" class="text-slate-500 hover:text-slate-700 px-2.5 py-1 rounded-md border border-slate-300 bg-white text-xs">
+          キャンセル
         </button>
       </div>
 
-      <form id="quiz-edit-form" onsubmit="saveQuiz(event)" class="space-y-5">
-        <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <form id="quiz-edit-form" onsubmit="saveQuiz(event)" class="space-y-4">
+        <div class="bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-slate-200 space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="sm:col-span-2">
-              <label class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">問題集タイトル <span class="text-red-500">*</span></label>
-              <div class="flex gap-2">
-                <input type="text" id="quiz-title" required placeholder="例：英単語マスター / IT資格 過去問" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500">
-                <button type="button" onclick="startSpeechRecognition('quiz-title')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center gap-1 flex-shrink-0" title="音声入力">
+              <label class="block text-xs font-medium text-slate-700 mb-1">問題集タイトル <span class="text-red-500">*</span></label>
+              <div class="flex gap-1.5">
+                <input type="text" id="quiz-title" required placeholder="例：IT資格 過去問" class="w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500">
+                <button type="button" onclick="startSpeechRecognition('quiz-title')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0">
                   <i class="fa-solid fa-microphone"></i>
                 </button>
               </div>
             </div>
             <div>
-              <label class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">合格基準 (正解率%)</label>
-              <div class="flex items-center gap-1">
-                <input type="number" id="quiz-pass-ratio" min="10" max="100" value="80" required class="w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500">
-                <span class="text-xs font-bold text-slate-500">%</span>
-              </div>
+              <label class="block text-xs font-medium text-slate-700 mb-1">合格基準 (%)</label>
+              <input type="number" id="quiz-pass-ratio" min="10" max="100" value="80" required class="w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm">
             </div>
             <div>
-              <label class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">制限時間 (分)</label>
-              <div class="flex gap-2">
-                <select id="quiz-time-limit-select" onchange="toggleCustomTimeInput('quiz', this.value)" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm">
+              <label class="block text-xs font-medium text-slate-700 mb-1">制限時間 (分)</label>
+              <div class="flex gap-1.5">
+                <select id="quiz-time-limit-select" onchange="toggleCustomTimeInput('quiz', this.value)" class="w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm">
                   <option value="0">なし (無制限)</option>
                   <option value="5">5分</option>
                   <option value="10">10分</option>
                   <option value="15">15分</option>
                   <option value="30">30分</option>
-                  <option value="60">60分</option>
                   <option value="custom">カスタム指定...</option>
                 </select>
-                <input type="number" id="quiz-time-limit-custom" min="1" max="300" placeholder="分" class="hidden w-24 border border-slate-300 rounded-lg p-2 text-xs sm:text-sm">
+                <input type="number" id="quiz-time-limit-custom" min="1" max="300" placeholder="分" class="hidden w-20 border border-slate-300 rounded-lg p-2 text-xs">
               </div>
             </div>
           </div>
         </div>
 
-        <div id="questions-container" class="space-y-4 sm:space-y-6"></div>
+        <div id="questions-container" class="space-y-3 sm:space-y-4"></div>
 
-        <div class="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
-          <button type="button" onclick="addQuestionCard()" class="w-full sm:w-auto bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-5 py-2.5 rounded-lg border border-slate-300 flex items-center justify-center gap-2 transition text-xs sm:text-sm">
-            <i class="fa-solid fa-plus"></i> 設問を追加する
+        <div class="flex justify-between items-center gap-2 pt-1">
+          <button type="button" onclick="addQuestionCard()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-4 py-2 rounded-lg border border-slate-300 flex items-center gap-1.5 transition text-xs sm:text-sm">
+            <i class="fa-solid fa-plus"></i> 設問を追加
           </button>
-          <button type="submit" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-8 py-2.5 rounded-lg shadow transition flex items-center justify-center gap-2 text-xs sm:text-sm">
-            <i class="fa-solid fa-cloud-arrow-up"></i> 問題を保存する
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2 rounded-lg shadow transition flex items-center gap-1.5 text-xs sm:text-sm">
+            <i class="fa-solid fa-cloud-arrow-up"></i> 保存する
           </button>
         </div>
       </form>
@@ -316,224 +290,226 @@
 
     <!-- 3. 単語帳 作成・編集画面 -->
     <section id="wordbook-edit-screen" class="screen">
-      <div class="flex justify-between items-center mb-4 sm:mb-6">
-        <h2 id="wordbook-edit-screen-title" class="text-xl sm:text-2xl font-bold text-slate-800">単語帳の作成・編集</h2>
-        <button onclick="showScreen('list-screen')" class="text-slate-500 hover:text-slate-700 px-3 py-1 rounded-md border border-slate-300 bg-white text-xs sm:text-sm">
-          <i class="fa-solid fa-arrow-left"></i> キャンセル
+      <div class="flex justify-between items-center mb-3">
+        <h2 id="wordbook-edit-screen-title" class="text-lg sm:text-2xl font-bold text-slate-800">単語帳の作成・編集</h2>
+        <button onclick="showScreen('list-screen')" class="text-slate-500 hover:text-slate-700 px-2.5 py-1 rounded-md border border-slate-300 bg-white text-xs">
+          キャンセル
         </button>
       </div>
 
-      <form id="wordbook-edit-form" onsubmit="saveWordbook(event)" class="space-y-5">
-        <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <form id="wordbook-edit-form" onsubmit="saveWordbook(event)" class="space-y-4">
+        <div class="bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-slate-200 space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="sm:col-span-2">
-              <label class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">単語帳タイトル <span class="text-red-500">*</span></label>
-              <div class="flex gap-2">
-                <input type="text" id="wordbook-title" required placeholder="例：TOEIC 必須英単語 1000" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-amber-500">
-                <button type="button" onclick="startSpeechRecognition('wordbook-title')" class="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-amber-100 transition flex items-center gap-1 flex-shrink-0" title="音声入力">
+              <label class="block text-xs font-medium text-slate-700 mb-1">単語帳タイトル <span class="text-red-500">*</span></label>
+              <div class="flex gap-1.5">
+                <input type="text" id="wordbook-title" required placeholder="例：TOEIC 必須英単語 1000" class="w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm focus:ring-2 focus:ring-amber-500">
+                <button type="button" onclick="startSpeechRecognition('wordbook-title')" class="bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-amber-100 transition flex items-center justify-center flex-shrink-0">
                   <i class="fa-solid fa-microphone"></i>
                 </button>
               </div>
             </div>
             <div>
-              <label class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">合格基準 (正解率%)</label>
-              <div class="flex items-center gap-1">
-                <input type="number" id="wordbook-pass-ratio" min="10" max="100" value="80" required class="w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-amber-500">
-                <span class="text-xs font-bold text-slate-500">%</span>
-              </div>
+              <label class="block text-xs font-medium text-slate-700 mb-1">合格基準 (%)</label>
+              <input type="number" id="wordbook-pass-ratio" min="10" max="100" value="80" required class="w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm">
             </div>
             <div>
-              <label class="block text-xs sm:text-sm font-medium text-slate-700 mb-1">制限時間 (分)</label>
-              <div class="flex gap-2">
-                <select id="wordbook-time-limit-select" onchange="toggleCustomTimeInput('wordbook', this.value)" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm">
+              <label class="block text-xs font-medium text-slate-700 mb-1">制限時間 (分)</label>
+              <div class="flex gap-1.5">
+                <select id="wordbook-time-limit-select" onchange="toggleCustomTimeInput('wordbook', this.value)" class="w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm">
                   <option value="0">なし (無制限)</option>
                   <option value="5">5分</option>
                   <option value="10">10分</option>
                   <option value="15">15分</option>
                   <option value="30">30分</option>
-                  <option value="60">60分</option>
                   <option value="custom">カスタム指定...</option>
                 </select>
-                <input type="number" id="wordbook-time-limit-custom" min="1" max="300" placeholder="分" class="hidden w-24 border border-slate-300 rounded-lg p-2 text-xs sm:text-sm">
+                <input type="number" id="wordbook-time-limit-custom" min="1" max="300" placeholder="分" class="hidden w-20 border border-slate-300 rounded-lg p-2 text-xs">
               </div>
             </div>
           </div>
         </div>
 
-        <div id="words-container" class="space-y-4 sm:space-y-6"></div>
+        <div id="words-container" class="space-y-3 sm:space-y-4"></div>
 
-        <div class="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
-          <button type="button" onclick="addWordCard()" class="w-full sm:w-auto bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-5 py-2.5 rounded-lg border border-slate-300 flex items-center justify-center gap-2 transition text-xs sm:text-sm">
-            <i class="fa-solid fa-plus"></i> 単語を追加する
+        <div class="flex justify-between items-center gap-2 pt-1">
+          <button type="button" onclick="addWordCard()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-4 py-2 rounded-lg border border-slate-300 flex items-center gap-1.5 transition text-xs sm:text-sm">
+            <i class="fa-solid fa-plus"></i> 単語を追加
           </button>
-          <button type="submit" class="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-medium px-8 py-2.5 rounded-lg shadow transition flex items-center justify-center gap-2 text-xs sm:text-sm">
-            <i class="fa-solid fa-cloud-arrow-up"></i> 単語帳を保存する
+          <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white font-medium px-6 py-2 rounded-lg shadow transition flex items-center gap-1.5 text-xs sm:text-sm">
+            <i class="fa-solid fa-cloud-arrow-up"></i> 保存する
           </button>
         </div>
       </form>
     </section>
 
     <!-- 単語帳的出題範囲選択 モーダル -->
-    <div id="wordbook-range-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4">
-        <div class="flex justify-between items-center border-b pb-3">
-          <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+    <div id="wordbook-range-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-3 z-50">
+      <div class="bg-white rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl space-y-3">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h3 class="text-base font-bold text-slate-800 flex items-center gap-1.5">
             <i class="fa-solid fa-sliders text-amber-600"></i> 出題範囲・モードの選択
           </h3>
-          <button onclick="closeModal('wordbook-range-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+          <button onclick="closeModal('wordbook-range-modal')" class="text-slate-400 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
         </div>
         <p id="wb-range-info" class="text-xs text-slate-500 font-medium"></p>
-        <div class="space-y-3 pt-1">
+        <div class="space-y-2.5 pt-1">
           <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1">出題モード</label>
-            <select id="wb-mode-select" onchange="toggleWbRangeInputs(this.value)" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs bg-white">
-              <option value="all">全範囲を出題（シャッフル設定に準拠）</option>
+            <select id="wb-mode-select" onchange="toggleWbRangeInputs(this.value)" class="w-full border border-slate-300 rounded-lg p-2 text-xs bg-white">
+              <option value="all">全範囲を出題（ランダム設定適用）</option>
               <option value="range">指定インデックス範囲（例: 1〜10個目）</option>
-              <option value="random_n">ランダムに指定数だけ抽出（例: ランダム50個）</option>
-              <option value="weak">苦手単語（直近×だった単語）のみ復習</option>
+              <option value="random_n">指定数だけランダム抽出（例: 20個）</option>
+              <option value="weak">苦手単語のみ復習</option>
             </select>
           </div>
-          <div id="wb-range-inputs" class="grid grid-cols-2 gap-3 hidden">
+          <div id="wb-range-inputs" class="grid grid-cols-2 gap-2 hidden">
             <div>
-              <label class="block text-[11px] text-slate-500 mb-1">開始番号 (1〜)</label>
-              <input type="number" id="wb-range-start" min="1" value="1" class="w-full border border-slate-300 rounded-lg p-2 text-xs">
+              <label class="block text-[10px] text-slate-500 mb-0.5">開始番号</label>
+              <input type="number" id="wb-range-start" min="1" value="1" class="w-full border border-slate-300 rounded-lg p-1.5 text-xs">
             </div>
             <div>
-              <label class="block text-[11px] text-slate-500 mb-1">終了番号</label>
-              <input type="number" id="wb-range-end" min="1" value="10" class="w-full border border-slate-300 rounded-lg p-2 text-xs">
+              <label class="block text-[10px] text-slate-500 mb-0.5">終了番号</label>
+              <input type="number" id="wb-range-end" min="1" value="10" class="w-full border border-slate-300 rounded-lg p-1.5 text-xs">
             </div>
           </div>
           <div id="wb-random-inputs" class="hidden">
-            <label class="block text-[11px] text-slate-500 mb-1">抽出する単語数</label>
-            <input type="number" id="wb-random-count" min="1" value="20" class="w-full border border-slate-300 rounded-lg p-2 text-xs">
+            <label class="block text-[10px] text-slate-500 mb-0.5">抽出する単語数</label>
+            <input type="number" id="wb-random-count" min="1" value="20" class="w-full border border-slate-300 rounded-lg p-1.5 text-xs">
           </div>
         </div>
         <div class="flex justify-end gap-2 pt-2">
-          <button onclick="closeModal('wordbook-range-modal')" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-xs font-medium">キャンセル</button>
-          <button onclick="startWordbookSessionConfirmed()" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow">学習開始！</button>
+          <button onclick="closeModal('wordbook-range-modal')" class="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs">キャンセル</button>
+          <button onclick="startWordbookSessionConfirmed()" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow">学習開始！</button>
         </div>
       </div>
     </div>
 
-    <!-- 4. 設問回答画面 (問題集用) -->
+    <!-- 4. 設問回答画面 (スマホ1画面・省スクロール設計) -->
     <section id="answer-screen" class="screen">
-      <div class="max-w-2xl lg:max-w-3xl mx-auto space-y-4 sm:space-y-5">
-        <div class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between gap-2">
-          <div class="text-xs font-semibold text-slate-700 truncate max-w-[200px] sm:max-w-[350px]" id="answer-quiz-title-display">問題集</div>
-          <div id="timer-container" class="hidden flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs font-bold">
+      <div class="max-w-2xl mx-auto space-y-2.5 sm:space-y-4">
+        <!-- ヘッダーバー -->
+        <div class="bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between gap-2">
+          <div class="text-xs font-bold text-slate-700 truncate max-w-[180px] sm:max-w-[300px]" id="answer-quiz-title-display">問題集</div>
+          <div id="timer-container" class="hidden flex items-center gap-1 px-2.5 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs font-bold">
             <i class="fa-solid fa-stopwatch animate-pulse"></i>
-            <span>残り: <span id="timer-display">00:00</span></span>
+            <span id="timer-display">00:00</span>
           </div>
-          <div class="text-xs text-slate-400">
+          <div class="text-[11px] text-slate-500">
             配点: <span id="answer-score-info" class="font-bold text-slate-700">10点</span>
           </div>
         </div>
 
-        <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 space-y-1.5">
+        <!-- 進捗 & 設問ジャンプ -->
+        <div class="bg-white p-2.5 rounded-xl shadow-sm border border-slate-200 space-y-1">
           <div class="flex justify-between items-center text-[11px] text-slate-500">
-            <span>設問ジャンプ:</span>
-            <span id="answer-progress-text">問題 1 / 10</span>
+            <span>設問選択:</span>
+            <span id="answer-progress-text" class="font-bold text-indigo-700">問題 1 / 10</span>
           </div>
-          <div id="question-jump-palette" class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pt-1"></div>
+          <div id="question-jump-palette" class="flex flex-wrap gap-1 max-h-16 overflow-y-auto pt-0.5"></div>
         </div>
 
-        <div class="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-          <div class="flex items-start justify-between gap-2">
-            <span id="question-type-badge" class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-md border border-indigo-200">4択問題</span>
+        <!-- メイン問題カード -->
+        <div class="bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-slate-200 space-y-3">
+          <div class="flex items-center justify-between">
+            <span id="question-type-badge" class="bg-indigo-50 text-indigo-700 text-[11px] font-semibold px-2 py-0.5 rounded border border-indigo-200">4択問題</span>
           </div>
-          <div id="answer-question-container" class="text-base sm:text-lg font-bold text-slate-800 leading-relaxed"></div>
-          <div id="answer-input-area" class="space-y-2.5 pt-1"></div>
+          <div id="answer-question-container" class="text-base sm:text-lg font-bold text-slate-800 leading-snug"></div>
+          <div id="answer-input-area" class="space-y-2 pt-1"></div>
         </div>
 
-        <div class="flex flex-wrap sm:flex-nowrap justify-between items-center gap-2 pt-1">
-          <button onclick="confirmExitAnswer()" class="order-3 sm:order-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-medium px-4 py-2.5 rounded-lg text-xs sm:text-sm transition flex items-center gap-1">
-            <i class="fa-solid fa-right-from-bracket"></i> 中断して一覧へ
+        <!-- ナビゲーションボタン -->
+        <div class="flex justify-between items-center gap-2 pt-1">
+          <button onclick="confirmExitAnswer()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-medium px-3 py-2 rounded-lg text-xs transition flex items-center gap-1">
+            <i class="fa-solid fa-right-from-bracket"></i> 中断
           </button>
-          <div class="order-1 sm:order-2 flex gap-2 w-full sm:w-auto justify-end">
-            <button id="btn-prev-q" onclick="prevQuestion()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-4 py-2.5 rounded-lg text-xs sm:text-sm transition">
-              <i class="fa-solid fa-chevron-left"></i> 前へ
+          <div class="flex gap-2">
+            <button id="btn-prev-q" onclick="prevQuestion()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-3.5 py-2 rounded-lg text-xs transition">
+              前へ
             </button>
-            <button id="btn-next-q" onclick="nextQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 rounded-lg text-xs sm:text-sm shadow transition">
-              次へ <i class="fa-solid fa-chevron-right"></i>
+            <button id="btn-next-q" onclick="nextQuestion()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2 rounded-lg text-xs shadow transition">
+              次へ
             </button>
-            <button id="btn-finish-q" onclick="gradeCurrentSession()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-6 py-2.5 rounded-lg text-xs sm:text-sm shadow transition">
-              <i class="fa-solid fa-check"></i> 採点する
+            <button id="btn-finish-q" onclick="gradeCurrentSession()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2 rounded-lg text-xs shadow transition">
+              <i class="fa-solid fa-check"></i> 採点
             </button>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 5. 単語帳 回答画面 (フラッシュカード式 - 言語自動判定発話対応) -->
+    <!-- 5. 単語帳 回答画面 (フラッシュカード - スマホ省スクロール設計) -->
     <section id="wordbook-answer-screen" class="screen">
-      <div class="max-w-2xl lg:max-w-3xl mx-auto space-y-4 sm:space-y-5">
-        <div class="bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between gap-2">
-          <div class="text-xs font-semibold text-amber-800 truncate max-w-[200px] sm:max-w-[320px]" id="wb-answer-title-display">単語帳</div>
-          <div id="wb-timer-container" class="hidden flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs font-bold">
+      <div class="max-w-xl mx-auto space-y-2.5 sm:space-y-4">
+        <!-- ヘッダーバー -->
+        <div class="bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between gap-2">
+          <div class="text-xs font-bold text-amber-800 truncate max-w-[180px] sm:max-w-[300px]" id="wb-answer-title-display">単語帳</div>
+          <div id="wb-timer-container" class="hidden flex items-center gap-1 px-2.5 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-xs font-bold">
             <i class="fa-solid fa-stopwatch animate-pulse"></i>
-            <span>残り: <span id="wb-timer-display">00:00</span></span>
+            <span id="wb-timer-display">00:00</span>
           </div>
           <div class="text-xs font-bold text-slate-500" id="wb-answer-progress-text">単語 1 / 10</div>
         </div>
 
-        <div class="bg-white p-6 sm:p-10 rounded-2xl shadow-sm border border-slate-200 space-y-6 text-center relative">
-          <!-- 累計正解率バッジ (右上配置) -->
-          <div id="wb-word-stats-badge" class="absolute top-4 right-4 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-900 shadow-sm flex items-center gap-2">
+        <!-- フラッシュカード本体 -->
+        <div class="bg-white p-4 sm:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-4 text-center relative">
+          <!-- 累計正解率 -->
+          <div id="wb-word-stats-badge" class="absolute top-3 right-3 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg text-[10px] font-bold text-amber-900 shadow-sm flex items-center gap-1">
             <i class="fa-solid fa-chart-simple text-amber-600"></i>
-            <span id="wb-stat-rate-text">正解率: 0%</span>
+            <span id="wb-stat-rate-text">0%</span>
           </div>
 
-          <div class="text-xs font-semibold px-3 py-1 bg-amber-50 text-amber-800 rounded-md border border-amber-200 inline-block">フラッシュカード学習</div>
+          <div class="text-[10px] font-semibold px-2 py-0.5 bg-amber-50 text-amber-800 rounded border border-amber-200 inline-block">フラッシュカード</div>
           
           <!-- 問題（表） -->
-          <div class="space-y-3 pt-2">
+          <div class="space-y-1.5 pt-1">
             <div class="flex items-center justify-center gap-2">
               <span class="text-xs text-slate-400 font-medium">問題（表）</span>
-              <button type="button" onclick="speakCurrentWordText('front')" class="w-8 h-8 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-800 flex items-center justify-center transition shadow-sm" title="発話する（英語/日本語 自動判定）">
-                <i class="fa-solid fa-volume-high text-sm"></i>
+              <button type="button" onclick="speakCurrentWordText('front')" class="w-7 h-7 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-800 flex items-center justify-center transition" title="音声読上げ">
+                <i class="fa-solid fa-volume-high text-xs"></i>
               </button>
             </div>
-            <div id="wb-card-question" class="text-2xl sm:text-4xl font-black text-slate-800 min-h-[80px] flex items-center justify-center tracking-wide"></div>
+            <div id="wb-card-question" class="text-2xl sm:text-3xl font-black text-slate-800 min-h-[50px] flex items-center justify-center tracking-wide"></div>
           </div>
 
-          <!-- 解答エリア（最初は隠れておりボタンで表示） -->
-          <div id="wb-answer-box" class="hidden space-y-4 pt-6 border-t border-slate-100">
-            <div class="space-y-2">
+          <!-- 解答エリア -->
+          <div id="wb-answer-box" class="hidden space-y-3 pt-3 border-t border-slate-100">
+            <div class="space-y-1">
               <div class="flex items-center justify-center gap-2">
                 <span class="text-xs text-amber-700 font-bold">解答（裏）</span>
-                <button type="button" onclick="speakCurrentWordText('back')" class="w-8 h-8 rounded-full bg-indigo-100 hover:bg-indigo-200 text-indigo-800 flex items-center justify-center transition shadow-sm" title="発話する（英語/日本語 自動判定）">
-                  <i class="fa-solid fa-volume-high text-sm"></i>
+                <button type="button" onclick="speakCurrentWordText('back')" class="w-7 h-7 rounded-full bg-indigo-100 hover:bg-indigo-200 text-indigo-800 flex items-center justify-center transition" title="音声読上げ">
+                  <i class="fa-solid fa-volume-high text-xs"></i>
                 </button>
               </div>
-              <div id="wb-card-answer" class="text-2xl sm:text-4xl font-black text-indigo-700 min-h-[70px] flex items-center justify-center tracking-wide"></div>
+              <div id="wb-card-answer" class="text-2xl sm:text-3xl font-black text-indigo-700 min-h-[50px] flex items-center justify-center tracking-wide"></div>
             </div>
 
-            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 space-y-1 text-left" id="wb-card-memo-container">
-              <p class="font-bold text-slate-500"><i class="fa-solid fa-lightbulb"></i> メモ / 補足:</p>
-              <p id="wb-card-memo" class="whitespace-pre-line text-sm"></p>
+            <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 space-y-0.5 text-left" id="wb-card-memo-container">
+              <p class="font-bold text-slate-500 text-[10px]"><i class="fa-solid fa-lightbulb"></i> メモ:</p>
+              <p id="wb-card-memo" class="whitespace-pre-line text-xs"></p>
             </div>
           </div>
 
           <!-- 操作ボタン群 -->
-          <div class="pt-4">
-            <button id="wb-btn-show-answer" onclick="showWordbookAnswer()" class="w-full py-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow transition text-base sm:text-lg flex items-center justify-center gap-2">
-              <i class="fa-solid fa-eye"></i> 解答を表示する
+          <div class="pt-2">
+            <button id="wb-btn-show-answer" onclick="showWordbookAnswer()" class="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow transition text-base flex items-center justify-center gap-2">
+              <i class="fa-solid fa-eye"></i> 解答を表示
             </button>
 
             <!-- 自己採点ボタン -->
-            <div id="wb-self-grading-box" class="hidden grid grid-cols-2 gap-3">
-              <button onclick="gradeWordbookCard(false)" class="py-4 bg-red-50 hover:bg-red-100 text-red-600 border border-red-300 font-bold rounded-xl shadow transition text-base sm:text-lg flex items-center justify-center gap-2">
-                <i class="fa-solid fa-xmark text-xl"></i> × (不正解)
+            <div id="wb-self-grading-box" class="hidden grid grid-cols-2 gap-2.5">
+              <button onclick="gradeWordbookCard(false)" class="py-3 bg-red-50 hover:bg-red-100 text-red-600 border border-red-300 font-bold rounded-xl shadow transition text-base flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-xmark text-lg"></i> 不正解
               </button>
-              <button onclick="gradeWordbookCard(true)" class="py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition text-base sm:text-lg flex items-center justify-center gap-2">
-                <i class="fa-solid fa-check text-xl"></i> 〇 (正解)
+              <button onclick="gradeWordbookCard(true)" class="py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition text-base flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-check text-lg"></i> 正解
               </button>
             </div>
           </div>
         </div>
 
-        <div class="flex justify-between items-center pt-1">
-          <button onclick="confirmExitWordbookAnswer()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-medium px-4 py-2.5 rounded-lg text-xs sm:text-sm transition flex items-center gap-1">
+        <div class="flex justify-between items-center pt-0.5">
+          <button onclick="confirmExitWordbookAnswer()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-medium px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1">
             <i class="fa-solid fa-right-from-bracket"></i> 中断して一覧へ
           </button>
         </div>
@@ -542,141 +518,120 @@
 
     <!-- 6. 採点結果画面 (問題集用) -->
     <section id="result-screen" class="screen">
-      <div class="max-w-3xl mx-auto space-y-5 sm:space-y-6">
-        <div id="result-header-card" class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border text-center space-y-3 sm:space-y-4 transition-all">
-          <div id="result-icon-container" class="text-5xl sm:text-6xl mb-1">🎉</div>
-          <h2 id="result-title" class="text-2xl sm:text-3xl font-extrabold text-slate-800">成績結果</h2>
-          <p id="result-subtitle" class="text-xs sm:text-sm text-slate-500">成果を確認して復習に活かしましょう。</p>
-          <div class="py-3 my-2 border-y border-slate-100 flex justify-around items-center">
+      <div class="max-w-2xl mx-auto space-y-4">
+        <div id="result-header-card" class="bg-white p-5 sm:p-6 rounded-2xl shadow border text-center space-y-2">
+          <div id="result-icon-container" class="text-4xl sm:text-5xl mb-0.5">🎉</div>
+          <h2 id="result-title" class="text-xl sm:text-2xl font-extrabold text-slate-800">成績結果</h2>
+          <div class="py-2.5 my-1 border-y border-slate-100 flex justify-around items-center">
             <div>
-              <p class="text-[10px] sm:text-xs text-slate-400">獲得スコア</p>
-              <p class="text-2xl sm:text-3xl font-black text-indigo-600"><span id="res-score">0</span> <span class="text-xs sm:text-sm font-normal text-slate-500">/ <span id="res-max-score">100</span>点</span></p>
+              <p class="text-[10px] text-slate-400">獲得スコア</p>
+              <p class="text-xl sm:text-2xl font-black text-indigo-600"><span id="res-score">0</span> <span class="text-xs font-normal text-slate-500">/ <span id="res-max-score">100</span>点</span></p>
             </div>
-            <div class="border-r border-slate-200 h-8"></div>
+            <div class="border-r border-slate-200 h-6"></div>
             <div>
-              <p class="text-[10px] sm:text-xs text-slate-400">正解率 (目標:<span id="res-target-ratio">80</span>%)</p>
-              <p id="res-accuracy" class="text-2xl sm:text-3xl font-black text-indigo-600">0%</p>
+              <p class="text-[10px] text-slate-400">正解率</p>
+              <p id="res-accuracy" class="text-xl sm:text-2xl font-black text-indigo-600">0%</p>
             </div>
-            <div class="border-r border-slate-200 h-8"></div>
+            <div class="border-r border-slate-200 h-6"></div>
             <div>
-              <p class="text-[10px] sm:text-xs text-slate-400">獲得EXP</p>
-              <p class="text-2xl sm:text-3xl font-black text-amber-500">+<span id="res-exp">0</span></p>
+              <p class="text-[10px] text-slate-400">獲得EXP</p>
+              <p class="text-xl sm:text-2xl font-black text-amber-500">+<span id="res-exp">0</span></p>
             </div>
           </div>
-          <div class="flex justify-center gap-3 pt-1">
-            <button onclick="showScreen('list-screen')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-5 py-2.5 rounded-lg text-xs sm:text-sm transition">
-              一覧に戻る
-            </button>
-          </div>
+          <button onclick="showScreen('list-screen')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-5 py-2 rounded-lg text-xs transition mt-1">
+            一覧に戻る
+          </button>
         </div>
-        <div class="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-          <h3 class="text-base sm:text-lg font-bold text-slate-800 border-b pb-3">回答詳細と解説</h3>
-          <div id="result-detail-list" class="space-y-4"></div>
+
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+          <h3 class="text-sm font-bold text-slate-800 border-b pb-2">回答詳細と解説</h3>
+          <div id="result-detail-list" class="space-y-3"></div>
         </div>
       </div>
     </section>
 
     <!-- 7. 単語帳 完了画面 -->
     <section id="wordbook-result-screen" class="screen">
-      <div class="max-w-xl mx-auto space-y-5 sm:space-y-6">
-        <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border text-center space-y-4">
-          <div class="text-5xl sm:text-6xl mb-1">🌟</div>
-          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-800">単語帳セッション完了！</h2>
-          <p class="text-xs sm:text-sm text-slate-500" id="wb-res-subtitle">お疲れ様でした！暗記の成果を確認しましょう。</p>
-          <div class="py-4 my-2 border-y border-slate-100 flex justify-around items-center">
+      <div class="max-w-xl mx-auto space-y-4">
+        <div class="bg-white p-5 sm:p-6 rounded-2xl shadow border text-center space-y-3">
+          <div class="text-4xl sm:text-5xl mb-0.5">🌟</div>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-800">学習完了！</h2>
+          <p class="text-xs text-slate-500" id="wb-res-subtitle">お疲れ様でした！</p>
+          <div class="py-2.5 my-1 border-y border-slate-100 flex justify-around items-center">
             <div>
-              <p class="text-[10px] sm:text-xs text-slate-400">正解数 / 総単語数</p>
-              <p class="text-2xl sm:text-3xl font-black text-amber-600"><span id="wb-res-correct">0</span> <span class="text-xs sm:text-sm font-normal text-slate-500">/ <span id="wb-res-total">0</span></span></p>
+              <p class="text-[10px] text-slate-400">正解数</p>
+              <p class="text-xl sm:text-2xl font-black text-amber-600"><span id="wb-res-correct">0</span> <span class="text-xs font-normal text-slate-500">/ <span id="wb-res-total">0</span></span></p>
             </div>
-            <div class="border-r border-slate-200 h-8"></div>
+            <div class="border-r border-slate-200 h-6"></div>
             <div>
-              <p class="text-[10px] sm:text-xs text-slate-400">正解率 (目標:<span id="wb-res-target-ratio">80</span>%)</p>
-              <p id="wb-res-accuracy" class="text-2xl sm:text-3xl font-black text-amber-600">0%</p>
+              <p class="text-[10px] text-slate-400">正解率</p>
+              <p id="wb-res-accuracy" class="text-xl sm:text-2xl font-black text-amber-600">0%</p>
             </div>
-            <div class="border-r border-slate-200 h-8"></div>
+            <div class="border-r border-slate-200 h-6"></div>
             <div>
-              <p class="text-[10px] sm:text-xs text-slate-400">獲得EXP</p>
-              <p class="text-2xl sm:text-3xl font-black text-amber-500">+<span id="wb-res-exp">0</span></p>
+              <p class="text-[10px] text-slate-400">獲得EXP</p>
+              <p class="text-xl sm:text-2xl font-black text-amber-500">+<span id="wb-res-exp">0</span></p>
             </div>
           </div>
-          <div class="flex justify-center gap-3 pt-2">
-            <button onclick="showScreen('list-screen')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-6 py-2.5 rounded-lg text-xs sm:text-sm transition">
-              一覧に戻る
-            </button>
-          </div>
+          <button onclick="showScreen('list-screen')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-5 py-2 rounded-lg text-xs transition mt-1">
+            一覧に戻る
+          </button>
         </div>
       </div>
     </section>
 
-    <!-- 8. 学習アナリティクス画面 (設問別履歴削除機能完備) -->
-    <section id="history-screen" class="screen space-y-6">
+    <!-- 8. 学習アナリティクス画面 -->
+    <section id="history-screen" class="screen space-y-4">
       <div class="flex justify-between items-center">
         <div>
-          <h2 class="text-xl sm:text-2xl font-bold text-slate-800">学習アナリティクス & 履歴</h2>
-          <p id="history-quiz-title" class="text-xs sm:text-sm text-indigo-600 font-medium"></p>
+          <h2 class="text-lg sm:text-2xl font-bold text-slate-800">学習アナリティクス</h2>
+          <p id="history-quiz-title" class="text-xs text-indigo-600 font-medium"></p>
         </div>
-        <button onclick="showScreen('list-screen')" class="text-slate-500 hover:text-slate-700 px-3 py-1 rounded-md border border-slate-300 bg-white text-xs sm:text-sm">
-          <i class="fa-solid fa-arrow-left"></i> 一覧に戻る
+        <button onclick="showScreen('list-screen')" class="text-slate-500 hover:text-slate-700 px-2.5 py-1 rounded-md border border-slate-300 bg-white text-xs">
+          一覧に戻る
         </button>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg flex-shrink-0">
-            <i class="fa-solid fa-stopwatch"></i>
-          </div>
-          <div>
-            <p class="text-[11px] text-slate-400 font-medium">合計学習時間</p>
-            <p class="text-lg font-extrabold text-slate-800"><span id="analytics-total-time">0</span></p>
-          </div>
+      <div class="grid grid-cols-3 gap-2">
+        <div class="bg-white p-2.5 rounded-xl border border-slate-200 text-center">
+          <p class="text-[10px] text-slate-400 font-medium">合計学習時間</p>
+          <p class="text-sm sm:text-base font-bold text-slate-800"><span id="analytics-total-time">0</span></p>
         </div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg flex-shrink-0">
-            <i class="fa-solid fa-rotate-right"></i>
-          </div>
-          <div>
-            <p class="text-[11px] text-slate-400 font-medium">総挑戦回数</p>
-            <p class="text-lg font-extrabold text-slate-800"><span id="analytics-total-runs">0</span> <span class="text-xs font-normal">回</span></p>
-          </div>
+        <div class="bg-white p-2.5 rounded-xl border border-slate-200 text-center">
+          <p class="text-[10px] text-slate-400 font-medium">挑戦回数</p>
+          <p class="text-sm sm:text-base font-bold text-slate-800"><span id="analytics-total-runs">0</span> 回</p>
         </div>
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-lg flex-shrink-0">
-            <i class="fa-solid fa-bullseye"></i>
-          </div>
-          <div>
-            <p class="text-[11px] text-slate-400 font-medium">平均正解率</p>
-            <p class="text-lg font-extrabold text-slate-800"><span id="analytics-avg-ratio">0%</span></p>
-          </div>
+        <div class="bg-white p-2.5 rounded-xl border border-slate-200 text-center">
+          <p class="text-[10px] text-slate-400 font-medium">平均正解率</p>
+          <p class="text-sm sm:text-base font-bold text-slate-800"><span id="analytics-avg-ratio">0%</span></p>
         </div>
       </div>
 
-      <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-3">
+      <div class="bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-slate-200 space-y-2">
         <div class="flex justify-between items-center">
-          <h3 id="chart-section-title" class="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
-            <i class="fa-solid fa-chart-line text-indigo-600"></i> 回答正解率（%）の推移
+          <h3 id="chart-section-title" class="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-1">
+            <i class="fa-solid fa-chart-line text-indigo-600"></i> 正解率（%）推移
           </h3>
-          <span class="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
-            合格基準: <span id="analytics-target-ratio">80</span>%
+          <span class="text-[10px] font-semibold px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+            目標: <span id="analytics-target-ratio">80</span>%
           </span>
         </div>
-        <div class="h-56 sm:h-64 w-full">
+        <div class="h-48 sm:h-60 w-full">
           <canvas id="accuracyChart"></canvas>
         </div>
       </div>
 
-      <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-3">
-        <h3 class="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-list-check text-emerald-600"></i> 設問・単語ごとの成績と個別の履歴操作
-        </h3>
+      <div class="bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-slate-200 space-y-2">
+        <h3 class="text-xs sm:text-sm font-bold text-slate-800">設問・単語ごとの成績と個別の履歴操作</h3>
         <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[600px]">
+          <table class="w-full text-left border-collapse text-xs min-w-[550px]">
             <thead>
               <tr class="bg-slate-100 border-b border-slate-200 text-slate-600">
-                <th class="p-2.5 font-semibold">設問 / 単語</th>
-                <th class="p-2.5 font-semibold text-center w-20">回答回数</th>
-                <th class="p-2.5 font-semibold text-center w-20">正解回数</th>
-                <th class="p-2.5 font-semibold text-center w-24">累計正解率</th>
-                <th class="p-2.5 font-semibold text-center w-52">操作（グラフ / 個別削除）</th>
+                <th class="p-2 font-semibold">設問 / 単語</th>
+                <th class="p-2 text-center w-16">回答数</th>
+                <th class="p-2 text-center w-16">正解数</th>
+                <th class="p-2 text-center w-20">正解率</th>
+                <th class="p-2 text-center w-40">操作</th>
               </tr>
             </thead>
             <tbody id="question-analytics-body" class="divide-y divide-slate-100"></tbody>
@@ -684,25 +639,25 @@
         </div>
       </div>
 
-      <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200 space-y-3 p-4">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3.5 space-y-2">
         <div class="flex justify-between items-center">
-          <h3 class="text-sm sm:text-base font-bold text-slate-800">全体実施履歴ログ</h3>
-          <button onclick="clearItemHistory()" class="text-xs text-red-500 hover:text-red-700 border border-red-200 bg-red-50 px-2.5 py-1 rounded">
-            この項目の全体履歴を全削除
+          <h3 class="text-xs sm:text-sm font-bold text-slate-800">全体実施履歴ログ</h3>
+          <button onclick="clearItemHistory()" class="text-[10px] text-red-500 border border-red-200 bg-red-50 px-2 py-0.5 rounded">
+            全体履歴を消去
           </button>
         </div>
         <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse min-w-[500px]">
+          <table class="w-full text-left border-collapse min-w-[450px]">
             <thead>
-              <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 text-xs uppercase">
-                <th class="p-3 font-semibold">実施日時</th>
-                <th class="p-3 font-semibold text-center">スコア / 正解数</th>
-                <th class="p-3 font-semibold text-center">正解率</th>
-                <th class="p-3 font-semibold text-center">所要時間</th>
-                <th class="p-3 font-semibold text-center w-24">操作</th>
+              <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 text-[11px] uppercase">
+                <th class="p-2.5 font-semibold">日時</th>
+                <th class="p-2.5 font-semibold text-center">正解数</th>
+                <th class="p-2.5 font-semibold text-center">正解率</th>
+                <th class="p-2.5 font-semibold text-center">時間</th>
+                <th class="p-2.5 font-semibold text-center w-16">操作</th>
               </tr>
             </thead>
-            <tbody id="history-table-body" class="divide-y divide-slate-100 text-xs sm:text-sm"></tbody>
+            <tbody id="history-table-body" class="divide-y divide-slate-100 text-xs"></tbody>
           </table>
         </div>
       </div>
@@ -713,190 +668,170 @@
   <!-- モーダルダイアログ群 -->
 
   <!-- デイリーミッション モーダル -->
-  <div id="daily-missions-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+  <div id="daily-missions-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-3 z-50">
+    <div class="bg-white rounded-2xl p-4 sm:p-5 max-w-sm w-full shadow-2xl space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-1.5">
           <i class="fa-solid fa-calendar-check text-indigo-600"></i> 今日のミッション
         </h3>
-        <button onclick="closeModal('daily-missions-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+        <button onclick="closeModal('daily-missions-modal')" class="text-slate-400 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-      <div id="modal-daily-missions-container" class="space-y-2.5"></div>
-      <p class="text-[10px] text-slate-400 text-center pt-1">ミッションは毎日午前 0:00 に自動更新されます。</p>
+      <div id="modal-daily-missions-container" class="space-y-2"></div>
+      <p class="text-[10px] text-slate-400 text-center pt-0.5">午前 0:00 に自動更新されます。</p>
     </div>
   </div>
 
   <!-- プレイヤーステータス モーダル -->
-  <div id="status-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+  <div id="status-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-3 z-50">
+    <div class="bg-white rounded-2xl p-4 sm:p-5 max-w-sm w-full shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-1.5">
           <i class="fa-solid fa-id-card text-indigo-600"></i> プレイヤーステータス
         </h3>
-        <button onclick="closeModal('status-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+        <button onclick="closeModal('status-modal')" class="text-slate-400 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
 
-      <div id="st-card-element" class="card-theme-green p-5 rounded-xl space-y-4 relative overflow-hidden transition-all duration-500">
+      <div id="st-card-element" class="card-theme-green p-4 rounded-xl space-y-3 relative overflow-hidden transition-all duration-500">
         <div class="flex justify-between items-start relative z-10">
           <div>
-            <p class="text-xs font-bold tracking-wider st-text-node" id="st-user-title">一般学生</p>
-            <p class="text-2xl font-black tracking-wide mt-0.5 st-text-node">Level <span id="st-user-level">1</span></p>
+            <p class="text-[11px] font-bold tracking-wider" id="st-user-title">一般学生</p>
+            <p class="text-xl font-black tracking-wide mt-0.5">Level <span id="st-user-level">1</span></p>
           </div>
-          <div id="st-card-icon-wrapper" class="w-12 h-12 rounded-full card-accent border-2 flex items-center justify-center text-xl shadow">
+          <div id="st-card-icon-wrapper" class="w-10 h-10 rounded-full card-accent border flex items-center justify-center text-lg shadow">
             <i class="fa-solid fa-crown" id="st-card-icon"></i>
           </div>
         </div>
 
         <div class="space-y-1 relative z-10">
-          <div class="flex justify-between text-xs st-text-node">
-            <span>Next Level まで:</span>
+          <div class="flex justify-between text-[11px]">
+            <span>Next Level:</span>
             <span class="font-bold"><span id="st-need-exp">100</span> EXP</span>
           </div>
-          <div class="w-full bg-black/40 rounded-full h-3 p-0.5 border border-amber-300/30">
-            <div id="st-exp-bar" class="bg-amber-400 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
-          </div>
-          <p class="text-[10px] text-right st-text-node">現在のレベル内EXP: <span id="st-curr-exp">0</span> / <span id="st-max-exp-in-lv">100</span></p>
-        </div>
-
-        <div class="border-t border-amber-300/30 pt-3 grid grid-cols-2 gap-2 text-xs relative z-10">
-          <div>
-            <p class="text-[10px] st-text-node">累計獲得EXP</p>
-            <p class="font-bold text-sm st-text-node" id="st-total-exp">0 pt</p>
-          </div>
-          <div>
-            <p class="text-[10px] st-text-node">連続学習日数</p>
-            <p class="font-bold text-sm st-text-node" id="st-streak-days">0 日</p>
+          <div class="w-full bg-black/40 rounded-full h-2.5 p-0.5 border border-amber-300/30">
+            <div id="st-exp-bar" class="bg-amber-400 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
           </div>
         </div>
+
+        <div class="border-t border-amber-300/30 pt-2 grid grid-cols-2 gap-2 text-[11px] relative z-10">
+          <div>
+            <p class="text-[9px]">累計獲得EXP</p>
+            <p class="font-bold" id="st-total-exp">0 pt</p>
+          </div>
+          <div>
+            <p class="text-[9px]">連続学習日数</p>
+            <p class="font-bold" id="st-streak-days">0 日</p>
+          </div>
+        </div>
       </div>
 
-      <div class="space-y-2 pt-1">
-        <h4 class="text-xs font-bold text-slate-700 flex items-center gap-1.5"><i class="fa-solid fa-map text-indigo-600"></i> レベル肩書き ＆ 必要学習時間目安</h4>
-        <div id="title-roadmap-container" class="space-y-1.5 max-h-56 overflow-y-auto pr-1"></div>
+      <div class="space-y-1.5 pt-0.5">
+        <h4 class="text-xs font-bold text-slate-700">レベル肩書き ＆ 必要時間目安</h4>
+        <div id="title-roadmap-container" class="space-y-1 max-h-48 overflow-y-auto pr-1"></div>
       </div>
 
-      <div class="flex justify-end pt-1">
-        <button onclick="closeModal('status-modal'); openBadgesModal();" class="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 transition">
-          <i class="fa-solid fa-award"></i> 獲得した称号（実績バッジ）を見る
-        </button>
-      </div>
+      <button onclick="closeModal('status-modal'); openBadgesModal();" class="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold rounded-lg text-xs flex items-center justify-center gap-1 transition">
+        <i class="fa-solid fa-award"></i> 獲得した称号を見る
+      </button>
     </div>
   </div>
 
-  <!-- 開発者用 隠しデバッグモーダル -->
-  <div id="debug-modal" class="fixed inset-0 bg-slate-900/60 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-5 max-w-sm w-full shadow-2xl space-y-4">
+  <!-- 隠しデバッグモーダル -->
+  <div id="debug-modal" class="fixed inset-0 bg-slate-900/60 hidden backdrop-blur-sm flex items-center justify-center p-3 z-50">
+    <div class="bg-white rounded-2xl p-4 max-w-xs w-full shadow-2xl space-y-3">
       <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="text-sm font-bold text-amber-900 flex items-center gap-1.5">
-          <i class="fa-solid fa-bug text-amber-600"></i> デバッグレベルテスト
+        <h3 class="text-xs font-bold text-amber-900 flex items-center gap-1">
+          <i class="fa-solid fa-bug text-amber-600"></i> デバッグ設定
         </h3>
-        <button onclick="closeModal('debug-modal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeModal('debug-modal')" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <div class="space-y-3">
+      <div class="space-y-2">
         <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">ランク指定 (一発切り替え)</label>
-          <select id="debug-rank-select" onchange="debugSetRankDirect(this.value)" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs bg-slate-50 font-medium">
-            <option value="">-- ランクを選択してください --</option>
-            <option value="1">Lv.1〜 一般学生（グリーン）</option>
-            <option value="5">Lv.5〜 特待生（イエロー）</option>
-            <option value="10">Lv.10〜 一般研究員（レッド）</option>
-            <option value="15">Lv.15〜 主任講師（ブルー）</option>
-            <option value="20">Lv.20〜 名誉教授（ブラウン）</option>
-            <option value="30">Lv.30〜 学習マスター（ブロンズ）</option>
-            <option value="40">Lv.40〜 真理の探究者（シルバー）</option>
-            <option value="50">Lv.50〜 千里の求道者（ゴールド）</option>
-            <option value="60">Lv.60〜 学究の賢者（プラチナ）</option>
-            <option value="70">Lv.70〜 叡智の覇王（ダイヤモンド）</option>
-            <option value="80">Lv.80〜 全知の至高神（ブラック）</option>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-1">ランク指定</label>
+          <select id="debug-rank-select" onchange="debugSetRankDirect(this.value)" class="w-full border rounded p-2 text-xs bg-slate-50">
+            <option value="">-- 選択 --</option>
+            <option value="1">Lv.1〜 一般学生</option>
+            <option value="5">Lv.5〜 特待生</option>
+            <option value="10">Lv.10〜 一般研究員</option>
+            <option value="15">Lv.15〜 主任講師</option>
+            <option value="20">Lv.20〜 名誉教授</option>
+            <option value="30">Lv.30〜 学習マスター</option>
+            <option value="40">Lv.40〜 真理の探究者</option>
+            <option value="50">Lv.50〜 千里の求道者</option>
+            <option value="60">Lv.60〜 学究の賢者</option>
+            <option value="70">Lv.70〜 叡智の覇王</option>
+            <option value="80">Lv.80〜 全知の至高神</option>
           </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">レベル数値入力 (1〜100)</label>
-          <div class="flex items-center gap-2">
-            <input type="number" id="debug-target-lv" min="1" max="100" placeholder="例: 80" class="w-full p-2 border border-slate-300 rounded-lg text-xs">
-            <button onclick="debugSetLevelDirect()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs flex-shrink-0 transition">設定</button>
-          </div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- 学習カレンダーモーダル -->
-  <div id="calendar-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+  <div id="calendar-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-3 z-50">
+    <div class="bg-white rounded-2xl p-4 max-w-xs w-full shadow-2xl space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-1.5">
           <i class="fa-solid fa-calendar-days text-indigo-600"></i> 学習カレンダー
         </h3>
-        <button onclick="closeModal('calendar-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+        <button onclick="closeModal('calendar-modal')" class="text-slate-400 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
       <div class="flex justify-between items-center px-1">
         <button onclick="changeCalMonth(-1)" class="p-1 text-slate-500 hover:text-indigo-600"><i class="fa-solid fa-chevron-left"></i> 前月</button>
-        <span id="cal-month-title" class="font-bold text-slate-800 text-sm">2026年10月</span>
+        <span id="cal-month-title" class="font-bold text-slate-800 text-xs">2026年10月</span>
         <button onclick="changeCalMonth(1)" class="p-1 text-slate-500 hover:text-indigo-600">翌月 <i class="fa-solid fa-chevron-right"></i></button>
       </div>
-      <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center text-xs"></div>
-      <div id="cal-date-detail" class="p-3 bg-indigo-50/60 border border-indigo-100 rounded-xl text-xs space-y-1">
-        <p class="font-bold text-indigo-900 flex items-center gap-1"><i class="fa-solid fa-circle-info"></i> カレンダーのマークを押すと詳細が表示されます</p>
-      </div>
+      <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center text-[11px]"></div>
     </div>
   </div>
 
   <!-- 集計モーダル -->
-  <div id="quiz-stats-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-book-open text-emerald-600"></i> 学習実績サマリー
+  <div id="quiz-stats-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-3 z-50">
+    <div class="bg-white rounded-2xl p-4 max-w-sm w-full shadow-2xl space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-1.5">
+          <i class="fa-solid fa-book-open text-emerald-600"></i> 実績サマリー
         </h3>
-        <button onclick="closeModal('quiz-stats-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+        <button onclick="closeModal('quiz-stats-modal')" class="text-slate-400 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-      <div id="quiz-stats-container" class="space-y-3"></div>
+      <div id="quiz-stats-container" class="space-y-2"></div>
     </div>
   </div>
 
   <!-- 学習時間統計モーダル -->
-  <div id="time-stats-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-clock text-amber-500"></i> 学習時間の詳細分析
+  <div id="time-stats-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-3 z-50">
+    <div class="bg-white rounded-2xl p-4 max-w-sm w-full shadow-2xl space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-1.5">
+          <i class="fa-solid fa-clock text-amber-500"></i> 学習時間分析
         </h3>
-        <button onclick="closeModal('time-stats-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+        <button onclick="closeModal('time-stats-modal')" class="text-slate-400 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-      <div id="time-stats-container" class="space-y-4 text-xs sm:text-sm"></div>
+      <div id="time-stats-container" class="space-y-3 text-xs"></div>
     </div>
   </div>
 
   <!-- 称号一覧モーダル -->
-  <div id="badges-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-award text-amber-500"></i> 獲得した称号・実績一覧
+  <div id="badges-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-3 z-50">
+    <div class="bg-white rounded-2xl p-4 max-w-md w-full shadow-2xl space-y-3 max-h-[85vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-1.5">
+          <i class="fa-solid fa-award text-amber-500"></i> 獲得した称号
         </h3>
-        <button onclick="closeModal('badges-modal')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+        <button onclick="closeModal('badges-modal')" class="text-slate-400 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-      <div id="modal-badges-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+      <div id="modal-badges-container" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
     </div>
   </div>
 
   <script>
-    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V34';
+    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V35';
     let appData = {
       quizzes: [],
       wordbooks: [],
       histories: [],
       wordbookHistories: [],
       user: {
-        level: 1,
-        exp: 0,
-        totalQuestionsSolved: 0,
-        totalStudySeconds: 0,
-        lastStudyDate: null,
-        streakDays: 0,
-        unlockedBadges: [],
-        dailyStudyLogs: {},
+        level: 1, exp: 0, totalQuestionsSolved: 0, totalStudySeconds: 0, lastStudyDate: null, streakDays: 0, unlockedBadges: [], dailyStudyLogs: {},
         dailyMissions: { lastDate: '', login: false, solved10: false, passedOne: false, completedCount: 0 }
       }
     };
@@ -915,7 +850,7 @@
       { id: 'b2', title: '継続の力', desc: '3日連続で学習を行った', icon: 'fa-fire', check: u => u.streakDays >= 3 },
       { id: 'b3', title: '習慣化達成', desc: '7日連続で学習を行った', icon: 'fa-calendar-check', check: u => u.streakDays >= 7 },
       { id: 'b4', title: '問題ハンター', desc: '累計50問以上回答した', icon: 'fa-bullseye', check: u => u.totalQuestionsSolved >= 50 },
-      { id: 'b5', title: 'デイリーマスター', desc: 'デイリーミッションを通算5回全てクリア', icon: 'fa-sun', check: u => (u.dailyMissions && u.dailyMissions.completedCount >= 5) },
+      { id: 'b5', title: 'デイリーマスター', desc: 'デイリーミッションを5回クリア', icon: 'fa-sun', check: u => (u.dailyMissions && u.dailyMissions.completedCount >= 5) },
       { id: 'b6', title: '学習マニア', desc: '累計総学習時間が180分を超えた', icon: 'fa-hourglass-high', check: u => u.totalStudySeconds >= 10800 },
       { id: 'b7', title: '学習マスター', desc: 'プレイヤーレベルが10に到達', icon: 'fa-crown', check: u => u.level >= 10 }
     ];
@@ -943,16 +878,10 @@
     }
 
     function calculateLevelFromExp(totalExp) {
-      let lv = 1;
-      let expLeft = totalExp;
+      let lv = 1; let expLeft = totalExp;
       while (lv < 100) {
         let req = getExpForNextLevel(lv);
-        if (expLeft >= req) {
-          expLeft -= req;
-          lv++;
-        } else {
-          break;
-        }
+        if (expLeft >= req) { expLeft -= req; lv++; } else { break; }
       }
       return { level: lv, currentExp: expLeft, requiredExp: getExpForNextLevel(lv) };
     }
@@ -960,53 +889,23 @@
     const sampleData = {
       quizzes: [
         {
-          id: 'sample-1',
-          title: '【サンプル】IT・ビジネス基本用語',
-          passRatio: 80,
-          timeLimit: 10,
-          isRandom: true,
-          updatedAt: new Date().toISOString(),
+          id: 'sample-1', title: '【サンプル】IT・ビジネス基本用語', passRatio: 80, timeLimit: 10, isRandom: true, updatedAt: new Date().toISOString(),
           questions: [
-            {
-              id: 'q1',
-              type: 'choice4',
-              text: '「Webページのレイアウトやスタイル装飾を指定するための言語」はどれですか？',
-              score: 10,
-              explanation: 'CSS (Cascading Style Sheets) はWebページの見た目やレイアウトを飾る言語です。',
-              options: ['HTML', 'CSS', 'JavaScript', 'SQL'],
-              answer: '1'
-            }
+            { id: 'q1', type: 'choice4', text: '「Webページのレイアウトやスタイル装飾を指定するための言語」はどれですか？', score: 10, explanation: 'CSS (Cascading Style Sheets) は見た目を装飾する言語です。', options: ['HTML', 'CSS', 'JavaScript', 'SQL'], answer: '1' }
           ]
         }
       ],
       wordbooks: [
         {
-          id: 'wb-sample-1',
-          title: '【サンプル】基本英単語帳',
-          passRatio: 80,
-          timeLimit: 0,
-          isRandom: true,
-          updatedAt: new Date().toISOString(),
+          id: 'wb-sample-1', title: '【サンプル】基本英単語帳', passRatio: 80, timeLimit: 0, isRandom: true, updatedAt: new Date().toISOString(),
           words: [
             { id: 'w1', front: 'apple', back: 'りんご', memo: '名詞', historyLogs: [], lastResult: null },
-            { id: 'w2', front: 'banana', back: 'バナナ', memo: '名詞', historyLogs: [], lastResult: null },
-            { id: 'w3', front: 'computer', back: 'コンピュータ', memo: '名詞', historyLogs: [], lastResult: null }
+            { id: 'w2', front: 'banana', back: 'バナナ', memo: '名詞', historyLogs: [], lastResult: null }
           ]
         }
       ],
-      histories: [],
-      wordbookHistories: [],
-      user: {
-        level: 1,
-        exp: 0,
-        totalQuestionsSolved: 0,
-        totalStudySeconds: 0,
-        lastStudyDate: null,
-        streakDays: 0,
-        unlockedBadges: [],
-        dailyStudyLogs: {},
-        dailyMissions: { lastDate: '', login: false, solved10: false, passedOne: false, completedCount: 0 }
-      }
+      histories: [], wordbookHistories: [],
+      user: { level: 1, exp: 0, totalQuestionsSolved: 0, totalStudySeconds: 0, lastStudyDate: null, streakDays: 0, unlockedBadges: [], dailyStudyLogs: {}, dailyMissions: { lastDate: '', login: false, solved10: false, passedOne: false, completedCount: 0 } }
     };
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -1015,10 +914,7 @@
       renderDashboard();
       renderQuizList();
       renderWordbookList();
-
-      setInterval(() => {
-        checkAndResetDailyMissions();
-      }, 60000);
+      setInterval(() => { checkAndResetDailyMissions(); }, 60000);
     });
 
     window.addEventListener('focus', () => {
@@ -1037,39 +933,21 @@
           if (!appData.user.dailyStudyLogs) appData.user.dailyStudyLogs = {};
           if (!appData.user.unlockedBadges) appData.user.unlockedBadges = [];
           if (!appData.user.dailyMissions) appData.user.dailyMissions = { lastDate: '', login: false, solved10: false, passedOne: false, completedCount: 0 };
-          
-          appData.wordbooks.forEach(wb => {
-            if (wb.passRatio === undefined) wb.passRatio = 80;
-            if (wb.timeLimit === undefined) wb.timeLimit = 0;
-            if (wb.isRandom === undefined) wb.isRandom = true;
-            (wb.words || []).forEach(w => {
-              if (!w.historyLogs) w.historyLogs = [];
-            });
-          });
-        } catch (e) {
-          appData = JSON.parse(JSON.stringify(sampleData));
-        }
+        } catch (e) { appData = JSON.parse(JSON.stringify(sampleData)); }
       } else {
         appData = JSON.parse(JSON.stringify(sampleData));
         saveLocalStorage();
       }
     }
 
-    function saveLocalStorage() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
-    }
+    function saveLocalStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); }
 
     function checkAndResetDailyMissions() {
       const todayStr = new Date().toISOString().slice(0, 10);
       const m = appData.user.dailyMissions;
       if (m.lastDate !== todayStr) {
-        m.lastDate = todayStr;
-        m.login = true;
-        m.solved10 = false;
-        m.passedOne = false;
-        m.allClearedRecorded = false;
-        saveLocalStorage();
-        updateHeaderMissionBadge();
+        m.lastDate = todayStr; m.login = true; m.solved10 = false; m.passedOne = false; m.allClearedRecorded = false;
+        saveLocalStorage(); updateHeaderMissionBadge();
       }
     }
 
@@ -1078,13 +956,9 @@
       const todayLog = (appData.user.dailyStudyLogs || {})[new Date().toISOString().slice(0, 10)];
       const todaySolvedCount = (typeof todayLog === 'object') ? (todayLog.questionsSolved || 0) : 0;
       if (todaySolvedCount >= 10) m.solved10 = true;
-
       const badge = document.getElementById('header-mission-badge');
-      if (m.login && m.solved10 && m.passedOne) {
-        badge.classList.remove('hidden');
-      } else {
-        badge.classList.add('hidden');
-      }
+      if (m.login && m.solved10 && m.passedOne) badge.classList.remove('hidden');
+      else badge.classList.add('hidden');
     }
 
     function openDailyMissionsModal() {
@@ -1092,122 +966,83 @@
       const container = document.getElementById('modal-daily-missions-container');
       container.innerHTML = '';
       const m = appData.user.dailyMissions;
-
       const todayLog = (appData.user.dailyStudyLogs || {})[new Date().toISOString().slice(0, 10)];
       const todaySolvedCount = (typeof todayLog === 'object') ? (todayLog.questionsSolved || 0) : 0;
       if (todaySolvedCount >= 10) m.solved10 = true;
 
       const missions = [
-        { key: 'login', title: '☀️ 今日のログイン', desc: 'アプリを起動して学習準備完了', done: m.login },
-        { key: 'solved10', title: '✍️ 本日10問回答', desc: `今日解いた問題・単語: ${todaySolvedCount}/10問`, done: m.solved10 },
-        { key: 'passedOne', title: '🎯 本日1回合格クリア', desc: '問題集合格または単語帳完走', done: m.passedOne }
+        { key: 'login', title: '☀️ ログイン', desc: 'アプリを起動', done: m.login },
+        { key: 'solved10', title: '✍️ 10問回答', desc: `今日進めた数: ${todaySolvedCount}/10問`, done: m.solved10 },
+        { key: 'passedOne', title: '🎯 1回合格クリア', desc: '問題集または単語帳を完了', done: m.passedOne }
       ];
 
       let allCleared = true;
       missions.forEach(item => {
         if (!item.done) allCleared = false;
         container.innerHTML += `
-          <div class="p-3 rounded-xl border flex items-center justify-between text-xs ${item.done ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600'}">
-            <div>
-              <p class="font-bold text-sm">${item.title}</p>
-              <p class="text-xs text-slate-500">${item.desc}</p>
-            </div>
-            <div>
-              ${item.done ? '<span class="px-2.5 py-1 bg-emerald-600 text-white text-xs rounded-full font-bold">達成！</span>' : '<span class="px-2.5 py-1 bg-slate-200 text-slate-500 text-xs rounded-full">未達成</span>'}
-            </div>
+          <div class="p-2.5 rounded-xl border flex items-center justify-between text-xs ${item.done ? 'bg-emerald-50 border-emerald-300 text-emerald-950' : 'bg-slate-50 border-slate-200 text-slate-600'}">
+            <div><p class="font-bold">${item.title}</p><p class="text-[10px] text-slate-500">${item.desc}</p></div>
+            <div>${item.done ? '<span class="px-2 py-0.5 bg-emerald-600 text-white text-[10px] rounded-full font-bold">達成！</span>' : '<span class="px-2 py-0.5 bg-slate-200 text-slate-500 text-[10px] rounded-full">未</span>'}</div>
           </div>
         `;
       });
 
       if (allCleared && !m.allClearedRecorded) {
-        m.allClearedRecorded = true;
-        m.completedCount = (m.completedCount || 0) + 1;
-        saveLocalStorage();
+        m.allClearedRecorded = true; m.completedCount = (m.completedCount || 0) + 1; saveLocalStorage();
       }
-
       updateHeaderMissionBadge();
       document.getElementById('daily-missions-modal').classList.remove('hidden');
     }
 
     function getUserTitleInfo(level) {
-      for (const step of TITLE_STEPS) {
-        if (level >= step.minLv) return step;
-      }
+      for (const step of TITLE_STEPS) { if (level >= step.minLv) return step; }
       return TITLE_STEPS[TITLE_STEPS.length - 1];
     }
 
     function startSpeechRecognition(targetInputId) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        alert('お使いのブラウザは音声入力に対応していません。');
-        return;
-      }
-
+      if (!SpeechRecognition) { alert('お使いのブラウザは音声入力に対応していません。'); return; }
       const recognition = new SpeechRecognition();
-      recognition.lang = 'ja-JP';
-      recognition.interimResults = false;
-
+      recognition.lang = 'ja-JP'; recognition.interimResults = false;
       const targetEl = document.getElementById(targetInputId);
       if (!targetEl) return;
-
       const originalPlaceholder = targetEl.placeholder || '';
-      targetEl.placeholder = '🎤 音声を聞き取っています...（お話ください）';
+      targetEl.placeholder = '🎤 音声聞き取り中...';
       targetEl.classList.add('bg-indigo-50/80', 'ring-2', 'ring-indigo-400');
-
       recognition.onresult = function(event) {
         const transcript = event.results[0][0].transcript;
         targetEl.value = (targetEl.value ? targetEl.value + ' ' : '') + transcript;
         targetEl.dispatchEvent(new Event('input', { bubbles: true }));
         targetEl.dispatchEvent(new Event('change', { bubbles: true }));
       };
-
-      recognition.onerror = function() {
+      recognition.onerror = recognition.onend = function() {
         targetEl.placeholder = originalPlaceholder;
         targetEl.classList.remove('bg-indigo-50/80', 'ring-2', 'ring-indigo-400');
       };
-
-      recognition.onend = function() {
-        targetEl.placeholder = originalPlaceholder;
-        targetEl.classList.remove('bg-indigo-50/80', 'ring-2', 'ring-indigo-400');
-      };
-
       recognition.start();
     }
 
     function speakTextAutoLang(text) {
-      if (!('speechSynthesis' in window)) {
-        alert('お使いのブラウザは音声合成に対応していません。');
-        return;
-      }
+      if (!('speechSynthesis' in window)) return;
       if (!text || text.trim() === '') return;
-
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      const hasEnglish = /[a-zA-Z]/.test(text);
-      utterance.lang = hasEnglish ? 'en-US' : 'ja-JP';
+      utterance.lang = /[a-zA-Z]/.test(text) ? 'en-US' : 'ja-JP';
       window.speechSynthesis.speak(utterance);
     }
 
-    // 文字列の高度な正規化（音声入力時の句読点、スペース、大文字小文字の差異による誤答を防ぐ）
     function normalizeText(str) {
       if (!str) return '';
-      return String(str)
-        .toLowerCase()
-        .trim()
-        .replace(/[\s ]+/g, '') // 全角・半角スペースをすべて削除
-        .replace(/[.,。、！？!?・ー〜〜]/g, ''); // 句読点や記号を削除
+      return String(str).toLowerCase().trim().replace(/[\s ]+/g, '').replace(/[.,。、！？!?・ー〜〜]/g, '');
     }
 
-    // 全データ & 全ステータスの完全初期化（全リセット）
     function confirmResetAllData() {
-      if (confirm('【注意】「連続学習日数」「解いた問題数」「総学習時間」「称号」「レベル」「問題集」「単語帳」など、全てのデータを完全に初期化しますか？')) {
+      if (confirm('全ての学習データ・レベル・記録を完全に初期化しますか？')) {
         localStorage.removeItem(STORAGE_KEY);
         appData = JSON.parse(JSON.stringify(sampleData));
         saveLocalStorage();
-        renderDashboard();
-        renderQuizList();
-        renderWordbookList();
-        alert('すべての学習データ・レベル・記録を初期化しました。');
+        renderDashboard(); renderQuizList(); renderWordbookList();
+        alert('初期化完了しました。');
       }
     }
 
@@ -1216,11 +1051,16 @@
       document.getElementById(screenId).classList.add('active');
       window.scrollTo(0, 0);
 
+      // 回答画面閲覧時はbodyに in-session クラスを付与し、ダッシュボード領域を非表示にして省スクロール化
+      if (screenId === 'answer-screen' || screenId === 'wordbook-answer-screen') {
+        document.body.classList.add('in-session');
+      } else {
+        document.body.classList.remove('in-session');
+      }
+
       if (screenId === 'list-screen') {
         checkAndResetDailyMissions();
-        renderDashboard();
-        renderQuizList();
-        renderWordbookList();
+        renderDashboard(); renderQuizList(); renderWordbookList();
       }
     }
 
@@ -1229,35 +1069,24 @@
       const u = appData.user;
       const lvlInfo = calculateLevelFromExp(u.exp || 0);
       u.level = lvlInfo.level;
-
-      BADGES.forEach(b => {
-        if (!u.unlockedBadges.includes(b.id) && b.check(u)) {
-          u.unlockedBadges.push(b.id);
-        }
-      });
-
+      BADGES.forEach(b => { if (!u.unlockedBadges.includes(b.id) && b.check(u)) u.unlockedBadges.push(b.id); });
       const titleInfo = getUserTitleInfo(u.level);
 
       document.getElementById('user-level').innerText = u.level;
-      const expPercent = Math.min(100, Math.round((lvlInfo.currentExp / lvlInfo.requiredExp) * 100));
-      document.getElementById('user-exp-bar').style.width = `${expPercent}%`;
       document.getElementById('user-title').innerText = titleInfo.title;
-
       document.getElementById('dash-streak').innerText = u.streakDays || 0;
       document.getElementById('dash-total-q').innerText = u.totalQuestionsSolved || 0;
       document.getElementById('dash-study-time').innerText = Math.floor((u.totalStudySeconds || 0) / 60);
       document.getElementById('dash-badge-count').innerText = u.unlockedBadges.length;
-
       updateHeaderMissionBadge();
     }
 
-    // --- 問題集 関連関数 ---
+    // --- 問題集 一覧 & 操作 ---
     function renderQuizList() {
       const tbody = document.getElementById('quiz-table-body');
       tbody.innerHTML = '';
-
       if (appData.quizzes.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-slate-400">問題集がありません。</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center p-4 text-slate-400">問題集がありません。</td></tr>`;
         return;
       }
 
@@ -1265,33 +1094,32 @@
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50 transition';
         const timeLimitText = quiz.timeLimit ? `${quiz.timeLimit}分` : 'なし';
-        const passRatioText = `${quiz.passRatio || 80}%`;
         const weakCount = getWeakQuestions(quiz.id).length;
 
         tr.innerHTML = `
-          <td class="p-3.5 font-semibold text-slate-800">${escapeHtml(quiz.title)}</td>
-          <td class="p-3.5 text-center text-slate-600">${quiz.questions.length}</td>
-          <td class="p-3.5 text-center font-bold text-emerald-600 text-xs">${passRatioText}</td>
-          <td class="p-3.5 text-center text-slate-500 text-xs">${timeLimitText}</td>
-          <td class="p-3.5 text-center">
+          <td class="p-3 font-semibold text-slate-800">${escapeHtml(quiz.title)}</td>
+          <td class="p-3 text-center text-slate-600">${quiz.questions.length}</td>
+          <td class="p-3 text-center font-bold text-emerald-600 text-xs">${quiz.passRatio || 80}%</td>
+          <td class="p-3 text-center text-slate-500 text-xs">${timeLimitText}</td>
+          <td class="p-3 text-center">
             <label class="inline-flex items-center cursor-pointer">
               <input type="checkbox" ${quiz.isRandom ? 'checked' : ''} onchange="toggleQuizRandom('${quiz.id}', this.checked)" class="sr-only peer">
-              <div class="relative w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div class="relative w-7 h-3.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-indigo-600"></div>
             </label>
           </td>
-          <td class="p-3.5 text-center">
-            <div class="flex items-center justify-center gap-1.5 flex-wrap">
-              <button onclick="startQuizDirect('${quiz.id}', false)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-medium transition flex items-center gap-1">
+          <td class="p-3 text-center">
+            <div class="flex items-center justify-center gap-1 flex-wrap">
+              <button onclick="startQuizDirect('${quiz.id}', false)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1">
                 <i class="fa-solid fa-play"></i> 回答
               </button>
               ${weakCount > 0 ? `
-                <button onclick="startQuizDirect('${quiz.id}', true)" class="bg-red-500 hover:bg-red-600 text-white px-2.5 py-1.5 rounded text-xs font-medium transition flex items-center gap-1">
+                <button onclick="startQuizDirect('${quiz.id}', true)" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
                   <i class="fa-solid fa-bolt"></i> 弱点(${weakCount})
                 </button>
               ` : ''}
-              <button onclick="openEditForm('${quiz.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2 py-1.5 rounded text-xs font-medium transition">編集</button>
-              <button onclick="viewHistoryList('quiz', '${quiz.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2 py-1.5 rounded text-xs font-medium transition">分析</button>
-              <button onclick="deleteQuiz('${quiz.id}')" class="text-slate-400 hover:text-red-600 p-1 rounded transition"><i class="fa-solid fa-trash"></i></button>
+              <button onclick="openEditForm('${quiz.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border px-2 py-1 rounded text-xs">編集</button>
+              <button onclick="viewHistoryList('quiz', '${quiz.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border px-2 py-1 rounded text-xs">分析</button>
+              <button onclick="deleteQuiz('${quiz.id}')" class="text-slate-400 hover:text-red-600 p-1"><i class="fa-solid fa-trash"></i></button>
             </div>
           </td>
         `;
@@ -1315,13 +1143,8 @@
 
     function toggleCustomTimeInput(targetType, val) {
       const customInput = document.getElementById(`${targetType}-time-limit-custom`);
-      if (val === 'custom') {
-        customInput.classList.remove('hidden');
-        customInput.required = true;
-      } else {
-        customInput.classList.add('hidden');
-        customInput.required = false;
-      }
+      if (val === 'custom') { customInput.classList.remove('hidden'); customInput.required = true; }
+      else { customInput.classList.add('hidden'); customInput.required = false; }
     }
 
     function openCreateForm() {
@@ -1332,14 +1155,12 @@
       document.getElementById('quiz-time-limit-select').value = '0';
       toggleCustomTimeInput('quiz', '0');
       document.getElementById('questions-container').innerHTML = '';
-      addQuestionCard();
-      showScreen('edit-screen');
+      addQuestionCard(); showScreen('edit-screen');
     }
 
     function openEditForm(quizId) {
       const quiz = appData.quizzes.find(q => q.id === quizId);
       if (!quiz) return;
-
       currentEditingQuizId = quizId;
       document.getElementById('edit-screen-title').innerText = '問題集の編集';
       document.getElementById('quiz-title').value = quiz.title;
@@ -1347,21 +1168,16 @@
 
       const timeSelect = document.getElementById('quiz-time-limit-select');
       const timeCustom = document.getElementById('quiz-time-limit-custom');
-
-      const presetValues = ['0', '5', '10', '15', '30', '60'];
+      const presetValues = ['0', '5', '10', '15', '30'];
       if (presetValues.includes(String(quiz.timeLimit || 0))) {
-        timeSelect.value = String(quiz.timeLimit || 0);
-        toggleCustomTimeInput('quiz', String(quiz.timeLimit || 0));
+        timeSelect.value = String(quiz.timeLimit || 0); toggleCustomTimeInput('quiz', String(quiz.timeLimit || 0));
       } else {
-        timeSelect.value = 'custom';
-        toggleCustomTimeInput('quiz', 'custom');
-        timeCustom.value = quiz.timeLimit;
+        timeSelect.value = 'custom'; toggleCustomTimeInput('quiz', 'custom'); timeCustom.value = quiz.timeLimit;
       }
 
       const container = document.getElementById('questions-container');
       container.innerHTML = '';
       quiz.questions.forEach(q => addQuestionCard(q));
-
       showScreen('edit-screen');
     }
 
@@ -1369,7 +1185,7 @@
       const container = document.getElementById('questions-container');
       const qIndex = container.children.length;
       const card = document.createElement('div');
-      card.className = 'q-card bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 space-y-4 relative';
+      card.className = 'q-card bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-slate-200 space-y-3 relative';
       
       const type = qData ? qData.type : 'choice4';
       const score = qData ? qData.score : 10;
@@ -1379,40 +1195,37 @@
       const qExpId = `q-exp-input-${cardId}`;
 
       card.innerHTML = `
-        <button type="button" onclick="this.closest('.q-card').remove(); reindexQuestionCards();" class="absolute top-4 right-4 text-slate-400 hover:text-red-500">
+        <button type="button" onclick="this.closest('.q-card').remove(); reindexQuestionCards();" class="absolute top-3 right-3 text-slate-400 hover:text-red-500">
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
         <div class="flex items-center gap-2 mb-1">
-          <span class="q-number bg-slate-200 text-slate-700 font-bold px-2.5 py-0.5 rounded text-xs">設問 ${qIndex + 1}</span>
+          <span class="q-number bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded text-xs">設問 ${qIndex + 1}</span>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div class="sm:col-span-2">
-            <label class="block text-xs font-medium text-slate-600 mb-1">設問タイプ</label>
-            <select onchange="renderOptionsInput(this.closest('.q-card'))" class="q-type w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm bg-slate-50">
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">設問タイプ</label>
+            <select onchange="renderOptionsInput(this.closest('.q-card'))" class="q-type w-full border border-slate-300 rounded-lg p-1.5 text-xs bg-slate-50">
               <option value="choice4" ${type==='choice4'?'selected':''}>4択問題（単一選択）</option>
-              <option value="multi" ${type==='multi'?'selected':''}>複数選択問題（チェックボックス）</option>
+              <option value="multi" ${type==='multi'?'selected':''}>複数選択問題</option>
               <option value="tf" ${type==='tf'?'selected':''}>○×問題</option>
               <option value="text" ${type==='text'?'selected':''}>自由記述問題</option>
               <option value="cloze" ${type==='cloze'?'selected':''}>穴埋め問題</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">配点</label>
-            <input type="number" min="1" value="${score}" class="q-score w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm">
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">配点</label>
+            <input type="number" min="1" value="${score}" class="q-score w-full border border-slate-300 rounded-lg p-1.5 text-xs">
           </div>
         </div>
-        <div class="q-options-area bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-3"></div>
+        <div class="q-options-area bg-slate-50 p-2.5 rounded-lg border border-slate-200 space-y-2"></div>
         <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">解説（任意）</label>
-          <div class="flex gap-2">
-            <textarea id="${qExpId}" rows="2" placeholder="正解の理由や補足解説" class="q-explanation w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm text-slate-700">${escapeHtml(explanation)}</textarea>
-            <button type="button" onclick="startSpeechRecognition('${qExpId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0" title="音声入力">
-              <i class="fa-solid fa-microphone"></i>
-            </button>
+          <label class="block text-[11px] font-medium text-slate-600 mb-1">解説（任意）</label>
+          <div class="flex gap-1.5">
+            <textarea id="${qExpId}" rows="1" placeholder="解説を入力" class="q-explanation w-full border border-slate-300 rounded-lg p-1.5 text-xs text-slate-700">${escapeHtml(explanation)}</textarea>
+            <button type="button" onclick="startSpeechRecognition('${qExpId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-2.5 rounded-lg text-xs hover:bg-indigo-100 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-microphone"></i></button>
           </div>
         </div>
       `;
-
       container.appendChild(card);
       renderOptionsInput(card, qData);
     }
@@ -1431,35 +1244,33 @@
 
       if (type === 'choice4' || type === 'multi') {
         const isMulti = type === 'multi';
-        const defaultCount = 4;
         const text = qData ? qData.text : '';
-        
         let answer = qData ? qData.answer : (isMulti ? ['0'] : '0');
         if (isMulti && !Array.isArray(answer)) answer = [String(answer)];
-
         const qTextId = `q-text-${cardId}`;
+
         let html = `
           <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">問題文 <span class="text-red-500">*</span></label>
-            <div class="flex gap-2">
-              <textarea id="${qTextId}" rows="2" required placeholder="問題文を入力" class="q-text w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm bg-white">${escapeHtml(text)}</textarea>
-              <button type="button" onclick="startSpeechRecognition('${qTextId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-microphone"></i></button>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">問題文 <span class="text-red-500">*</span></label>
+            <div class="flex gap-1.5">
+              <textarea id="${qTextId}" rows="2" required placeholder="問題文を入力" class="q-text w-full border border-slate-300 rounded-lg p-1.5 text-xs bg-white">${escapeHtml(text)}</textarea>
+              <button type="button" onclick="startSpeechRecognition('${qTextId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-2.5 rounded-lg text-xs hover:bg-indigo-100 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-microphone"></i></button>
             </div>
           </div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1 pt-1">選択肢と正解チェック</label>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">選択肢と正解</label>
         `;
 
-        for (let idx = 0; idx < defaultCount; idx++) {
+        for (let idx = 0; idx < 4; idx++) {
           const optVal = (qData && qData.options && qData.options[idx] !== undefined) ? qData.options[idx] : '';
           const idxStr = String(idx);
           const isChecked = isMulti ? (Array.isArray(answer) && answer.includes(idxStr)) : (String(answer) === idxStr);
           const optInputId = `q-opt-${cardId}-${idx}`;
 
           html += `
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5">
               <input type="${isMulti ? 'checkbox' : 'radio'}" name="q-radio-${cardId}" value="${idx}" class="q-ans-check w-4 h-4 text-indigo-600" ${isChecked ? 'checked' : ''}>
-              <input type="text" id="${optInputId}" value="${escapeHtml(optVal)}" placeholder="選択肢 ${idx + 1}" required class="q-opt-text flex-grow border border-slate-300 rounded px-2.5 py-1 text-xs sm:text-sm bg-white">
-              <button type="button" onclick="startSpeechRecognition('${optInputId}')" class="text-indigo-600 px-2 py-1 text-xs"><i class="fa-solid fa-microphone"></i></button>
+              <input type="text" id="${optInputId}" value="${escapeHtml(optVal)}" placeholder="選択肢 ${idx + 1}" required class="q-opt-text flex-grow border border-slate-300 rounded px-2 py-1 text-xs bg-white">
+              <button type="button" onclick="startSpeechRecognition('${optInputId}')" class="text-indigo-600 px-1 text-xs"><i class="fa-solid fa-microphone"></i></button>
             </div>
           `;
         }
@@ -1472,22 +1283,16 @@
 
         area.innerHTML = `
           <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">問題文 <span class="text-red-500">*</span></label>
-            <div class="flex gap-2">
-              <textarea id="${qTextId}" rows="2" required placeholder="問題文を入力" class="q-text w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm bg-white">${escapeHtml(text)}</textarea>
-              <button type="button" onclick="startSpeechRecognition('${qTextId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-microphone"></i></button>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">問題文 <span class="text-red-500">*</span></label>
+            <div class="flex gap-1.5">
+              <textarea id="${qTextId}" rows="2" required placeholder="問題文を入力" class="q-text w-full border border-slate-300 rounded-lg p-1.5 text-xs bg-white">${escapeHtml(text)}</textarea>
+              <button type="button" onclick="startSpeechRecognition('${qTextId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-2.5 rounded-lg text-xs hover:bg-indigo-100 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-microphone"></i></button>
             </div>
           </div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1 pt-1">正解を選択</label>
-          <div class="flex gap-6">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="q-tf-${cardId}" value="0" class="q-ans-check w-4 h-4 text-indigo-600" ${String(answer)==='0'?'checked':''}>
-              <span class="text-xs sm:text-sm">○（正しい）</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="q-tf-${cardId}" value="1" class="q-ans-check w-4 h-4 text-indigo-600" ${String(answer)==='1'?'checked':''}>
-              <span class="text-xs sm:text-sm">×（誤り）</span>
-            </label>
+          <label class="block text-[11px] font-semibold text-slate-600 mb-0.5">正解</label>
+          <div class="flex gap-4 text-xs">
+            <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="q-tf-${cardId}" value="0" class="q-ans-check" ${String(answer)==='0'?'checked':''}> ○（正しい）</label>
+            <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="q-tf-${cardId}" value="1" class="q-ans-check" ${String(answer)==='1'?'checked':''}> ×（誤り）</label>
           </div>
         `;
 
@@ -1499,37 +1304,33 @@
 
         area.innerHTML = `
           <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">問題文 <span class="text-red-500">*</span></label>
-            <div class="flex gap-2">
-              <textarea id="${qTextId}" rows="2" required placeholder="問題文を入力" class="q-text w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm bg-white">${escapeHtml(text)}</textarea>
-              <button type="button" onclick="startSpeechRecognition('${qTextId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-microphone"></i></button>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">問題文 <span class="text-red-500">*</span></label>
+            <div class="flex gap-1.5">
+              <textarea id="${qTextId}" rows="2" required placeholder="問題文を入力" class="q-text w-full border border-slate-300 rounded-lg p-1.5 text-xs bg-white">${escapeHtml(text)}</textarea>
+              <button type="button" onclick="startSpeechRecognition('${qTextId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-2.5 rounded-lg text-xs hover:bg-indigo-100 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-microphone"></i></button>
             </div>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">正解キーワード</label>
-            <div class="flex gap-2">
-              <input type="text" id="${optTextAnsId}" value="${escapeHtml(answer)}" required placeholder="正解となる言葉を入力" class="q-text-ans w-full border border-slate-300 rounded px-3 py-1.5 text-xs sm:text-sm bg-white">
-              <button type="button" onclick="startSpeechRecognition('${optTextAnsId}')" class="text-indigo-600 px-2.5 py-1 text-xs border border-indigo-200 rounded"><i class="fa-solid fa-microphone"></i></button>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">正解キーワード</label>
+            <div class="flex gap-1.5">
+              <input type="text" id="${optTextAnsId}" value="${escapeHtml(answer)}" required placeholder="正解ワード" class="q-text-ans w-full border border-slate-300 rounded px-2 py-1 text-xs bg-white">
+              <button type="button" onclick="startSpeechRecognition('${optTextAnsId}')" class="text-indigo-600 px-2 text-xs border rounded"><i class="fa-solid fa-microphone"></i></button>
             </div>
           </div>
         `;
-
       } else if (type === 'cloze') {
         const clozePairs = (qData && qData.clozePairs) ? qData.clozePairs : [{ prefix: '', answer: '', suffix: '' }];
-        let clozeHtml = `<label class="block text-xs font-semibold text-slate-700">穴埋め文章設定</label><div class="cloze-pairs-container space-y-3">`;
-
+        let clozeHtml = `<label class="block text-[11px] font-semibold text-slate-700">穴埋め文章設定</label><div class="cloze-pairs-container space-y-2">`;
         clozePairs.forEach((pair, pIdx) => {
           const preId = `cloze-pre-${cardId}-${pIdx}`;
           const ansId = `cloze-ans-${cardId}-${pIdx}`;
           const sufId = `cloze-suf-${cardId}-${pIdx}`;
-
           clozeHtml += `
-            <div class="cloze-pair-row p-3 bg-white rounded-xl border border-slate-300 space-y-2 relative">
-              <div class="flex justify-between items-center"><span class="text-[11px] font-bold text-indigo-700">穴 ${pIdx + 1}</span></div>
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <input type="text" id="${preId}" value="${escapeHtml(pair.prefix || '')}" placeholder="前文" class="cloze-prefix-input border rounded p-1.5 text-xs">
-                <input type="text" id="${ansId}" value="${escapeHtml(pair.answer || '')}" placeholder="穴の正解" class="cloze-answer-input border-2 border-amber-400 bg-amber-50 rounded p-1.5 text-xs font-bold" required>
-                <input type="text" id="${sufId}" value="${escapeHtml(pair.suffix || '')}" placeholder="後文" class="cloze-suffix-input border rounded p-1.5 text-xs" required>
+            <div class="cloze-pair-row p-2 bg-white rounded-lg border border-slate-300 space-y-1">
+              <div class="grid grid-cols-3 gap-1">
+                <input type="text" id="${preId}" value="${escapeHtml(pair.prefix || '')}" placeholder="前文" class="cloze-prefix-input border rounded p-1 text-xs">
+                <input type="text" id="${ansId}" value="${escapeHtml(pair.answer || '')}" placeholder="穴の正解" class="cloze-answer-input border border-amber-400 bg-amber-50 rounded p-1 text-xs font-bold" required>
+                <input type="text" id="${sufId}" value="${escapeHtml(pair.suffix || '')}" placeholder="後文" class="cloze-suffix-input border rounded p-1 text-xs">
               </div>
             </div>
           `;
@@ -1562,7 +1363,7 @@
           text = card.querySelector('.q-text').value.trim();
           card.querySelectorAll('.q-opt-text').forEach(i => options.push(i.value.trim()));
           const checked = card.querySelectorAll('.q-ans-check:checked');
-          if (checked.length === 0) { alert(`設問 ${idx + 1} の正解が選択されていません。`); isValid = false; return; }
+          if (checked.length === 0) { alert(`設問 ${idx + 1} の正解を選択してください。`); isValid = false; return; }
           answer = (type === 'multi') ? Array.from(checked).map(c => c.value) : checked[0].value;
         } else if (type === 'tf') {
           text = card.querySelector('.q-text').value.trim();
@@ -1595,16 +1396,14 @@
         appData.quizzes.unshift({ id: 'quiz_' + Math.random().toString(36).substr(2, 9), title, passRatio, timeLimit, isRandom: true, questions });
       }
 
-      saveLocalStorage();
-      showScreen('list-screen');
+      saveLocalStorage(); showScreen('list-screen');
     }
 
     function deleteQuiz(quizId) {
-      if (!confirm('この問題集を削除しますか？')) return;
+      if (!confirm('削除しますか？')) return;
       appData.quizzes = appData.quizzes.filter(q => q.id !== quizId);
       appData.histories = appData.histories.filter(h => h.quizId !== quizId);
-      saveLocalStorage();
-      renderQuizList();
+      saveLocalStorage(); renderQuizList();
     }
 
     function startQuizDirect(quizId, isWeakOnly = false) {
@@ -1616,7 +1415,7 @@
       if (quiz.isRandom) questions.sort(() => Math.random() - 0.5);
 
       activeSession = {
-        quizId: quiz.id, quizTitle: quiz.title + (isWeakOnly ? ' (弱点復習)' : ''),
+        quizId: quiz.id, quizTitle: quiz.title + (isWeakOnly ? ' (弱点)' : ''),
         passRatio: quiz.passRatio || 80, questions, currentIndex: 0, userAnswers: {},
         timeLimitMinutes: quiz.timeLimit || 0, remainingSeconds: (quiz.timeLimit || 0) * 60, startTime: Date.now()
       };
@@ -1628,7 +1427,7 @@
         timerInterval = setInterval(() => {
           activeSession.remainingSeconds--;
           updateTimerDisplay();
-          if (activeSession.remainingSeconds <= 0) { clearInterval(timerInterval); alert('制限時間です。採点します。'); gradeCurrentSession(); }
+          if (activeSession.remainingSeconds <= 0) { clearInterval(timerInterval); alert('時間切れです。採点します。'); gradeCurrentSession(); }
         }, 1000);
       } else { document.getElementById('timer-container').classList.add('hidden'); }
 
@@ -1646,7 +1445,7 @@
       const total = activeSession.questions.length;
       const curr = activeSession.currentIndex + 1;
 
-      document.getElementById('answer-progress-text').innerText = `設問 ${curr} / ${total}`;
+      document.getElementById('answer-progress-text').innerText = `問題 ${curr} / ${total}`;
       document.getElementById('answer-score-info').innerText = `${q.score}点`;
 
       const palette = document.getElementById('question-jump-palette');
@@ -1657,7 +1456,7 @@
         const hasAns = saved !== undefined && saved !== '' && (Array.isArray(saved) ? saved.some(v => v !== '') : true);
         let st = hasAns ? "bg-indigo-100 border-indigo-300 text-indigo-700 font-bold" : "bg-slate-100 border-slate-300 text-slate-600";
         if (isCurrent) st = "bg-indigo-600 border-indigo-600 text-white font-bold ring-2 ring-indigo-300";
-        palette.innerHTML += `<button onclick="jumpToQuestion(${idx})" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border text-xs flex items-center justify-center transition ${st}">${idx+1}</button>`;
+        palette.innerHTML += `<button onclick="jumpToQuestion(${idx})" class="w-6 h-6 rounded border text-[11px] flex items-center justify-center transition ${st}">${idx+1}</button>`;
       });
 
       const badgeMap = { choice4: '4択問題', multi: '複数選択問題', tf: '○×問題', text: '自由記述問題', cloze: '穴埋め問題' };
@@ -1669,15 +1468,15 @@
       const savedAns = activeSession.userAnswers[q.id];
 
       if (q.type === 'cloze') {
-        qContainer.innerHTML = `<p class="text-xs text-slate-400 mb-1.5">空欄に当てはまる言葉を入力してください。</p>`;
-        let html = `<div class="flex flex-wrap items-center gap-y-3 gap-x-1.5 text-base sm:text-lg text-slate-800 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200">`;
+        qContainer.innerHTML = `<p class="text-xs text-slate-400 mb-1">穴埋め問題:</p>`;
+        let html = `<div class="flex flex-wrap items-center gap-y-2 gap-x-1 text-sm sm:text-base text-slate-800 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200">`;
         (q.clozePairs || []).forEach((pair, pIdx) => {
           const uVals = Array.isArray(savedAns) ? savedAns : [];
           const clozeInputId = `ans-cloze-${q.id}-${pIdx}`;
           html += `<span>${escapeHtml(pair.prefix || '')}</span>
                    <div class="inline-flex items-center gap-1">
-                     <input type="text" id="${clozeInputId}" value="${escapeHtml(uVals[pIdx] || '')}" oninput="saveClozeAnswer('${q.id}', ${pIdx}, this.value)" placeholder="答えを入力" class="border-2 border-indigo-400 rounded-lg px-2.5 py-1 text-sm font-bold text-indigo-900 bg-white w-28 sm:w-36 shadow-sm">
-                     <button type="button" onclick="startSpeechRecognition('${clozeInputId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-2.5 py-1 rounded-lg text-xs hover:bg-indigo-100 transition" title="音声入力"><i class="fa-solid fa-microphone"></i></button>
+                     <input type="text" id="${clozeInputId}" value="${escapeHtml(uVals[pIdx] || '')}" oninput="saveClozeAnswer('${q.id}', ${pIdx}, this.value)" placeholder="回答" class="border-2 border-indigo-400 rounded-lg px-2 py-0.5 text-xs font-bold text-indigo-900 bg-white w-24 sm:w-32">
+                     <button type="button" onclick="startSpeechRecognition('${clozeInputId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-2 py-0.5 rounded text-xs"><i class="fa-solid fa-microphone"></i></button>
                    </div>
                    <span>${escapeHtml(pair.suffix || '')}</span>`;
         });
@@ -1687,19 +1486,19 @@
         qContainer.innerText = q.text;
         if (q.type === 'choice4' || q.type === 'tf') {
           q.options.forEach((opt, idx) => {
-            area.innerHTML += `<label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-indigo-50/50 cursor-pointer transition"><input type="radio" name="ans-group" value="${idx}" onchange="saveCurrentAnswer('${q.id}', '${idx}', true)" ${savedAns === String(idx)?'checked':''} class="w-4 h-4 text-indigo-600"><span class="text-xs sm:text-sm font-medium text-slate-700">${escapeHtml(opt)}</span></label>`;
+            area.innerHTML += `<label class="flex items-center gap-2.5 p-2.5 rounded-lg border border-slate-200 hover:bg-indigo-50/50 cursor-pointer transition"><input type="radio" name="ans-group" value="${idx}" onchange="saveCurrentAnswer('${q.id}', '${idx}', true)" ${savedAns === String(idx)?'checked':''} class="w-4 h-4 text-indigo-600"><span class="text-xs sm:text-sm font-medium text-slate-700">${escapeHtml(opt)}</span></label>`;
           });
         } else if (q.type === 'multi') {
           q.options.forEach((opt, idx) => {
-            area.innerHTML += `<label class="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-indigo-50/50 cursor-pointer transition"><input type="checkbox" value="${idx}" onchange="saveMultiAnswer('${q.id}')" ${Array.isArray(savedAns)&&savedAns.includes(String(idx))?'checked':''} class="q-multi-check w-4 h-4 text-indigo-600 rounded"><span class="text-xs sm:text-sm font-medium text-slate-700">${escapeHtml(opt)}</span></label>`;
+            area.innerHTML += `<label class="flex items-center gap-2.5 p-2.5 rounded-lg border border-slate-200 hover:bg-indigo-50/50 cursor-pointer transition"><input type="checkbox" value="${idx}" onchange="saveMultiAnswer('${q.id}')" ${Array.isArray(savedAns)&&savedAns.includes(String(idx))?'checked':''} class="q-multi-check w-4 h-4 text-indigo-600 rounded"><span class="text-xs sm:text-sm font-medium text-slate-700">${escapeHtml(opt)}</span></label>`;
           });
         } else if (q.type === 'text') {
           const ansInputId = `ans-text-${q.id}`;
           area.innerHTML = `
-            <div class="flex gap-2">
-              <input type="text" id="${ansInputId}" value="${escapeHtml(savedAns || '')}" oninput="saveCurrentAnswer('${q.id}', this.value, false)" placeholder="回答を入力（音声入力も使えます）" class="w-full border border-slate-300 rounded-lg p-3 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
-              <button type="button" onclick="startSpeechRecognition('${ansInputId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-4 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition flex items-center justify-center flex-shrink-0 shadow-sm" title="音声入力">
-                <i class="fa-solid fa-microphone text-base"></i>
+            <div class="flex gap-1.5">
+              <input type="text" id="${ansInputId}" value="${escapeHtml(savedAns || '')}" oninput="saveCurrentAnswer('${q.id}', this.value, false)" placeholder="回答を入力（音声ボタン利用可能）" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 bg-white">
+              <button type="button" onclick="startSpeechRecognition('${ansInputId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-100 flex items-center justify-center flex-shrink-0" title="音声入力">
+                <i class="fa-solid fa-microphone text-sm"></i>
               </button>
             </div>
           `;
@@ -1789,30 +1588,29 @@
       document.getElementById('res-score').innerText = record.score;
       document.getElementById('res-max-score').innerText = record.maxScore;
       document.getElementById('res-accuracy').innerText = `${record.ratio}%`;
-      document.getElementById('res-target-ratio').innerText = record.passRatio;
       document.getElementById('res-exp').innerText = record.earnedExp;
 
       const header = document.getElementById('result-header-card');
       if (record.ratio >= record.passRatio) {
         document.getElementById('result-icon-container').innerText = '🎉';
         document.getElementById('result-title').innerText = '合格おめでとうございます！';
-        header.className = 'bg-white p-6 sm:p-8 rounded-2xl shadow-lg border-2 border-emerald-400 text-center space-y-3';
-        confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 } });
+        header.className = 'bg-white p-5 rounded-2xl shadow border-2 border-emerald-400 text-center space-y-2';
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
       } else {
         document.getElementById('result-icon-container').innerText = '✍️';
         document.getElementById('result-title').innerText = '復習して再挑戦しましょう！';
-        header.className = 'bg-white p-6 sm:p-8 rounded-2xl shadow border border-slate-200 text-center space-y-3';
+        header.className = 'bg-white p-5 rounded-2xl shadow border text-center space-y-2';
       }
 
       const list = document.getElementById('result-detail-list');
       list.innerHTML = '';
       record.details.forEach((item, idx) => {
         list.innerHTML += `
-          <div class="p-3.5 rounded-xl border ${item.isCorrect?'border-emerald-200 bg-emerald-50/30':'border-red-200 bg-red-50/30'} space-y-1.5">
-            <p class="font-bold text-xs ${item.isCorrect?'text-emerald-700':'text-red-600'}">問${idx+1} (${item.isCorrect?'+'+item.question.score:'0'}点)</p>
-            <p class="font-semibold text-slate-800 text-xs sm:text-sm">${escapeHtml(item.question.text)}</p>
-            <p class="text-xs text-slate-600"><span class="font-semibold">回答:</span> ${formatAnsDisplay(item.question, item.userAns)} / <span class="font-semibold">正解:</span> ${formatAnsDisplay(item.question, item.question.answer)}</p>
-            ${item.question.explanation?`<p class="text-xs text-indigo-700 bg-white/80 p-2 rounded border"><strong class="text-indigo-900">解説:</strong> ${escapeHtml(item.question.explanation)}</p>`:''}
+          <div class="p-3 rounded-xl border ${item.isCorrect?'border-emerald-200 bg-emerald-50/30':'border-red-200 bg-red-50/30'} space-y-1 text-xs">
+            <p class="font-bold ${item.isCorrect?'text-emerald-700':'text-red-600'}">問${idx+1} (${item.isCorrect?'+'+item.question.score:'0'}点)</p>
+            <p class="font-semibold text-slate-800">${escapeHtml(item.question.text)}</p>
+            <p class="text-slate-600">回答: ${formatAnsDisplay(item.question, item.userAns)} / 正解: ${formatAnsDisplay(item.question, item.question.answer)}</p>
+            ${item.question.explanation?`<p class="text-indigo-700 bg-white/80 p-1.5 rounded border"><strong>解説:</strong> ${escapeHtml(item.question.explanation)}</p>`:''}
           </div>
         `;
       });
@@ -1829,42 +1627,40 @@
     function renderWordbookList() {
       const tbody = document.getElementById('wordbook-table-body');
       tbody.innerHTML = '';
-
       if (appData.wordbooks.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-slate-400">単語帳がありません。「新規単語帳を作成」から登録してください。</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center p-4 text-slate-400">単語帳がありません。</td></tr>`;
         return;
       }
 
       appData.wordbooks.forEach(wb => {
         const timeLimitText = wb.timeLimit ? `${wb.timeLimit}分` : 'なし';
-        const passRatioText = `${wb.passRatio || 80}%`;
         const weakCount = getWordbookWeakCount(wb.id);
 
         tbody.innerHTML += `
           <tr class="hover:bg-slate-50 transition">
-            <td class="p-3.5 font-semibold text-slate-800">${escapeHtml(wb.title)}</td>
-            <td class="p-3.5 text-center text-slate-600">${wb.words.length}単語</td>
-            <td class="p-3.5 text-center font-bold text-amber-600 text-xs">${passRatioText}</td>
-            <td class="p-3.5 text-center text-slate-500 text-xs">${timeLimitText}</td>
-            <td class="p-3.5 text-center">
+            <td class="p-3 font-semibold text-slate-800">${escapeHtml(wb.title)}</td>
+            <td class="p-3 text-center text-slate-600">${wb.words.length}単語</td>
+            <td class="p-3 text-center font-bold text-amber-600 text-xs">${wb.passRatio || 80}%</td>
+            <td class="p-3 text-center text-slate-500 text-xs">${timeLimitText}</td>
+            <td class="p-3 text-center">
               <label class="inline-flex items-center cursor-pointer">
                 <input type="checkbox" ${wb.isRandom !== false ? 'checked' : ''} onchange="toggleWordbookRandom('${wb.id}', this.checked)" class="sr-only peer">
-                <div class="relative w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-600"></div>
+                <div class="relative w-7 h-3.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:bg-amber-600"></div>
               </label>
             </td>
-            <td class="p-3.5 text-center">
-              <div class="flex items-center justify-center gap-1.5 flex-wrap">
-                <button onclick="openWordbookRangeModal('${wb.id}')" class="bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-1.5 rounded text-xs font-medium transition flex items-center gap-1">
+            <td class="p-3 text-center">
+              <div class="flex items-center justify-center gap-1 flex-wrap">
+                <button onclick="openWordbookRangeModal('${wb.id}')" class="bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1">
                   <i class="fa-solid fa-play"></i> 学習
                 </button>
                 ${weakCount > 0 ? `
-                  <button onclick="startWordbookWeakSession('${wb.id}')" class="bg-red-500 hover:bg-red-600 text-white px-2.5 py-1.5 rounded text-xs font-medium transition flex items-center gap-1">
+                  <button onclick="startWordbookWeakSession('${wb.id}')" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
                     <i class="fa-solid fa-bolt"></i> 苦手(${weakCount})
                   </button>
                 ` : ''}
-                <button onclick="openWordbookEditForm('${wb.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2.5 py-1.5 rounded text-xs font-medium transition">編集</button>
-                <button onclick="viewHistoryList('wordbook', '${wb.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2.5 py-1.5 rounded text-xs font-medium transition">分析</button>
-                <button onclick="deleteWordbook('${wb.id}')" class="text-slate-400 hover:text-red-600 p-1 rounded transition"><i class="fa-solid fa-trash"></i></button>
+                <button onclick="openWordbookEditForm('${wb.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border px-2 py-1 rounded text-xs">編集</button>
+                <button onclick="viewHistoryList('wordbook', '${wb.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border px-2 py-1 rounded text-xs">分析</button>
+                <button onclick="deleteWordbook('${wb.id}')" class="text-slate-400 hover:text-red-600 p-1"><i class="fa-solid fa-trash"></i></button>
               </div>
             </td>
           </tr>
@@ -1891,8 +1687,7 @@
       document.getElementById('wordbook-time-limit-select').value = '0';
       toggleCustomTimeInput('wordbook', '0');
       document.getElementById('words-container').innerHTML = '';
-      addWordCard();
-      showScreen('wordbook-edit-screen');
+      addWordCard(); showScreen('wordbook-edit-screen');
     }
 
     function openWordbookEditForm(wbId) {
@@ -1905,14 +1700,11 @@
 
       const timeSelect = document.getElementById('wordbook-time-limit-select');
       const timeCustom = document.getElementById('wordbook-time-limit-custom');
-      const presetValues = ['0', '5', '10', '15', '30', '60'];
+      const presetValues = ['0', '5', '10', '15', '30'];
       if (presetValues.includes(String(wb.timeLimit || 0))) {
-        timeSelect.value = String(wb.timeLimit || 0);
-        toggleCustomTimeInput('wordbook', String(wb.timeLimit || 0));
+        timeSelect.value = String(wb.timeLimit || 0); toggleCustomTimeInput('wordbook', String(wb.timeLimit || 0));
       } else {
-        timeSelect.value = 'custom';
-        toggleCustomTimeInput('wordbook', 'custom');
-        timeCustom.value = wb.timeLimit;
+        timeSelect.value = 'custom'; toggleCustomTimeInput('wordbook', 'custom'); timeCustom.value = wb.timeLimit;
       }
 
       const container = document.getElementById('words-container');
@@ -1925,7 +1717,7 @@
       const container = document.getElementById('words-container');
       const idx = container.children.length;
       const card = document.createElement('div');
-      card.className = 'w-card bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200 space-y-3 relative';
+      card.className = 'w-card bg-white p-3.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 space-y-2 relative';
 
       const front = wData ? wData.front : '';
       const back = wData ? wData.back : '';
@@ -1942,25 +1734,25 @@
           <i class="fa-solid fa-xmark text-lg"></i>
         </button>
         <span class="w-number font-bold text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">単語 ${idx + 1}</span>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
           <div>
-            <label class="block text-[11px] font-semibold text-slate-600 mb-1">問題（表） <span class="text-red-500">*</span></label>
-            <div class="flex gap-1.5">
-              <input type="text" id="${fId}" value="${escapeHtml(front)}" required placeholder="例: apple" class="w-front w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm bg-white">
-              <button type="button" onclick="startSpeechRecognition('${fId}')" class="text-amber-700 px-2"><i class="fa-solid fa-microphone"></i></button>
+            <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">問題（表） <span class="text-red-500">*</span></label>
+            <div class="flex gap-1">
+              <input type="text" id="${fId}" value="${escapeHtml(front)}" required placeholder="例: apple" class="w-front w-full border border-slate-300 rounded p-1.5 text-xs bg-white">
+              <button type="button" onclick="startSpeechRecognition('${fId}')" class="text-amber-700 px-1 text-xs"><i class="fa-solid fa-microphone"></i></button>
             </div>
           </div>
           <div>
-            <label class="block text-[11px] font-semibold text-slate-600 mb-1">解答（裏） <span class="text-red-500">*</span></label>
-            <div class="flex gap-1.5">
-              <input type="text" id="${bId}" value="${escapeHtml(back)}" required placeholder="例: りんご" class="w-back w-full border border-slate-300 rounded-lg p-2 text-xs sm:text-sm bg-white">
-              <button type="button" onclick="startSpeechRecognition('${bId}')" class="text-amber-700 px-2"><i class="fa-solid fa-microphone"></i></button>
+            <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">解答（裏） <span class="text-red-500">*</span></label>
+            <div class="flex gap-1">
+              <input type="text" id="${bId}" value="${escapeHtml(back)}" required placeholder="例: りんご" class="w-back w-full border border-slate-300 rounded p-1.5 text-xs bg-white">
+              <button type="button" onclick="startSpeechRecognition('${bId}')" class="text-amber-700 px-1 text-xs"><i class="fa-solid fa-microphone"></i></button>
             </div>
           </div>
         </div>
         <div>
-          <label class="block text-[11px] font-semibold text-slate-600 mb-1">メモ・例文（任意）</label>
-          <input type="text" id="${mId}" value="${escapeHtml(memo)}" placeholder="例文や発音のメモ" class="w-memo w-full border border-slate-300 rounded-lg p-2 text-xs text-slate-700 bg-white">
+          <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">メモ・例文</label>
+          <input type="text" id="${mId}" value="${escapeHtml(memo)}" placeholder="補足情報" class="w-memo w-full border border-slate-300 rounded p-1.5 text-xs bg-white">
         </div>
       `;
       container.appendChild(card);
@@ -1993,16 +1785,10 @@
       if (currentEditingWordbookId) {
         const wb = appData.wordbooks.find(w => w.id === currentEditingWordbookId);
         if (wb) {
-          wb.title = title;
-          wb.passRatio = passRatio;
-          wb.timeLimit = timeLimit;
+          wb.title = title; wb.passRatio = passRatio; wb.timeLimit = timeLimit;
           words.forEach(nw => {
             const old = wb.words.find(ow => ow.front === nw.front && ow.back === nw.back);
-            if (old) {
-              nw.id = old.id;
-              nw.historyLogs = old.historyLogs || [];
-              nw.lastResult = old.lastResult;
-            }
+            if (old) { nw.id = old.id; nw.historyLogs = old.historyLogs || []; nw.lastResult = old.lastResult; }
           });
           wb.words = words;
         }
@@ -2010,28 +1796,26 @@
         appData.wordbooks.unshift({ id: 'wb_' + Math.random().toString(36).substr(2, 9), title, passRatio, timeLimit, isRandom: true, words });
       }
 
-      saveLocalStorage();
-      showScreen('list-screen');
+      saveLocalStorage(); showScreen('list-screen');
     }
 
     function deleteWordbook(wbId) {
-      if (!confirm('この単語帳を削除しますか？')) return;
+      if (!confirm('削除しますか？')) return;
       appData.wordbooks = appData.wordbooks.filter(w => w.id !== wbId);
       appData.wordbookHistories = appData.wordbookHistories.filter(h => h.wordbookId !== wbId);
-      saveLocalStorage();
-      renderWordbookList();
+      saveLocalStorage(); renderWordbookList();
     }
 
     let targetWbIdForModal = null;
     function openWordbookRangeModal(wbId) {
       const wb = appData.wordbooks.find(w => w.id === wbId);
-      if (!wb || wb.words.length === 0) { alert('単語が登録されていません。'); return; }
+      if (!wb || wb.words.length === 0) { alert('単語がありません。'); return; }
       targetWbIdForModal = wbId;
 
       document.getElementById('wb-range-info').innerText = `全登録単語数: ${wb.words.length}個`;
       document.getElementById('wb-range-start').value = 1;
       document.getElementById('wb-range-end').value = Math.min(wb.words.length, 20);
-      document.getElementById('wb-random-count').value = Math.min(wb.words.length, 30);
+      document.getElementById('wb-random-count').value = Math.min(wb.words.length, 20);
       document.getElementById('wb-mode-select').value = 'all';
       toggleWbRangeInputs('all');
 
@@ -2050,7 +1834,7 @@
       if (!wb) return;
       const weakWords = wb.words.filter(w => w.lastResult === false);
       if (weakWords.length === 0) { alert('苦手な単語はありません！'); return; }
-      initWordbookSession(wb, wb.title + ' (苦手復習)', weakWords);
+      initWordbookSession(wb, wb.title + ' (苦手)', weakWords);
     }
 
     function startWordbookSessionConfirmed() {
@@ -2067,15 +1851,14 @@
         words = words.slice(start - 1, end);
       } else if (mode === 'random_n') {
         const count = parseInt(document.getElementById('wb-random-count').value) || 20;
-        words.sort(() => Math.random() - 0.5);
-        words = words.slice(0, count);
+        words.sort(() => Math.random() - 0.5); words = words.slice(0, count);
       } else if (mode === 'weak') {
         words = words.filter(w => w.lastResult === false);
       } else {
         if (wb.isRandom !== false) words.sort(() => Math.random() - 0.5);
       }
 
-      if (words.length === 0) { alert('条件に該当する単語がありません。'); return; }
+      if (words.length === 0) { alert('対象単語がありません。'); return; }
       initWordbookSession(wb, wb.title, words);
     }
 
@@ -2093,7 +1876,7 @@
         wbTimerInterval = setInterval(() => {
           activeWordbookSession.remainingSeconds--;
           updateWbTimerDisplay();
-          if (activeWordbookSession.remainingSeconds <= 0) { clearInterval(wbTimerInterval); alert('制限時間です。結果を集計します。'); finishWordbookSession(); }
+          if (activeWordbookSession.remainingSeconds <= 0) { clearInterval(wbTimerInterval); alert('制限時間です。集計します。'); finishWordbookSession(); }
         }, 1000);
       } else { document.getElementById('wb-timer-container').classList.add('hidden'); }
 
@@ -2122,7 +1905,7 @@
       const totalAns = logs.length;
       const correctAns = logs.filter(l => l.isCorrect).length;
       const rate = totalAns > 0 ? Math.round((correctAns / totalAns) * 100) : 0;
-      document.getElementById('wb-stat-rate-text').innerText = `正解率: ${rate}% (${correctAns}/${totalAns})`;
+      document.getElementById('wb-stat-rate-text').innerText = `${rate}%`;
 
       document.getElementById('wb-answer-box').classList.add('hidden');
       document.getElementById('wb-btn-show-answer').classList.remove('hidden');
@@ -2137,8 +1920,7 @@
 
     function speakCurrentWordText(type) {
       const w = activeWordbookSession.words[activeWordbookSession.currentIndex];
-      const textToSpeak = type === 'front' ? w.front : w.back;
-      speakTextAutoLang(textToSpeak);
+      speakTextAutoLang(type === 'front' ? w.front : w.back);
     }
 
     function gradeWordbookCard(isCorrect) {
@@ -2169,7 +1951,7 @@
     }
 
     function confirmExitWordbookAnswer() {
-      if (confirm('単語帳の学習を中断しますか？')) {
+      if (confirm('中断しますか？')) {
         if (wbTimerInterval) clearInterval(wbTimerInterval);
         showScreen('list-screen');
       }
@@ -2185,9 +1967,7 @@
       const earnedExp = correct * 5 + (ratio === 100 ? 30 : 0);
 
       const u = appData.user;
-      u.exp += earnedExp;
-      u.totalQuestionsSolved += total;
-      u.totalStudySeconds += elapsed;
+      u.exp += earnedExp; u.totalQuestionsSolved += total; u.totalStudySeconds += elapsed;
 
       const todayStr = new Date().toISOString().slice(0, 10);
       if(!u.dailyStudyLogs) u.dailyStudyLogs = {};
@@ -2203,14 +1983,13 @@
       });
       saveLocalStorage();
 
-      document.getElementById('wb-res-subtitle').innerText = `${session.title} のフラッシュカード学習が完了しました！`;
+      document.getElementById('wb-res-subtitle').innerText = `${session.title} 完了！`;
       document.getElementById('wb-res-correct').innerText = correct;
       document.getElementById('wb-res-total').innerText = total;
       document.getElementById('wb-res-accuracy').innerText = `${ratio}%`;
-      document.getElementById('wb-res-target-ratio').innerText = session.passRatio;
       document.getElementById('wb-res-exp').innerText = earnedExp;
 
-      if (ratio >= session.passRatio) confetti({ particleCount: 150, spread: 80, origin: { y: 0.5 } });
+      if (ratio >= session.passRatio) confetti({ particleCount: 120, spread: 70, origin: { y: 0.5 } });
 
       showScreen('wordbook-result-screen');
     }
@@ -2226,14 +2005,12 @@
       document.getElementById('st-user-title').innerHTML = `<i class="fa-solid ${titleInfo.icon}"></i> ${titleInfo.title}`;
       document.getElementById('st-user-level').innerText = level;
       document.getElementById('st-need-exp').innerText = lvlInfo.requiredExp - lvlInfo.currentExp;
-      document.getElementById('st-curr-exp').innerText = lvlInfo.currentExp;
-      document.getElementById('st-max-exp-in-lv').innerText = lvlInfo.requiredExp;
       document.getElementById('st-exp-bar').style.width = `${Math.min(100, Math.round((lvlInfo.currentExp / lvlInfo.requiredExp) * 100))}%`;
       document.getElementById('st-total-exp').innerText = `${u.exp || 0} pt`;
       document.getElementById('st-streak-days').innerText = `${u.streakDays || 0} 日`;
 
       const cardEl = document.getElementById('st-card-element');
-      cardEl.className = `${titleInfo.cardTheme} p-5 rounded-xl space-y-4 relative overflow-hidden transition-all duration-500`;
+      cardEl.className = `${titleInfo.cardTheme} p-4 rounded-xl space-y-3 relative overflow-hidden transition-all duration-500`;
       document.getElementById('st-card-icon').className = `fa-solid ${titleInfo.icon}`;
 
       const mapContainer = document.getElementById('title-roadmap-container');
@@ -2242,9 +2019,9 @@
         const isReached = level >= step.minLv;
         const isCurrent = (titleInfo.title === step.title);
         mapContainer.innerHTML += `
-          <div class="p-2 rounded-lg border flex items-center justify-between text-xs ${isCurrent ? 'bg-indigo-50 border-indigo-400 font-bold ring-2 ring-indigo-300' : (isReached ? 'bg-slate-50 border-slate-300' : 'bg-slate-100 border-slate-200 text-slate-500')}">
-            <div class="flex items-center gap-2"><span class="w-12 text-[10px] font-bold px-1.5 py-0.5 rounded text-center ${isReached ? step.badgeBg : 'bg-slate-300 text-slate-700'}">Lv.${step.minLv}〜</span><span class="${step.color}">${step.title}</span></div>
-            ${isCurrent ? '<span class="text-[9px] bg-amber-400 text-slate-900 px-1.5 py-0.2 rounded font-extrabold">現在地</span>' : ''}
+          <div class="p-1.5 rounded border flex items-center justify-between text-xs ${isCurrent ? 'bg-indigo-50 border-indigo-400 font-bold' : (isReached ? 'bg-slate-50 border-slate-300' : 'bg-slate-100 border-slate-200 text-slate-400')}">
+            <div class="flex items-center gap-1.5"><span class="w-10 text-[9px] font-bold px-1 py-0.2 rounded text-center ${isReached ? step.badgeBg : 'bg-slate-300 text-slate-700'}">Lv.${step.minLv}</span><span class="${step.color}">${step.title}</span></div>
+            ${isCurrent ? '<span class="text-[9px] bg-amber-400 text-slate-900 px-1 rounded font-bold">現在地</span>' : ''}
           </div>
         `;
       });
@@ -2258,14 +2035,12 @@
       else if (logoClickCount >= 3) { clearTimeout(logoClickTimer); logoClickCount = 0; document.getElementById('debug-modal').classList.remove('hidden'); }
     }
 
-    function debugSetLevelDirect() {
-      let targetLv = parseInt(document.getElementById('debug-target-lv').value);
-      if (isNaN(targetLv) || targetLv < 1 || targetLv > 100) return;
+    function debugSetRankDirect(val) {
+      if(!val) return;
       let expSum = 0;
-      for (let l = 1; l < targetLv; l++) expSum += getExpForNextLevel(l);
+      for (let l = 1; l < parseInt(val); l++) expSum += getExpForNextLevel(l);
       appData.user.exp = expSum;
-      saveLocalStorage();
-      renderDashboard();
+      saveLocalStorage(); renderDashboard();
       if (!document.getElementById('status-modal').classList.contains('hidden')) openStatusModal();
       closeModal('debug-modal');
     }
@@ -2277,27 +2052,27 @@
       document.getElementById('cal-month-title').innerText = `${year}年${month + 1}月`;
       const grid = document.getElementById('calendar-grid');
       grid.innerHTML = '';
-      ['日', '月', '火', '水', '木', '金', '土'].forEach(d => grid.innerHTML += `<div class="font-bold text-slate-400 py-1">${d}</div>`);
+      ['日', '月', '火', '水', '木', '金', '土'].forEach(d => grid.innerHTML += `<div class="font-bold text-slate-400 py-0.5">${d}</div>`);
       const firstDay = new Date(year, month, 1).getDay(), lastDate = new Date(year, month + 1, 0).getDate();
       for(let i=0; i<firstDay; i++) grid.innerHTML += `<div></div>`;
       const logs = appData.user.dailyStudyLogs || {};
       for(let date=1; date<=lastDate; date++) {
         const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(date).padStart(2,'0')}`;
         const hasLog = !!logs[dateStr];
-        grid.innerHTML += `<div class="p-1 min-h-[40px] rounded-lg border ${hasLog?'bg-amber-50 border-amber-300 font-bold':'border-slate-100 text-slate-400'} flex flex-col items-center justify-between"><span class="text-xs">${date}</span>${hasLog?'<div class="text-[10px] text-amber-500 font-bold">🔥</div>':''}</div>`;
+        grid.innerHTML += `<div class="p-1 min-h-[36px] rounded border ${hasLog?'bg-amber-50 border-amber-300 font-bold':'border-slate-100 text-slate-400'} flex flex-col items-center justify-between"><span class="text-[10px]">${date}</span>${hasLog?'<div class="text-[9px] text-amber-500">🔥</div>':''}</div>`;
       }
     }
 
     function openQuizStatsModal() {
       const c = document.getElementById('quiz-stats-container');
       c.innerHTML = '';
-      c.innerHTML += `<div class="p-3 bg-indigo-50 rounded-xl flex justify-between items-center text-xs"><span class="font-bold text-indigo-900">問題集数: ${appData.quizzes.length}件</span><span class="text-indigo-700">総履歴回数: ${appData.histories.length}回</span></div>`;
-      c.innerHTML += `<div class="p-3 bg-amber-50 rounded-xl flex justify-between items-center text-xs"><span class="font-bold text-amber-900">単語帳数: ${appData.wordbooks.length}件</span><span class="text-amber-700">総フラッシュ回数: ${appData.wordbookHistories.length}回</span></div>`;
+      c.innerHTML += `<div class="p-2.5 bg-indigo-50 rounded-xl flex justify-between items-center text-xs"><span class="font-bold text-indigo-900">問題集数: ${appData.quizzes.length}</span><span class="text-indigo-700">総回答: ${appData.histories.length}回</span></div>`;
+      c.innerHTML += `<div class="p-2.5 bg-amber-50 rounded-xl flex justify-between items-center text-xs"><span class="font-bold text-amber-900">単語帳数: ${appData.wordbooks.length}</span><span class="text-amber-700">総単語: ${appData.wordbookHistories.length}回</span></div>`;
       document.getElementById('quiz-stats-modal').classList.remove('hidden');
     }
 
     function openTimeStatsModal() {
-      document.getElementById('time-stats-container').innerHTML = `<div class="p-3 bg-indigo-50 rounded-xl text-center"><p class="text-xs text-slate-500">累計学習時間</p><p class="text-lg font-black text-indigo-600">${Math.floor((appData.user.totalStudySeconds||0)/60)} 分</p></div>`;
+      document.getElementById('time-stats-container').innerHTML = `<div class="p-3 bg-indigo-50 rounded-xl text-center"><p class="text-xs text-slate-500">累計学習時間</p><p class="text-base font-black text-indigo-600">${Math.floor((appData.user.totalStudySeconds||0)/60)} 分</p></div>`;
       document.getElementById('time-stats-modal').classList.remove('hidden');
     }
 
@@ -2306,7 +2081,7 @@
       c.innerHTML = '';
       BADGES.forEach(b => {
         const unlocked = appData.user.unlockedBadges.includes(b.id);
-        c.innerHTML += `<div class="p-3 rounded-xl border ${unlocked?'bg-amber-50 border-amber-300':'bg-slate-50 border-slate-200 opacity-50'} flex items-center gap-3"><div class="w-10 h-10 rounded-full ${unlocked?'bg-amber-400 text-white':'bg-slate-300 text-slate-500'} flex items-center justify-center text-lg"><i class="fa-solid ${b.icon}"></i></div><div><p class="text-xs font-bold">${escapeHtml(b.title)}</p><p class="text-[10px] text-slate-500">${escapeHtml(b.desc)}</p></div></div>`;
+        c.innerHTML += `<div class="p-2.5 rounded-xl border ${unlocked?'bg-amber-50 border-amber-300':'bg-slate-50 border-slate-200 opacity-50'} flex items-center gap-2.5"><div class="w-8 h-8 rounded-full ${unlocked?'bg-amber-400 text-white':'bg-slate-300 text-slate-500'} flex items-center justify-center text-sm flex-shrink-0"><i class="fa-solid ${b.icon}"></i></div><div><p class="text-xs font-bold">${escapeHtml(b.title)}</p><p class="text-[10px] text-slate-500">${escapeHtml(b.desc)}</p></div></div>`;
       });
       document.getElementById('badges-modal').classList.remove('hidden');
     }
@@ -2324,30 +2099,25 @@
       const reader = new FileReader();
       reader.onload = evt => {
         try { appData = JSON.parse(evt.target.result); saveLocalStorage(); renderDashboard(); renderQuizList(); renderWordbookList(); alert('読込成功'); }
-        catch(err) { alert('失敗'); }
+        catch(err) { alert('読み込みに失敗しました'); }
       };
       reader.readAsText(file);
     }
 
     function viewHistoryList(type, id, subItemId = null) {
       currentAnalyticsItem = { type, id, subItemId };
-      
       let title = '', histories = [], targetRatio = 80, itemsList = [];
 
       if (type === 'quiz') {
         const quiz = appData.quizzes.find(q => q.id === id);
         if (!quiz) return;
-        title = quiz.title;
-        targetRatio = quiz.passRatio || 80;
-        histories = appData.histories.filter(h => h.quizId === id);
-        itemsList = quiz.questions;
+        title = quiz.title; targetRatio = quiz.passRatio || 80;
+        histories = appData.histories.filter(h => h.quizId === id); itemsList = quiz.questions;
       } else {
         const wb = appData.wordbooks.find(w => w.id === id);
         if (!wb) return;
-        title = wb.title;
-        targetRatio = wb.passRatio || 80;
-        histories = appData.wordbookHistories.filter(h => h.wordbookId === id);
-        itemsList = wb.words;
+        title = wb.title; targetRatio = wb.passRatio || 80;
+        histories = appData.wordbookHistories.filter(h => h.wordbookId === id); itemsList = wb.words;
       }
 
       document.getElementById('history-quiz-title').innerText = title + (subItemId ? ' (個別推移)' : '');
@@ -2361,18 +2131,15 @@
       document.getElementById('analytics-total-runs').innerText = histories.length;
       document.getElementById('analytics-avg-ratio').innerText = `${avgRatio}%`;
 
-      if (subItemId) {
-        renderSubItemChart(type, id, subItemId, itemsList, targetRatio);
-      } else {
-        renderOverallChart(histories, targetRatio);
-      }
+      if (subItemId) { renderSubItemChart(type, id, subItemId, itemsList, targetRatio); }
+      else { renderOverallChart(histories, targetRatio); }
       renderItemAnalyticsTable(type, id, itemsList, histories);
       renderHistoryTable(histories, type);
       showScreen('history-screen');
     }
 
     function renderOverallChart(histories, targetRatio) {
-      document.getElementById('chart-section-title').innerHTML = `<i class="fa-solid fa-chart-line text-indigo-600"></i> 全体正解率（%）の推移`;
+      document.getElementById('chart-section-title').innerHTML = `<i class="fa-solid fa-chart-line text-indigo-600"></i> 全体正解率推移`;
       const ctx = document.getElementById('accuracyChart').getContext('2d');
       if(chartInstance) chartInstance.destroy();
       const sorted = [...histories].reverse();
@@ -2390,9 +2157,8 @@
       const targetItem = itemsList.find(i => i.id === subItemId);
       const itemName = type === 'quiz' ? targetItem?.text : targetItem?.front;
       document.getElementById('chart-section-title').innerHTML = `
-        <i class="fa-solid fa-chart-line text-indigo-600"></i> 
-        [個別推移] ${escapeHtml(itemName)} 
-        <button onclick="viewHistoryList('${type}', '${parentId}')" class="ml-3 text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded border border-indigo-200">全体グラフに戻る</button>
+        <i class="fa-solid fa-chart-line text-indigo-600"></i> [個別] ${escapeHtml(itemName)} 
+        <button onclick="viewHistoryList('${type}', '${parentId}')" class="ml-2 text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border">全体へ戻る</button>
       `;
 
       let labels = [], dataPoints = [];
@@ -2400,17 +2166,11 @@
         const histories = [...appData.histories.filter(h => h.quizId === parentId)].reverse();
         histories.forEach((h, idx) => {
           const detail = (h.details || []).find(d => d.question && d.question.id === subItemId);
-          if (detail) {
-            labels.push(`${idx+1}回目`);
-            dataPoints.push(detail.isCorrect ? 100 : 0);
-          }
+          if (detail) { labels.push(`${idx+1}回目`); dataPoints.push(detail.isCorrect ? 100 : 0); }
         });
       } else {
         const logs = [...(targetItem?.historyLogs || [])].reverse();
-        logs.forEach((log, idx) => {
-          labels.push(`${idx+1}回目`);
-          dataPoints.push(log.isCorrect ? 100 : 0);
-        });
+        logs.forEach((log, idx) => { labels.push(`${idx+1}回目`); dataPoints.push(log.isCorrect ? 100 : 0); });
       }
 
       const ctx = document.getElementById('accuracyChart').getContext('2d');
@@ -2419,7 +2179,7 @@
         type: 'line',
         data: {
           labels: labels,
-          datasets: [{ label: '正解 (100) / 不正解 (0)', data: dataPoints, borderColor: '#d97706', backgroundColor: 'rgba(217,119,6,0.1)', fill: true, tension: 0.1, stepped: true }]
+          datasets: [{ label: '〇/×', data: dataPoints, borderColor: '#d97706', backgroundColor: 'rgba(217,119,6,0.1)', fill: true, stepped: true }]
         },
         options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: -10, max: 110, ticks: { callback: v => v===100?'〇':(v===0?'×':'') } } } }
       });
@@ -2445,18 +2205,14 @@
 
         tbody.innerHTML += `
           <tr class="border-b hover:bg-slate-50 transition">
-            <td class="p-2.5 font-medium">問${idx+1}. ${escapeHtml(displayName)}</td>
-            <td class="p-2.5 text-center">${tot}回</td>
-            <td class="p-2.5 text-center">${cor}回</td>
-            <td class="p-2.5 text-center font-bold">${tot>0?r+'%':'-'}</td>
-            <td class="p-2.5 text-center">
-              <div class="flex items-center justify-center gap-1.5">
-                <button onclick="viewHistoryList('${type}', '${parentId}', '${item.id}')" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-xs font-bold transition flex items-center gap-1">
-                  <i class="fa-solid fa-chart-column"></i> グラフ
-                </button>
-                <button onclick="deleteSubItemHistory('${type}', '${parentId}', '${item.id}')" class="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded text-xs font-medium transition flex items-center gap-1" title="この設問の個別の解答履歴を消去">
-                  <i class="fa-solid fa-trash-can"></i> 履歴削除
-                </button>
+            <td class="p-2 font-medium">問${idx+1}. ${escapeHtml(displayName)}</td>
+            <td class="p-2 text-center">${tot}回</td>
+            <td class="p-2 text-center">${cor}回</td>
+            <td class="p-2 text-center font-bold">${tot>0?r+'%':'-'}</td>
+            <td class="p-2 text-center">
+              <div class="flex items-center justify-center gap-1">
+                <button onclick="viewHistoryList('${type}', '${parentId}', '${item.id}')" class="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded text-[10px] font-bold">グラフ</button>
+                <button onclick="deleteSubItemHistory('${type}', '${parentId}', '${item.id}')" class="px-2 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded text-[10px]">履歴削除</button>
               </div>
             </td>
           </tr>
@@ -2465,64 +2221,50 @@
     }
 
     function deleteSubItemHistory(type, parentId, subItemId) {
-      if (!confirm('この設問/単語の個別解答履歴を削除しますか？')) return;
-
+      if (!confirm('この個別の解答履歴を削除しますか？')) return;
       if (type === 'quiz') {
         appData.histories.forEach(h => {
-          if (h.quizId === parentId && h.details) {
-            h.details = h.details.filter(d => d.question && d.question.id !== subItemId);
-          }
+          if (h.quizId === parentId && h.details) h.details = h.details.filter(d => d.question && d.question.id !== subItemId);
         });
       } else {
         const wb = appData.wordbooks.find(w => w.id === parentId);
         if (wb) {
           const word = wb.words.find(w => w.id === subItemId);
-          if (word) {
-            word.historyLogs = [];
-            word.lastResult = null;
-          }
+          if (word) { word.historyLogs = []; word.lastResult = null; }
         }
       }
-
       saveLocalStorage();
       viewHistoryList(type, parentId, currentAnalyticsItem.subItemId === subItemId ? null : currentAnalyticsItem.subItemId);
-      alert('個別の解答履歴をクリアしました。');
     }
 
     function renderHistoryTable(histories, type) {
       const tbody = document.getElementById('history-table-body');
-      tbody.innerHTML = histories.length === 0 ? `<tr><td colspan="5" class="text-center p-4 text-slate-400">履歴なし</td></tr>` : '';
+      tbody.innerHTML = histories.length === 0 ? `<tr><td colspan="5" class="text-center p-3 text-slate-400">履歴なし</td></tr>` : '';
       histories.forEach(h => {
         const scoreDisplay = type === 'quiz' ? `${h.score}/${h.maxScore}` : `${h.correctCount}/${h.totalCount}正解`;
         tbody.innerHTML += `
           <tr class="border-b">
-            <td class="p-3">${new Date(h.date).toLocaleString('ja-JP')}</td>
-            <td class="p-3 text-center font-bold">${scoreDisplay}</td>
-            <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-xs font-bold ${h.ratio>=h.passRatio?'bg-emerald-100 text-emerald-800':'bg-slate-100'}">${h.ratio}%</span></td>
-            <td class="p-3 text-center">${Math.floor((h.elapsedSeconds||0)/60)}分${(h.elapsedSeconds||0)%60}秒</td>
-            <td class="p-3 text-center"><button onclick="deleteSingleHistory('${type}', '${h.id}')" class="text-red-400 hover:text-red-600 text-xs"><i class="fa-solid fa-trash"></i></button></td>
+            <td class="p-2">${new Date(h.date).toLocaleString('ja-JP')}</td>
+            <td class="p-2 text-center font-bold">${scoreDisplay}</td>
+            <td class="p-2 text-center"><span class="px-1.5 py-0.2 rounded text-[10px] font-bold ${h.ratio>=h.passRatio?'bg-emerald-100 text-emerald-800':'bg-slate-100'}">${h.ratio}%</span></td>
+            <td class="p-2 text-center">${Math.floor((h.elapsedSeconds||0)/60)}分${(h.elapsedSeconds||0)%60}秒</td>
+            <td class="p-2 text-center"><button onclick="deleteSingleHistory('${type}', '${h.id}')" class="text-red-400 hover:text-red-600 text-xs"><i class="fa-solid fa-trash"></i></button></td>
           </tr>
         `;
       });
     }
 
     function deleteSingleHistory(type, id) {
-      if (type === 'quiz') {
-        appData.histories = appData.histories.filter(h => h.id !== id);
-      } else {
-        appData.wordbookHistories = appData.wordbookHistories.filter(h => h.id !== id);
-      }
+      if (type === 'quiz') appData.histories = appData.histories.filter(h => h.id !== id);
+      else appData.wordbookHistories = appData.wordbookHistories.filter(h => h.id !== id);
       saveLocalStorage();
       viewHistoryList(currentAnalyticsItem.type, currentAnalyticsItem.id, currentAnalyticsItem.subItemId);
     }
 
     function clearItemHistory() {
-      if (!confirm('この問題集・単語帳の実施履歴をすべて削除しますか？')) return;
-      if (currentAnalyticsItem.type === 'quiz') {
-        appData.histories = appData.histories.filter(h => h.quizId !== currentAnalyticsItem.id);
-      } else {
-        appData.wordbookHistories = appData.wordbookHistories.filter(h => h.wordbookId !== currentAnalyticsItem.id);
-      }
+      if (!confirm('この項目の実施履歴をすべて削除しますか？')) return;
+      if (currentAnalyticsItem.type === 'quiz') appData.histories = appData.histories.filter(h => h.quizId !== currentAnalyticsItem.id);
+      else appData.wordbookHistories = appData.wordbookHistories.filter(h => h.wordbookId !== currentAnalyticsItem.id);
       saveLocalStorage();
       viewHistoryList(currentAnalyticsItem.type, currentAnalyticsItem.id);
     }
