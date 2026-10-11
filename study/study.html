@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>学習マスター - スマホ省スクロール対応版</title>
+  <title>学習マスター - 完全機能版 (日別・問題集別・月別集計対応)</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js -->
@@ -17,7 +17,7 @@
     .screen.active { display: block; }
     input, select, textarea, button { touch-action: manipulation; }
 
-    /* 回答画面（answer-screen / wordbook-answer-screen）アクティブ時はダッシュボードを非表示にして省スクロール化 */
+    /* 回答画面表示時はダッシュボードを自動非表示にして省スクロール化 */
     body.in-session #dashboard-cards {
       display: none !important;
     }
@@ -117,7 +117,7 @@
   <!-- メインコンテンツ -->
   <main class="max-w-6xl w-full mx-auto p-2.5 sm:p-5 lg:p-6 flex-grow space-y-4 sm:space-y-8">
 
-    <!-- ダッシュボードカード (回答画面表示時は 自動的に css で非表示になります) -->
+    <!-- ダッシュボードカード (回答画面表示時は非表示) -->
     <div id="dashboard-cards" class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
       <div onclick="openCalendarModal()" class="bg-white p-2.5 sm:p-4 rounded-xl shadow-sm border border-slate-200 hover:border-indigo-400 transition cursor-pointer flex items-center gap-2.5">
         <div class="w-8 h-8 sm:w-11 sm:h-11 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm sm:text-xl flex-shrink-0">
@@ -385,7 +385,7 @@
       </div>
     </div>
 
-    <!-- 4. 設問回答画面 (スマホ1画面・省スクロール設計) -->
+    <!-- 4. 設問回答画面 -->
     <section id="answer-screen" class="screen">
       <div class="max-w-2xl mx-auto space-y-2.5 sm:space-y-4">
         <!-- ヘッダーバー -->
@@ -438,7 +438,7 @@
       </div>
     </section>
 
-    <!-- 5. 単語帳 回答画面 (フラッシュカード - スマホ省スクロール設計) -->
+    <!-- 5. 単語帳 回答画面 -->
     <section id="wordbook-answer-screen" class="screen">
       <div class="max-w-xl mx-auto space-y-2.5 sm:space-y-4">
         <!-- ヘッダーバー -->
@@ -516,7 +516,7 @@
       </div>
     </section>
 
-    <!-- 6. 採点結果画面 (問題集用) -->
+    <!-- 6. 採点結果画面 -->
     <section id="result-screen" class="screen">
       <div class="max-w-2xl mx-auto space-y-4">
         <div id="result-header-card" class="bg-white p-5 sm:p-6 rounded-2xl shadow border text-center space-y-2">
@@ -538,9 +538,14 @@
               <p class="text-xl sm:text-2xl font-black text-amber-500">+<span id="res-exp">0</span></p>
             </div>
           </div>
-          <button onclick="showScreen('list-screen')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-5 py-2 rounded-lg text-xs transition mt-1">
-            一覧に戻る
-          </button>
+          <div class="flex justify-center gap-2 pt-1">
+            <button onclick="showScreen('list-screen')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium px-5 py-2 rounded-lg text-xs transition">
+              一覧に戻る
+            </button>
+            <button onclick="showScreen('history-screen')" id="btn-back-to-history" class="hidden bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium px-5 py-2 rounded-lg text-xs transition">
+              アナリティクスに戻る
+            </button>
+          </div>
         </div>
 
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
@@ -654,7 +659,7 @@
                 <th class="p-2.5 font-semibold text-center">正解数</th>
                 <th class="p-2.5 font-semibold text-center">正解率</th>
                 <th class="p-2.5 font-semibold text-center">時間</th>
-                <th class="p-2.5 font-semibold text-center w-16">操作</th>
+                <th class="p-2.5 font-semibold text-center w-28">操作</th>
               </tr>
             </thead>
             <tbody id="history-table-body" class="divide-y divide-slate-100 text-xs"></tbody>
@@ -766,12 +771,12 @@
     </div>
   </div>
 
-  <!-- 学習カレンダーモーダル -->
+  <!-- 学習カレンダーモーダル（要望2：日別学習時間表示対応） -->
   <div id="calendar-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-3 z-50">
-    <div class="bg-white rounded-2xl p-4 max-w-xs w-full shadow-2xl space-y-3">
+    <div class="bg-white rounded-2xl p-4 max-w-sm w-full shadow-2xl space-y-3 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b pb-2">
         <h3 class="text-base font-bold text-slate-800 flex items-center gap-1.5">
-          <i class="fa-solid fa-calendar-days text-indigo-600"></i> 学習カレンダー
+          <i class="fa-solid fa-calendar-days text-indigo-600"></i> 学習カレンダー & 日別時間
         </h3>
         <button onclick="closeModal('calendar-modal')" class="text-slate-400 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
@@ -781,28 +786,33 @@
         <button onclick="changeCalMonth(1)" class="p-1 text-slate-500 hover:text-indigo-600">翌月 <i class="fa-solid fa-chevron-right"></i></button>
       </div>
       <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center text-[11px]"></div>
+      <!-- 選択日・直近の日別学習時間詳細リスト -->
+      <div class="border-t pt-2 space-y-1">
+        <p class="text-xs font-bold text-slate-700">📅 直近の1日ごとの学習時間</p>
+        <div id="daily-time-list-container" class="space-y-1 max-h-32 overflow-y-auto text-xs text-slate-600"></div>
+      </div>
     </div>
   </div>
 
-  <!-- 集計モーダル -->
+  <!-- 実績サマリーモーダル（要望3：問題集毎の累計回答数対応） -->
   <div id="quiz-stats-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-3 z-50">
-    <div class="bg-white rounded-2xl p-4 max-w-sm w-full shadow-2xl space-y-3">
+    <div class="bg-white rounded-2xl p-4 max-w-md w-full shadow-2xl space-y-3 max-h-[85vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b pb-2">
         <h3 class="text-base font-bold text-slate-800 flex items-center gap-1.5">
-          <i class="fa-solid fa-book-open text-emerald-600"></i> 実績サマリー
+          <i class="fa-solid fa-book-open text-emerald-600"></i> 実績 & 問題集ごとの回答数
         </h3>
         <button onclick="closeModal('quiz-stats-modal')" class="text-slate-400 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
-      <div id="quiz-stats-container" class="space-y-2"></div>
+      <div id="quiz-stats-container" class="space-y-2.5"></div>
     </div>
   </div>
 
-  <!-- 学習時間統計モーダル -->
+  <!-- 学習時間統計モーダル（要望4：月毎の学習時間合計対応） -->
   <div id="time-stats-modal" class="fixed inset-0 bg-slate-900/50 hidden backdrop-blur-sm flex items-center justify-center p-3 z-50">
-    <div class="bg-white rounded-2xl p-4 max-w-sm w-full shadow-2xl space-y-3">
+    <div class="bg-white rounded-2xl p-4 max-w-md w-full shadow-2xl space-y-3 max-h-[85vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b pb-2">
         <h3 class="text-base font-bold text-slate-800 flex items-center gap-1.5">
-          <i class="fa-solid fa-clock text-amber-500"></i> 学習時間分析
+          <i class="fa-solid fa-clock text-amber-500"></i> 月別学習時間分析
         </h3>
         <button onclick="closeModal('time-stats-modal')" class="text-slate-400 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
@@ -824,7 +834,7 @@
   </div>
 
   <script>
-    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V35';
+    const STORAGE_KEY = 'LEARNING_MASTER_APP_DATA_V38';
     let appData = {
       quizzes: [],
       wordbooks: [],
@@ -844,6 +854,7 @@
     let chartInstance = null;
     let calDisplayDate = new Date();
     let currentAnalyticsItem = null;
+    let isViewingHistoryDetail = false;
 
     const BADGES = [
       { id: 'b1', title: '初めの一歩', desc: '初めて問題集や単語帳を完走した', icon: 'fa-seedling', check: u => u.totalQuestionsSolved > 0 },
@@ -1051,7 +1062,6 @@
       document.getElementById(screenId).classList.add('active');
       window.scrollTo(0, 0);
 
-      // 回答画面閲覧時はbodyに in-session クラスを付与し、ダッシュボード領域を非表示にして省スクロール化
       if (screenId === 'answer-screen' || screenId === 'wordbook-answer-screen') {
         document.body.classList.add('in-session');
       } else {
@@ -1059,6 +1069,7 @@
       }
 
       if (screenId === 'list-screen') {
+        isViewingHistoryDetail = false;
         checkAndResetDailyMissions();
         renderDashboard(); renderQuizList(); renderWordbookList();
       }
@@ -1320,17 +1331,29 @@
         `;
       } else if (type === 'cloze') {
         const clozePairs = (qData && qData.clozePairs) ? qData.clozePairs : [{ prefix: '', answer: '', suffix: '' }];
-        let clozeHtml = `<label class="block text-[11px] font-semibold text-slate-700">穴埋め文章設定</label><div class="cloze-pairs-container space-y-2">`;
+        let clozeHtml = `<label class="block text-[11px] font-semibold text-slate-700 mb-1">穴埋め文章設定（前文・正解・後文それぞれに音声入力可）</label><div class="cloze-pairs-container space-y-2.5">`;
+
         clozePairs.forEach((pair, pIdx) => {
           const preId = `cloze-pre-${cardId}-${pIdx}`;
           const ansId = `cloze-ans-${cardId}-${pIdx}`;
           const sufId = `cloze-suf-${cardId}-${pIdx}`;
+
           clozeHtml += `
-            <div class="cloze-pair-row p-2 bg-white rounded-lg border border-slate-300 space-y-1">
-              <div class="grid grid-cols-3 gap-1">
-                <input type="text" id="${preId}" value="${escapeHtml(pair.prefix || '')}" placeholder="前文" class="cloze-prefix-input border rounded p-1 text-xs">
-                <input type="text" id="${ansId}" value="${escapeHtml(pair.answer || '')}" placeholder="穴の正解" class="cloze-answer-input border border-amber-400 bg-amber-50 rounded p-1 text-xs font-bold" required>
-                <input type="text" id="${sufId}" value="${escapeHtml(pair.suffix || '')}" placeholder="後文" class="cloze-suffix-input border rounded p-1 text-xs">
+            <div class="cloze-pair-row p-2.5 bg-white rounded-lg border border-slate-300 space-y-2">
+              <div class="flex justify-between items-center"><span class="text-[10px] font-bold text-indigo-700">穴 ${pIdx + 1}</span></div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div class="flex gap-1">
+                  <input type="text" id="${preId}" value="${escapeHtml(pair.prefix || '')}" placeholder="前文" class="cloze-prefix-input border rounded p-1 text-xs w-full">
+                  <button type="button" onclick="startSpeechRecognition('${preId}')" class="text-indigo-600 px-1.5 text-xs border rounded bg-indigo-50/50" title="前文音声入力"><i class="fa-solid fa-microphone"></i></button>
+                </div>
+                <div class="flex gap-1">
+                  <input type="text" id="${ansId}" value="${escapeHtml(pair.answer || '')}" placeholder="穴の正解" class="cloze-answer-input border-2 border-amber-400 bg-amber-50 rounded p-1 text-xs font-bold w-full" required>
+                  <button type="button" onclick="startSpeechRecognition('${ansId}')" class="text-amber-700 px-1.5 text-xs border border-amber-300 rounded bg-amber-50" title="正解音声入力"><i class="fa-solid fa-microphone"></i></button>
+                </div>
+                <div class="flex gap-1">
+                  <input type="text" id="${sufId}" value="${escapeHtml(pair.suffix || '')}" placeholder="後文" class="cloze-suffix-input border rounded p-1 text-xs w-full">
+                  <button type="button" onclick="startSpeechRecognition('${sufId}')" class="text-indigo-600 px-1.5 text-xs border rounded bg-indigo-50/50" title="後文音声入力"><i class="fa-solid fa-microphone"></i></button>
+                </div>
               </div>
             </div>
           `;
@@ -1381,7 +1404,7 @@
               suffix: row.querySelector('.cloze-suffix-input').value
             });
           });
-          answer = clozePairs.map(p => p.answer).join(', ');
+          answer = clozePairs.map(p => p.answer);
         }
 
         questions.push({ id: 'q_' + Math.random().toString(36).substr(2, 9), type, text, score, explanation, options, answer, clozePairs });
@@ -1576,12 +1599,13 @@
       } else { u.streakDays = 1; }
       u.lastStudyDate = todayStr;
 
-      appData.histories.unshift({
+      const newRecord = {
         id: 'hist_'+Math.random().toString(36).substr(2,9), quizId: activeSession.quizId, quizTitle: activeSession.quizTitle,
         passRatio: activeSession.passRatio, date: new Date().toISOString(), score, maxScore, ratio, elapsedSeconds: elapsed, earnedExp, details
-      });
+      };
+      appData.histories.unshift(newRecord);
       saveLocalStorage();
-      renderResultView(appData.histories[0]);
+      renderResultView(newRecord);
     }
 
     function renderResultView(record) {
@@ -1590,15 +1614,22 @@
       document.getElementById('res-accuracy').innerText = `${record.ratio}%`;
       document.getElementById('res-exp').innerText = record.earnedExp;
 
+      const btnBackToHistory = document.getElementById('btn-back-to-history');
+      if (isViewingHistoryDetail) {
+        btnBackToHistory.classList.remove('hidden');
+      } else {
+        btnBackToHistory.classList.add('hidden');
+      }
+
       const header = document.getElementById('result-header-card');
       if (record.ratio >= record.passRatio) {
         document.getElementById('result-icon-container').innerText = '🎉';
-        document.getElementById('result-title').innerText = '合格おめでとうございます！';
+        document.getElementById('result-title').innerText = isViewingHistoryDetail ? '過去の合格記録詳細' : '合格おめでとうございます！';
         header.className = 'bg-white p-5 rounded-2xl shadow border-2 border-emerald-400 text-center space-y-2';
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
+        if (!isViewingHistoryDetail) confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
       } else {
         document.getElementById('result-icon-container').innerText = '✍️';
-        document.getElementById('result-title').innerText = '復習して再挑戦しましょう！';
+        document.getElementById('result-title').innerText = isViewingHistoryDetail ? '過去の挑戦記録詳細' : '復習して再挑戦しましょう！';
         header.className = 'bg-white p-5 rounded-2xl shadow border text-center space-y-2';
       }
 
@@ -1618,8 +1649,16 @@
     }
 
     function formatAnsDisplay(q, ans) {
-      if(ans === undefined || ans === null || ans === '') return '(未回答)';
-      if(q.type==='choice4'||q.type==='tf') return escapeHtml(q.options[parseInt(ans)] || ans);
+      if (ans === undefined || ans === null || ans === '' || (Array.isArray(ans) && ans.length === 0)) return '(未回答)';
+      if (q.type === 'choice4' || q.type === 'tf') return escapeHtml(q.options[parseInt(ans)] !== undefined ? q.options[parseInt(ans)] : ans);
+      if (q.type === 'multi') {
+        const indices = Array.isArray(ans) ? ans : [ans];
+        return indices.map(idx => escapeHtml(q.options[parseInt(idx)] !== undefined ? q.options[parseInt(idx)] : idx)).join('、');
+      }
+      if (q.type === 'cloze') {
+        if (Array.isArray(ans)) return ans.join('、');
+        return escapeHtml(ans);
+      }
       return escapeHtml(ans);
     }
 
@@ -2045,8 +2084,14 @@
       closeModal('debug-modal');
     }
 
-    function openCalendarModal() { calDisplayDate = new Date(); renderCalendar(); document.getElementById('calendar-modal').classList.remove('hidden'); }
+    function openCalendarModal() {
+      calDisplayDate = new Date();
+      renderCalendar();
+      renderDailyTimeList();
+      document.getElementById('calendar-modal').classList.remove('hidden');
+    }
     function changeCalMonth(delta) { calDisplayDate.setMonth(calDisplayDate.getMonth() + delta); renderCalendar(); }
+    
     function renderCalendar() {
       const year = calDisplayDate.getFullYear(), month = calDisplayDate.getMonth();
       document.getElementById('cal-month-title').innerText = `${year}年${month + 1}月`;
@@ -2063,16 +2108,127 @@
       }
     }
 
+    // 要望2: 1日ごとの学習時間リストの表示
+    function renderDailyTimeList() {
+      const container = document.getElementById('daily-time-list-container');
+      container.innerHTML = '';
+      const logs = appData.user.dailyStudyLogs || {};
+      const sortedDates = Object.keys(logs).sort().reverse();
+
+      if (sortedDates.length === 0) {
+        container.innerHTML = `<p class="text-slate-400 text-center py-2">学習履歴がまだありません</p>`;
+        return;
+      }
+
+      sortedDates.slice(0, 15).forEach(dateStr => {
+        const entry = logs[dateStr];
+        const secs = typeof entry === 'object' ? (entry.seconds || 0) : entry;
+        const qCount = typeof entry === 'object' ? (entry.questionsSolved || 0) : 0;
+        const mins = Math.floor(secs / 60);
+        const remSecs = secs % 60;
+        container.innerHTML += `
+          <div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-200">
+            <span class="font-bold text-slate-700">${dateStr}</span>
+            <div class="text-right">
+              <span class="font-extrabold text-indigo-600">${mins}分 ${remSecs}秒</span>
+              <span class="text-[10px] text-slate-400 ml-1">(${qCount}問)</span>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // 要望3: 問題集毎の累計回答数表示
     function openQuizStatsModal() {
       const c = document.getElementById('quiz-stats-container');
       c.innerHTML = '';
-      c.innerHTML += `<div class="p-2.5 bg-indigo-50 rounded-xl flex justify-between items-center text-xs"><span class="font-bold text-indigo-900">問題集数: ${appData.quizzes.length}</span><span class="text-indigo-700">総回答: ${appData.histories.length}回</span></div>`;
-      c.innerHTML += `<div class="p-2.5 bg-amber-50 rounded-xl flex justify-between items-center text-xs"><span class="font-bold text-amber-900">単語帳数: ${appData.wordbooks.length}</span><span class="text-amber-700">総単語: ${appData.wordbookHistories.length}回</span></div>`;
+
+      let quizStatsHtml = `<div class="space-y-2"><h4 class="text-xs font-bold text-slate-700">📖 問題集ごとの累計回答数</h4>`;
+      if (appData.quizzes.length === 0) {
+        quizStatsHtml += `<p class="text-xs text-slate-400">問題集がありません。</p>`;
+      } else {
+        appData.quizzes.forEach(q => {
+          const matchedHist = appData.histories.filter(h => h.quizId === q.id);
+          const totalRuns = matchedHist.length;
+          const totalQuestionsAnswered = matchedHist.reduce((acc, h) => acc + (h.details ? h.details.length : q.questions.length), 0);
+          quizStatsHtml += `
+            <div class="bg-slate-50 p-2.5 rounded-xl border flex justify-between items-center text-xs">
+              <div><p class="font-bold text-slate-800">${escapeHtml(q.title)}</p><p class="text-[10px] text-slate-500">挑戦回数: ${totalRuns}回</p></div>
+              <div class="text-right font-extrabold text-indigo-600">${totalQuestionsAnswered} 問解答</div>
+            </div>
+          `;
+        });
+      }
+      quizStatsHtml += `</div>`;
+
+      let wbStatsHtml = `<div class="space-y-2 pt-2"><h4 class="text-xs font-bold text-slate-700">📚 単語帳ごとの累計回答数</h4>`;
+      if (appData.wordbooks.length === 0) {
+        wbStatsHtml += `<p class="text-xs text-slate-400">単語帳がありません。</p>`;
+      } else {
+        appData.wordbooks.forEach(wb => {
+          const matchedWbHist = appData.wordbookHistories.filter(h => h.wordbookId === wb.id);
+          const totalRuns = matchedWbHist.length;
+          const totalWordsAnswered = matchedWbHist.reduce((acc, h) => acc + (h.totalCount || 0), 0);
+          wbStatsHtml += `
+            <div class="bg-slate-50 p-2.5 rounded-xl border flex justify-between items-center text-xs">
+              <div><p class="font-bold text-slate-800">${escapeHtml(wb.title)}</p><p class="text-[10px] text-slate-500">学習回数: ${totalRuns}回</p></div>
+              <div class="text-right font-extrabold text-amber-600">${totalWordsAnswered} 単語学習</div>
+            </div>
+          `;
+        });
+      }
+      wbStatsHtml += `</div>`;
+
+      c.innerHTML = quizStatsHtml + wbStatsHtml;
       document.getElementById('quiz-stats-modal').classList.remove('hidden');
     }
 
+    // 要望4: 月毎の学習時間合計の集計・表示
     function openTimeStatsModal() {
-      document.getElementById('time-stats-container').innerHTML = `<div class="p-3 bg-indigo-50 rounded-xl text-center"><p class="text-xs text-slate-500">累計学習時間</p><p class="text-base font-black text-indigo-600">${Math.floor((appData.user.totalStudySeconds||0)/60)} 分</p></div>`;
+      const container = document.getElementById('time-stats-container');
+      container.innerHTML = '';
+
+      const logs = appData.user.dailyStudyLogs || {};
+      const monthlyMap = {};
+
+      Object.keys(logs).forEach(dateStr => {
+        const monthKey = dateStr.slice(0, 7); // "YYYY-MM"
+        const entry = logs[dateStr];
+        const secs = typeof entry === 'object' ? (entry.seconds || 0) : entry;
+        monthlyMap[monthKey] = (monthlyMap[monthKey] || 0) + secs;
+      });
+
+      const sortedMonths = Object.keys(monthlyMap).sort().reverse();
+      const totalSecs = appData.user.totalStudySeconds || 0;
+
+      let html = `
+        <div class="p-3 bg-indigo-50 rounded-xl text-center mb-3">
+          <p class="text-xs text-slate-500">累計総学習時間</p>
+          <p class="text-lg font-black text-indigo-600">${Math.floor(totalSecs/60)} 分 (${Math.floor(totalSecs/3600)}時間 ${(Math.floor(totalSecs/60)%60)}分)</p>
+        </div>
+        <h4 class="text-xs font-bold text-slate-700 mb-1.5">📅 月ごとの学習時間合計</h4>
+        <div class="space-y-1.5 max-h-48 overflow-y-auto">
+      `;
+
+      if (sortedMonths.length === 0) {
+        html += `<p class="text-xs text-slate-400 text-center py-3">月別集計データがありません</p>`;
+      } else {
+        sortedMonths.forEach(mKey => {
+          const mSecs = monthlyMap[mKey];
+          const mMins = Math.floor(mSecs / 60);
+          const mHours = Math.floor(mMins / 60);
+          const dispTime = mHours > 0 ? `${mHours}時間 ${mMins%60}分` : `${mMins}分`;
+          html += `
+            <div class="flex justify-between items-center bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <span class="font-bold text-slate-800">${mKey.replace('-', '年')}月</span>
+              <span class="font-extrabold text-amber-600">${dispTime}</span>
+            </div>
+          `;
+        });
+      }
+      html += `</div>`;
+
+      container.innerHTML = html;
       document.getElementById('time-stats-modal').classList.remove('hidden');
     }
 
@@ -2248,10 +2404,32 @@
             <td class="p-2 text-center font-bold">${scoreDisplay}</td>
             <td class="p-2 text-center"><span class="px-1.5 py-0.2 rounded text-[10px] font-bold ${h.ratio>=h.passRatio?'bg-emerald-100 text-emerald-800':'bg-slate-100'}">${h.ratio}%</span></td>
             <td class="p-2 text-center">${Math.floor((h.elapsedSeconds||0)/60)}分${(h.elapsedSeconds||0)%60}秒</td>
-            <td class="p-2 text-center"><button onclick="deleteSingleHistory('${type}', '${h.id}')" class="text-red-400 hover:text-red-600 text-xs"><i class="fa-solid fa-trash"></i></button></td>
+            <td class="p-2 text-center">
+              <div class="flex items-center justify-center gap-1">
+                <button onclick="viewHistoryDetail('${type}', '${h.id}')" class="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded text-[10px] font-bold">詳細</button>
+                <button onclick="deleteSingleHistory('${type}', '${h.id}')" class="text-red-400 hover:text-red-600 text-xs p-1"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </td>
           </tr>
         `;
       });
+    }
+
+    function viewHistoryDetail(type, histId) {
+      if (type === 'quiz') {
+        const hist = appData.histories.find(h => h.id === histId);
+        if (hist) {
+          isViewingHistoryDetail = true;
+          renderResultView(hist);
+        } else {
+          alert('該当する履歴が見つかりませんでした。');
+        }
+      } else {
+        const hist = appData.wordbookHistories.find(h => h.id === histId);
+        if (hist) {
+          alert(`【単語帳履歴】\nタイトル: ${hist.title}\n日時: ${new Date(hist.date).toLocaleString('ja-JP')}\n正解数: ${hist.correctCount}/${hist.totalCount} (${hist.ratio}%)`);
+        }
+      }
     }
 
     function deleteSingleHistory(type, id) {
