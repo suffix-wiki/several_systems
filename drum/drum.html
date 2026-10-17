@@ -1,770 +1,1215 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Pocket Drum Studio</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-touch-callout: none;
-            touch-action: manipulation;
-        }
-
-        body {
-            background: #090d16;
-            color: #f8fafc;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            overflow: hidden;
-            width: 100vw;
-            height: 100vh;
-        }
-
-        /* アプローチリングのスタイル */
-        .ring-marker {
-            pointer-events: none;
-            position: absolute;
-            border-radius: 50%;
-            border: 3px solid #38bdf8;
-            box-shadow: 0 0 16px rgba(56, 189, 248, 0.8);
-            transform: translate(-50%, -50%);
-            box-sizing: border-box;
-            z-index: 30;
-        }
-
-        /* タップ時の視覚フィードバック */
-        .pad-active {
-            transform: translate(-50%, -50%) scale(0.92) !important;
-            filter: brightness(1.5) contrast(1.2);
-            box-shadow: 0 0 30px rgba(56, 189, 248, 0.9) !important;
-        }
-
-        /* 判定用ポップアップテキストのアニメーション */
-        @keyframes floatUp {
-            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8); }
-            50% { opacity: 1; transform: translate(-50%, -90%) scale(1.3); }
-            100% { opacity: 0; transform: translate(-50%, -140%) scale(1.0); }
-        }
-
-        .judgement-pop {
-            position: absolute;
-            font-weight: 900;
-            font-size: 1.5rem;
-            pointer-events: none;
-            z-index: 40;
-            animation: floatUp 0.6s ease-out forwards;
-            text-shadow: 0 0 10px rgba(0, 0, 0, 0.9);
-        }
-
-        /* ドラムステージレイアウト（画面全体を活用） */
-        .drum-stage {
-            position: relative;
-            width: 100%;
-            height: calc(100vh - 44px);
-            margin: 0 auto;
-        }
-
-        /* ドラムパーツ共通スタイル（中心基準で配置して重なりを正確に回避） */
-        .drum-pad {
-            position: absolute;
-            transform: translate(-50%, -50%);
-            border-radius: 50%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: transform 0.05s ease, filter 0.05s ease;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 8px 20px rgba(0,0,0,0.6);
-            border: 2.5px solid rgba(255,255,255,0.25);
-            background-size: cover;
-            z-index: 10;
-        }
-
-        /* 縦画面警告オーバーレイ */
-        @media (orientation: portrait) {
-            #rotate-warning {
-                display: flex !important;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>即興ドラムアレンジャー Pro - Drum Jam Live!</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-main: #090d16;
+      --card-bg: #131b2e;
+    }
+    body {
+      background-color: var(--bg-main);
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 3px;
+    }
+    .pad-btn {
+      transition: all 0.05s ease;
+      touch-action: manipulation;
+    }
+    .pad-btn:active, .pad-btn.active {
+      transform: scale(0.95);
+      filter: brightness(1.4);
+      box-shadow: 0 0 15px rgba(244, 63, 94, 0.6);
+    }
+    .pattern-btn.active-pattern {
+      border-color: #38bdf8 !important;
+      background-color: #0369a1 !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+    }
+    .pattern-btn.queued-pattern {
+      border-color: #f59e0b !important;
+      animation: pulse 0.8s infinite alternate;
+    }
+    @keyframes pulse {
+      from { opacity: 0.6; }
+      to { opacity: 1.0; }
+    }
+    .grid-cell {
+      box-sizing: border-box;
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .grid-cell.beat-start {
+      border-left: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .drum-bar {
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+      z-index: 10;
+      cursor: pointer;
+    }
+    .resize-handle {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 12px;
+      background: rgba(255, 255, 255, 0.3);
+      border-top-right-radius: 4px;
+      border-bottom-right-radius: 4px;
+      cursor: ew-resize;
+      touch-action: none;
+    }
+    .playhead {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background-color: #f43f5e;
+      box-shadow: 0 0 8px #f43f5e;
+      z-index: 30;
+      pointer-events: none;
+    }
+  </style>
 </head>
-<body class="flex flex-col h-screen w-screen overflow-hidden select-none bg-slate-950">
+<body class="flex flex-col h-screen overflow-hidden">
 
-    <!-- 縦画面警告オーバーレイ -->
-    <div id="rotate-warning" class="hidden fixed inset-0 z-50 bg-slate-950/95 text-white flex-col items-center justify-center text-center p-6 backdrop-blur-md">
-        <i class="fa-solid fa-mobile-screen-button text-6xl text-sky-400 mb-4 animate-bounce"></i>
-        <h2 class="text-xl font-bold mb-2">画面を横向きにしてください</h2>
-        <p class="text-slate-400 text-xs max-w-xs">スマートフォンを横画面にセットして遊んでください。</p>
+  <!-- HEADER -->
+  <header class="bg-slate-900 border-b border-slate-800 p-2 sm:p-3 flex items-center justify-between z-40">
+    <div class="flex items-center gap-2">
+      <i class="fa-solid fa-drum text-rose-500 text-xl"></i>
+      <h1 class="font-black text-sm sm:text-base tracking-wider text-slate-100">即興ドラムアレンジャー <span class="text-xs font-bold text-rose-500">PRO</span></h1>
     </div>
 
-    <!-- 超軽量トップバー（高さを44pxに抑えタップ領域を最大化） -->
-    <header class="h-11 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between px-3 z-20 shrink-0">
-        <!-- 左側：モード切替 (コンパクトボタン) -->
-        <div class="flex items-center gap-2">
-            <span class="font-black text-xs tracking-wider text-sky-400 hidden sm:inline mr-1"><i class="fa-solid fa-drum mr-1"></i>POCKET DRUM</span>
-            
-            <div class="flex bg-slate-800 p-0.5 rounded-lg border border-slate-700/60">
-                <button id="btn-mode-free" class="px-2 py-1 text-[11px] font-bold rounded bg-sky-500 text-white shadow">
-                    フリー
-                </button>
-                <button id="btn-mode-song" class="px-2 py-1 text-[11px] font-bold rounded text-slate-400 hover:text-white">
-                    楽曲
-                </button>
-            </div>
-        </div>
+    <!-- MAIN CONTROLS -->
+    <div class="flex items-center gap-2">
+      <button id="btn-play" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg font-bold text-xs sm:text-sm flex items-center gap-1.5 transition">
+        <i class="fa-solid fa-play"></i> 演奏スタート
+      </button>
+      <button id="btn-stop" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs sm:text-sm flex items-center gap-1.5 transition">
+        <i class="fa-solid fa-square"></i> 停止
+      </button>
 
-        <!-- 中央：フリー演奏時コントロール (超小型) -->
-        <div id="status-panel-free" class="flex items-center gap-2 text-[11px] bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700">
-            <div class="flex items-center gap-1.5">
-                <span class="text-slate-400 text-[10px]">キック:</span>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="kick-auto-toggle" class="sr-only peer" checked>
-                    <div class="w-7 h-4 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-sky-500"></div>
-                </label>
-            </div>
+      <!-- BPM SETTING -->
+      <div class="flex items-center gap-1 bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700 text-xs">
+        <span class="text-slate-400 font-bold">BPM:</span>
+        <input type="number" id="bpm-input" min="40" max="240" value="120" class="w-12 bg-transparent text-center font-black text-rose-400 focus:outline-none">
+      </div>
 
-            <div class="h-3 w-[1px] bg-slate-700"></div>
+      <!-- OPEN EDITOR MODAL (NEW) -->
+      <button id="btn-open-editor-new" class="bg-cyan-700 hover:bg-cyan-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 transition">
+        <i class="fa-solid fa-plus"></i> <span>新規作成</span>
+      </button>
 
-            <select id="kick-pattern-select" class="bg-slate-900 text-sky-300 text-[10px] rounded px-1 py-0.5 border border-slate-700">
-                <option value="8bit_standard">8ビート(基本)</option>
-                <option value="8bit_syncopation">8ビート(シンコペ)</option>
-                <option value="8bit_dodon">8ビート(ドドン)</option>
-                <option value="8bit_push">8ビート(押し)</option>
-                <option value="4floor">4つ打ち</option>
-                <option value="16bit_funk">16ビート</option>
-            </select>
+      <!-- OPEN BACKUP MODAL -->
+      <button id="btn-open-backup" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 transition" title="保存/復元">
+        <i class="fa-solid fa-floppy-disk"></i> <span class="hidden sm:inline">保存/復元</span>
+      </button>
+    </div>
+  </header>
 
-            <div class="h-3 w-[1px] bg-slate-700 hidden sm:block"></div>
+  <!-- MAIN AREA -->
+  <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
 
-            <div class="flex items-center gap-1 hidden sm:flex">
-                <span class="text-slate-400 text-[10px]">BPM:</span>
-                <input type="range" id="bpm-slider" min="60" max="180" value="120" class="w-12 accent-sky-400">
-                <span id="bpm-value" class="w-5 text-right font-bold text-sky-400 text-[10px]">120</span>
-            </div>
-        </div>
-
-        <!-- 楽曲演奏時ステータス -->
-        <div id="status-panel-song" class="hidden flex items-center gap-4 text-[11px] font-bold bg-slate-800/80 px-3 py-1 rounded-full border border-slate-700">
-            <div><span class="text-slate-400 font-normal text-[10px] mr-1">SCORE:</span><span id="score-display" class="text-amber-400">000000</span></div>
-            <div><span class="text-slate-400 font-normal text-[10px] mr-1">COMBO:</span><span id="combo-display" class="text-sky-400">0</span></div>
-        </div>
-
-        <!-- 右側：設定 ＆ 曲選択 (極小ボタン) -->
-        <div class="flex items-center gap-1.5">
-            <button id="btn-song-select" class="hidden px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold rounded-md shadow">
-                <i class="fa-solid fa-music mr-1"></i>選曲
+    <!-- LEFT PANEL: BGM LOAD & BASIC PATTERNS -->
+    <aside class="w-full md:w-80 bg-slate-950 border-r border-slate-800 flex flex-col overflow-hidden max-h-[40vh] md:max-h-full">
+      <!-- BGM FILE LOADER WITH AUTO BPM DETECTOR -->
+      <div class="p-3 border-b border-slate-800 bg-slate-900/50 space-y-2">
+        <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-compact-disc text-rose-400"></i> バックグラウンド楽曲 (MP3/WAV)
+        </span>
+        <label class="block w-full bg-rose-950/50 hover:bg-rose-900/70 text-rose-200 border border-rose-800/60 p-2 rounded-lg text-center text-xs font-bold cursor-pointer transition">
+          <i class="fa-solid fa-upload"></i> 好きな曲を読み込む
+          <input type="file" id="bgm-input" accept="audio/*" class="hidden">
+        </label>
+        
+        <!-- BGM DETECTED BPM BANNER -->
+        <div id="bgm-info" class="hidden text-[11px] text-slate-400 space-y-1 bg-slate-900 p-2 rounded border border-slate-800">
+          <div class="flex items-center justify-between">
+            <span id="bgm-name" class="truncate max-w-[150px] font-semibold text-slate-200">曲名</span>
+            <button id="btn-remove-bgm" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="flex items-center justify-between pt-1 border-t border-slate-800">
+            <span class="text-amber-400 font-bold" id="bgm-detected-bpm">解析中...</span>
+            <button id="btn-sync-bpm" class="bg-amber-600 hover:bg-amber-500 text-white px-2 py-0.5 rounded text-[10px] font-bold hidden">
+              このBPMに合わせる
             </button>
-            <button id="btn-settings" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md border border-slate-700">
-                <i class="fa-solid fa-gear text-xs"></i>
-            </button>
+          </div>
+          <div class="flex items-center gap-2 pt-1">
+            <span class="text-[10px] text-slate-400">BGM音量:</span>
+            <input type="range" id="bgm-volume" min="0" max="1" step="0.05" value="0.7" class="flex-1 accent-rose-500">
+          </div>
         </div>
-    </header>
+      </div>
 
-    <!-- ドラムステージ（重なりゼロ＆最大化レイアウト） -->
-    <main class="flex-1 relative overflow-hidden flex items-center justify-center">
-        <div id="drum-stage" class="drum-stage">
-
-            <!-- 1. Crash Cymbal (左上) -->
-            <div id="pad-crash" data-sound="crash" class="drum-pad bg-gradient-to-br from-amber-300/40 via-yellow-500/30 to-amber-700/50 border-amber-400/70"
-                 style="top: 22%; left: 13%; width: 23vh; height: 23vh; min-width: 80px; min-height: 80px;">
-                <span class="text-amber-200 font-black text-xs sm:text-sm drop-shadow">CRASH</span>
-            </div>
-
-            <!-- 2. Hi-Hat (左中) -->
-            <div id="pad-hihat" data-sound="hihat" class="drum-pad bg-gradient-to-br from-yellow-200/40 via-amber-400/30 to-yellow-600/50 border-yellow-300/70"
-                 style="top: 55%; left: 15%; width: 22vh; height: 22vh; min-width: 78px; min-height: 78px;">
-                <span class="text-yellow-100 font-black text-xs sm:text-sm drop-shadow">HI-HAT</span>
-            </div>
-
-            <!-- 3. Snare Drum (左下/手前) -->
-            <div id="pad-snare" data-sound="snare" class="drum-pad bg-gradient-to-br from-rose-200/20 via-slate-700 to-slate-950 border-rose-400/80"
-                 style="top: 80%; left: 30%; width: 26vh; height: 26vh; min-width: 90px; min-height: 90px;">
-                <span class="text-rose-300 font-black text-sm sm:text-base drop-shadow">SNARE</span>
-            </div>
-
-            <!-- 4. High Tom (中央左上) -->
-            <div id="pad-tom1" data-sound="tom1" class="drum-pad bg-gradient-to-br from-slate-700 via-slate-800 to-slate-950 border-sky-400/60"
-                 style="top: 26%; left: 38%; width: 22vh; height: 22vh; min-width: 78px; min-height: 78px;">
-                <span class="text-sky-300 font-extrabold text-xs sm:text-sm">HIGH TOM</span>
-            </div>
-
-            <!-- 5. Low Tom (中央右上) -->
-            <div id="pad-tom2" data-sound="tom2" class="drum-pad bg-gradient-to-br from-slate-700 via-slate-800 to-slate-950 border-sky-400/60"
-                 style="top: 26%; left: 62%; width: 22vh; height: 22vh; min-width: 78px; min-height: 78px;">
-                <span class="text-sky-300 font-extrabold text-xs sm:text-sm">LOW TOM</span>
-            </div>
-
-            <!-- 6. Ride Cymbal (右上) -->
-            <div id="pad-ride" data-sound="ride" class="drum-pad bg-gradient-to-br from-amber-300/40 via-yellow-500/30 to-amber-700/50 border-amber-400/70"
-                 style="top: 22%; left: 87%; width: 23vh; height: 23vh; min-width: 80px; min-height: 80px;">
-                <span class="text-amber-200 font-black text-xs sm:text-sm drop-shadow">RIDE</span>
-            </div>
-
-            <!-- 7. Floor Tom (右下) -->
-            <div id="pad-floortom" data-sound="floortom" class="drum-pad bg-gradient-to-br from-slate-700 via-slate-800 to-slate-950 border-indigo-400/60"
-                 style="top: 75%; left: 74%; width: 26vh; height: 26vh; min-width: 90px; min-height: 90px;">
-                <span class="text-indigo-300 font-black text-xs sm:text-sm">FLOOR TOM</span>
-            </div>
-
-            <!-- バスドラム視覚インジケーター (中央奥) -->
-            <div id="pad-kick-visual" class="absolute top-[68%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border-2 border-emerald-500/40 flex flex-col items-center justify-center pointer-events-none bg-emerald-950/20 transition-all duration-75 z-0">
-                <i class="fa-solid fa-shoe-prints text-emerald-400/60 text-base mb-0.5"></i>
-                <span class="text-[9px] text-emerald-400/80 font-black">KICK</span>
-            </div>
-
+      <!-- BASIC DRUM PATTERNS SELECTOR -->
+      <div class="flex-1 overflow-y-auto p-3 custom-scrollbar space-y-2">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold text-cyan-400"><i class="fa-solid fa-list-ul"></i> 基本ドラムパターン (小節頭で変化)</span>
         </div>
+        <div id="basic-patterns-list" class="space-y-1.5">
+          <!-- JS Populated -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT MAIN WORKSPACE: INSTANT FILL-INS & LIVE PADS -->
+    <main class="flex-1 flex flex-col overflow-y-auto custom-scrollbar p-3 gap-4 bg-slate-900/60">
+
+      <!-- REALTIME STATUS DISPLAY -->
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-3">
+          <div>
+            <span class="text-slate-500 block text-[10px]">現在のドラムパターン</span>
+            <span id="status-current-pattern" class="font-bold text-cyan-300 text-sm">8ビート (標準)</span>
+          </div>
+          <div id="status-queued-container" class="hidden">
+            <span class="text-amber-500 block text-[10px]">次小節の予約</span>
+            <span id="status-queued-pattern" class="font-bold text-amber-300 text-sm">----</span>
+          </div>
+        </div>
+
+        <!-- BEAT INDICATOR DOTS -->
+        <div class="flex items-center gap-1.5" id="beat-dots">
+          <div class="w-3 h-3 rounded-full bg-slate-800 border border-slate-700" id="dot-0"></div>
+          <div class="w-3 h-3 rounded-full bg-slate-800 border border-slate-700" id="dot-1"></div>
+          <div class="w-3 h-3 rounded-full bg-slate-800 border border-slate-700" id="dot-2"></div>
+          <div class="w-3 h-3 rounded-full bg-slate-800 border border-slate-700" id="dot-3"></div>
+        </div>
+      </div>
+
+      <!-- INSTANT FILL-IN TRIGGER BUTTONS -->
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-3">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-bolt text-amber-400"></i> 即時割り込みフィルイン (ペンアイコンで中身を編集)
+          </span>
+          <span class="text-[10px] text-slate-500">ボタンタップで即時割り込み演奏</span>
+        </div>
+
+        <!-- SHORT (1/4小節 - 4拍) -->
+        <div>
+          <span class="text-[11px] font-semibold text-slate-400 block mb-1">⚡ ショートフィルイン (1/4小節 - 瞬間キメ)</span>
+          <div id="fillins-short" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-36 overflow-y-auto custom-scrollbar">
+            <!-- JS Populated -->
+          </div>
+        </div>
+
+        <!-- MEDIUM (1/2小節 - 8拍) -->
+        <div>
+          <span class="text-[11px] font-semibold text-slate-400 block mb-1">⚡ ミディアムフィルイン (1/2小節 - 定番アクセント)</span>
+          <div id="fillins-medium" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-36 overflow-y-auto custom-scrollbar">
+            <!-- JS Populated -->
+          </div>
+        </div>
+
+        <!-- LONG (1小節 - 16拍) -->
+        <div>
+          <span class="text-[11px] font-semibold text-slate-400 block mb-1">⚡ ロングフィルイン (1小節 - サビ前大爆発)</span>
+          <div id="fillins-long" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-36 overflow-y-auto custom-scrollbar">
+            <!-- JS Populated -->
+          </div>
+        </div>
+      </div>
+
+      <!-- MANUAL LIVE DRUM PADS -->
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2">
+        <span class="text-xs font-bold text-rose-400 flex items-center gap-1.5">
+          <i class="fa-solid fa-hand-pointer"></i> 手動リアルタイム・ドラムパッド (自由連打)
+        </span>
+        <div class="grid grid-cols-3 sm:grid-cols-5 gap-2" id="drum-pads-container">
+          <!-- JS Populated -->
+        </div>
+      </div>
+
     </main>
+  </div>
 
-    <!-- 楽曲選択モーダル（スクロール対応＆×ボタン固定） -->
-    <div id="modal-song" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3">
-        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-xl p-4 shadow-2xl flex flex-col max-h-[85vh]">
-            <!-- ヘッダー固定 -->
-            <div class="flex items-center justify-between pb-2 border-b border-slate-800 shrink-0">
-                <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
-                    <i class="fa-solid fa-music text-sky-400"></i> 楽曲の選択
-                </h3>
-                <button id="btn-close-song-modal" class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-800 border border-slate-700 text-xs">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
+  <!-- PATTERN EDITOR MODAL (SUPPORT EDIT & CREATE) -->
+  <div id="modal-editor" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl p-4 w-full max-w-2xl max-h-[90vh] flex flex-col gap-3 shadow-2xl overflow-hidden">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <h3 class="font-bold text-slate-200 text-sm sm:text-base flex items-center gap-2">
+          <i class="fa-solid fa-pen-to-square text-cyan-400"></i> <span id="editor-modal-title">ドラムパターンエディタ</span>
+        </h3>
+        <button class="btn-close-editor text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
 
-            <!-- コンテンツエリア（自動スクロール） -->
-            <div class="space-y-2.5 my-3 overflow-y-auto pr-1 flex-1 text-xs">
-                <!-- デモ曲1 -->
-                <button class="song-option-btn w-full bg-slate-800/80 hover:bg-slate-700/80 p-2.5 rounded-lg border border-slate-700 text-left flex items-center justify-between group transition" data-song="demo1">
-                    <div>
-                        <div class="font-bold text-sky-300 group-hover:text-white">標準8ビート 練習曲 (BPM 120)</div>
-                        <div class="text-[10px] text-slate-400">基本の1・3拍キックとスネア練習</div>
-                    </div>
-                    <i class="fa-solid fa-play text-slate-500 group-hover:text-sky-400"></i>
-                </button>
-
-                <!-- デモ曲2 -->
-                <button class="song-option-btn w-full bg-slate-800/80 hover:bg-slate-700/80 p-2.5 rounded-lg border border-slate-700 text-left flex items-center justify-between group transition" data-song="demo2">
-                    <div>
-                        <div class="font-bold text-indigo-300 group-hover:text-white">ロック・シンコペーション (BPM 125)</div>
-                        <div class="text-[10px] text-slate-400">3拍目裏のキックとタム回し</div>
-                    </div>
-                    <i class="fa-solid fa-play text-slate-500 group-hover:text-indigo-400"></i>
-                </button>
-
-                <!-- カスタムMP3/WAVファイル読み込み -->
-                <div class="pt-1">
-                    <label class="block text-[11px] font-medium text-slate-300 mb-1">端末の曲を読み込む (MP3/WAV)</label>
-                    <input type="file" id="audio-file-input" accept="audio/*" class="block w-full text-[10px] text-slate-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-sky-500 file:text-white hover:file:bg-sky-400 cursor-pointer bg-slate-800 rounded-lg border border-slate-700">
-                </div>
-            </div>
-
-            <!-- スタートボタン固定 -->
-            <button id="btn-start-song" class="w-full bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold py-2 rounded-lg shadow text-xs shrink-0">
-                演奏スタート！
-            </button>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">パターン名</label>
+          <input type="text" id="edit-pattern-name" value="マイカスタムビート" class="w-full bg-slate-800 border border-slate-700 p-2 rounded text-slate-200 focus:outline-none focus:border-cyan-500 font-bold">
         </div>
-    </div>
-
-    <!-- 設定モーダル（スクロール対応） -->
-    <div id="modal-settings" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3">
-        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-xl p-4 shadow-2xl flex flex-col max-h-[85vh]">
-            <div class="flex items-center justify-between pb-2 border-b border-slate-800 shrink-0">
-                <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
-                    <i class="fa-solid fa-sliders text-sky-400"></i> 設定
-                </h3>
-                <button id="btn-close-settings-modal" class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-800 border border-slate-700 text-xs">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <div class="space-y-3 my-3 overflow-y-auto pr-1 flex-1 text-xs">
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-300 mb-1.5">音源エンジン</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <label class="sound-mode-option cursor-pointer bg-slate-800 border-2 border-sky-500 p-2 rounded-lg flex flex-col items-center justify-center text-center">
-                            <input type="radio" name="sound-mode" value="synth" class="sr-only" checked>
-                            <span class="font-bold text-xs text-sky-300">Synth モード</span>
-                            <span class="text-[9px] text-slate-400">超高速レスポンス</span>
-                        </label>
-                        <label class="sound-mode-option cursor-pointer bg-slate-800 border-2 border-slate-700 p-2 rounded-lg flex flex-col items-center justify-center text-center">
-                            <input type="radio" name="sound-mode" value="sample" class="sr-only">
-                            <span class="font-bold text-xs text-slate-300">Sample モード</span>
-                            <span class="text-[9px] text-slate-400">録音サンプル音</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-[11px] font-medium text-slate-300 mb-1">マスター音量</label>
-                    <input type="range" id="master-volume" min="0" max="1" step="0.05" value="0.8" class="w-full accent-sky-400">
-                </div>
-            </div>
-
-            <button id="btn-save-settings" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold py-2 rounded-lg text-xs shrink-0">
-                閉じる
-            </button>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">分類タイプ</label>
+          <select id="edit-pattern-type" class="w-full bg-slate-800 border border-slate-700 p-2 rounded text-slate-200 focus:outline-none focus:border-cyan-500 font-bold">
+            <option value="basic">基本ドラムパターン</option>
+            <option value="fill_short">ショートフィルイン (4拍/末尾1/4)</option>
+            <option value="fill_medium">ミディアムフィルイン (8拍/末尾1/2)</option>
+            <option value="fill_long">ロングフィルイン (16拍/全1小節)</option>
+          </select>
         </div>
+        <div class="flex items-end gap-2">
+          <button id="btn-editor-preview-play" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-2 rounded flex items-center justify-center gap-1">
+            <i class="fa-solid fa-play"></i> 試聴ループ
+          </button>
+          <button id="btn-editor-preview-stop" class="bg-slate-700 hover:bg-slate-600 text-white font-bold p-2 rounded">
+            <i class="fa-solid fa-square"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="text-[10px] text-slate-400 flex justify-between items-center">
+        <span><i class="fa-solid fa-info-circle text-cyan-400"></i> マス目タップで配置 / 右端スライドで音長を伸縮できます。</span>
+        <button id="btn-editor-clear" class="text-rose-400 hover:underline"><i class="fa-solid fa-trash"></i> クリア</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar bg-slate-950 p-2 border border-slate-800 rounded-xl relative">
+        <div id="editor-grid-container" class="relative min-w-[550px]">
+          <div id="editor-playhead" class="playhead hidden"></div>
+          <div id="editor-drum-grid" class="relative bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+            <!-- JS Populated -->
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-1 border-t border-slate-800">
+        <button class="btn-close-editor bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2 rounded text-xs">キャンセル</button>
+        <button id="btn-save-custom-pattern" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-5 py-2 rounded text-xs flex items-center gap-1 shadow-lg shadow-cyan-900/40">
+          <i class="fa-solid fa-floppy-disk"></i> 保存して反映
+        </button>
+      </div>
     </div>
-
-    <script>
-        // Web Audio API の初期化
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        let audioCtx = null;
-        let masterGainNode = null;
-
-        let soundEngineType = 'synth';
-        const sampleBuffers = {};
-
-        function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new AudioContext();
-                masterGainNode = audioCtx.createGain();
-                masterGainNode.gain.value = 0.8;
-                masterGainNode.connect(audioCtx.destination);
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-        }
-
-        // Web Audio API Synthesizer 音色生成
-        function playSynthesizedSound(type) {
-            if (!audioCtx) return;
-            const now = audioCtx.currentTime;
-
-            if (type === 'kick') {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.frequency.setValueAtTime(140, now);
-                osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.3);
-                gain.gain.setValueAtTime(1.0, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-                osc.connect(gain);
-                gain.connect(masterGainNode);
-                osc.start(now);
-                osc.stop(now + 0.3);
-
-            } else if (type === 'snare') {
-                const bufferSize = audioCtx.sampleRate * 0.2;
-                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = Math.random() * 2 - 1;
-                }
-                const noise = audioCtx.createBufferSource();
-                noise.buffer = buffer;
-
-                const noiseFilter = audioCtx.createBiquadFilter();
-                noiseFilter.type = 'highpass';
-                noiseFilter.frequency.value = 800;
-
-                const noiseGain = audioCtx.createGain();
-                noiseGain.gain.setValueAtTime(0.8, now);
-                noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-
-                noise.connect(noiseFilter);
-                noiseFilter.connect(noiseGain);
-                noiseGain.connect(masterGainNode);
-
-                const osc = audioCtx.createOscillator();
-                const oscGain = audioCtx.createGain();
-                osc.frequency.setValueAtTime(180, now);
-                osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.1);
-                oscGain.gain.setValueAtTime(0.6, now);
-                oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-
-                osc.connect(oscGain);
-                oscGain.connect(masterGainNode);
-
-                noise.start(now);
-                osc.start(now);
-                noise.stop(now + 0.2);
-                osc.stop(now + 0.1);
-
-            } else if (type === 'hihat') {
-                const bufferSize = audioCtx.sampleRate * 0.06;
-                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = Math.random() * 2 - 1;
-                }
-                const noise = audioCtx.createBufferSource();
-                noise.buffer = buffer;
-
-                const filter = audioCtx.createBiquadFilter();
-                filter.type = 'highpass';
-                filter.frequency.value = 7000;
-
-                const gain = audioCtx.createGain();
-                gain.gain.setValueAtTime(0.6, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
-
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(masterGainNode);
-                noise.start(now);
-                noise.stop(now + 0.06);
-
-            } else if (type === 'crash' || type === 'ride') {
-                const duration = type === 'crash' ? 1.2 : 0.8;
-                const bufferSize = audioCtx.sampleRate * duration;
-                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = Math.random() * 2 - 1;
-                }
-                const noise = audioCtx.createBufferSource();
-                noise.buffer = buffer;
-
-                const filter = audioCtx.createBiquadFilter();
-                filter.type = 'highpass';
-                filter.frequency.value = type === 'crash' ? 4000 : 5000;
-
-                const gain = audioCtx.createGain();
-                gain.gain.setValueAtTime(type === 'crash' ? 0.8 : 0.5, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(masterGainNode);
-                noise.start(now);
-                noise.stop(now + duration);
-
-            } else if (type === 'tom1' || type === 'tom2' || type === 'floortom') {
-                const freqs = { tom1: 150, tom2: 110, floortom: 80 };
-                const freq = freqs[type] || 110;
-
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-
-                osc.frequency.setValueAtTime(freq, now);
-                osc.frequency.exponentialRampToValueAtTime(freq * 0.2, now + 0.3);
-
-                gain.gain.setValueAtTime(0.85, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-
-                osc.connect(gain);
-                gain.connect(masterGainNode);
-                osc.start(now);
-                osc.stop(now + 0.3);
-            }
-        }
-
-        function triggerDrumSound(soundName) {
-            initAudio();
-            
-            if (soundName === 'kick') {
-                const kickEl = document.getElementById('pad-kick-visual');
-                kickEl.classList.add('scale-125', 'border-emerald-400', 'bg-emerald-500/40');
-                setTimeout(() => {
-                    kickEl.classList.remove('scale-125', 'border-emerald-400', 'bg-emerald-500/40');
-                }, 90);
-            }
-
-            if (soundEngineType === 'synth' || !sampleBuffers[soundName]) {
-                playSynthesizedSound(soundName);
-            } else {
-                const source = audioCtx.createBufferSource();
-                source.buffer = sampleBuffers[soundName];
-                source.connect(masterGainNode);
-                source.start(0);
-            }
-        }
-
-        // バスドラム自動連動タイマー
-        let autoKickTimer = null;
-        let currentStep = 0;
-
-        const kickPatterns = {
-            '8bit_standard':    [1, 0, 0, 0, 1, 0, 0, 0],
-            '8bit_syncopation': [1, 0, 0, 0, 0, 1, 0, 0],
-            '8bit_dodon':       [1, 0, 0, 0, 1, 1, 0, 0],
-            '8bit_push':        [1, 1, 0, 0, 1, 0, 0, 0],
-            '4floor':           [1, 0, 1, 0, 1, 0, 1, 0],
-            '16bit_funk':       [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]
-        };
-
-        function startAutoKick() {
-            stopAutoKick();
-            const toggle = document.getElementById('kick-auto-toggle');
-            if (!toggle.checked || currentMode !== 'free') return;
-
-            const bpm = parseInt(document.getElementById('bpm-slider').value, 10);
-            const patternKey = document.getElementById('kick-pattern-select').value;
-            const pattern = kickPatterns[patternKey] || kickPatterns['8bit_standard'];
-
-            const is16Step = pattern.length === 16;
-            const intervalMs = is16Step ? (60 / bpm / 4) * 1000 : (60 / bpm / 2) * 1000;
-
-            autoKickTimer = setInterval(() => {
-                if (pattern[currentStep] === 1) {
-                    triggerDrumSound('kick');
-                }
-                currentStep = (currentStep + 1) % pattern.length;
-            }, intervalMs);
-        }
-
-        function stopAutoKick() {
-            if (autoKickTimer) {
-                clearInterval(autoKickTimer);
-                autoKickTimer = null;
-            }
-            currentStep = 0;
-        }
-
-        // 楽曲演奏モード変数
-        let currentMode = 'free';
-        let score = 0;
-        let combo = 0;
-
-        const demoNoteCharts = {
-            'demo1': [
-                { time: 1.0, pad: 'hihat' }, { time: 1.5, pad: 'snare' },
-                { time: 2.0, pad: 'hihat' }, { time: 2.5, pad: 'snare' },
-                { time: 3.0, pad: 'tom1' },  { time: 3.5, pad: 'tom2' },
-                { time: 4.0, pad: 'floortom' }, { time: 4.5, pad: 'crash' }
-            ],
-            'demo2': [
-                { time: 0.8, pad: 'hihat' }, { time: 1.2, pad: 'hihat' },
-                { time: 1.6, pad: 'snare' }, { time: 2.0, pad: 'hihat' },
-                { time: 2.4, pad: 'tom1' },  { time: 2.8, pad: 'tom2' },
-                { time: 3.2, pad: 'crash' }
-            ]
-        };
-
-        function spawnApproachRing(padId, noteId, approachTime = 1.2) {
-            const padEl = document.getElementById(padId);
-            if (!padEl) return;
-
-            const rect = padEl.getBoundingClientRect();
-            const stageRect = document.getElementById('drum-stage').getBoundingClientRect();
-
-            const ring = document.createElement('div');
-            ring.className = 'ring-marker';
-
-            const centerX = rect.left + rect.width / 2 - stageRect.left;
-            const centerY = rect.top + rect.height / 2 - stageRect.top;
-
-            const initialSize = rect.width * 2.1;
-            const targetSize = rect.width;
-
-            ring.style.left = `${centerX}px`;
-            ring.style.top = `${centerY}px`;
-            ring.style.width = `${initialSize}px`;
-            ring.style.height = `${initialSize}px`;
-
-            document.getElementById('drum-stage').appendChild(ring);
-
-            const startTime = performance.now();
-
-            function animateRing(now) {
-                const elapsed = (now - startTime) / 1000;
-                const progress = elapsed / approachTime;
-
-                if (progress >= 1.2) {
-                    if (ring.parentNode) {
-                        ring.parentNode.removeChild(ring);
-                        registerHitResult('MISS', padEl);
-                    }
-                    return;
-                }
-
-                const currentSize = initialSize - (initialSize - targetSize) * Math.min(progress, 1.0);
-                ring.style.width = `${currentSize}px`;
-                ring.style.height = `${currentSize}px`;
-
-                if (ring.parentNode) {
-                    requestAnimationFrame(animateRing);
-                }
-            }
-
-            requestAnimationFrame(animateRing);
-        }
-
-        function evaluateTap(soundName) {
-            if (currentMode !== 'song') return;
-
-            const padEl = document.querySelector(`[data-sound="${soundName}"]`);
-            const rings = document.querySelectorAll('.ring-marker');
-
-            let bestRing = null;
-            let minDiff = 999;
-
-            rings.forEach(ring => {
-                if (padEl && ring) {
-                    const rect = padEl.getBoundingClientRect();
-                    const ringWidth = parseFloat(ring.style.width);
-                    const targetWidth = rect.width;
-                    const diff = Math.abs(ringWidth - targetWidth);
-
-                    if (diff < minDiff && diff < targetWidth * 0.6) {
-                        minDiff = diff;
-                        bestRing = ring;
-                    }
-                }
-            });
-
-            if (bestRing) {
-                const rect = padEl.getBoundingClientRect();
-                const diffRatio = minDiff / rect.width;
-
-                let result = 'GOOD';
-                if (diffRatio < 0.15) result = 'PERFECT';
-                else if (diffRatio < 0.35) result = 'GREAT';
-
-                bestRing.remove();
-                registerHitResult(result, padEl);
-            }
-        }
-
-        function registerHitResult(result, targetEl) {
-            const rect = targetEl.getBoundingClientRect();
-            const stageRect = document.getElementById('drum-stage').getBoundingClientRect();
-
-            const pop = document.createElement('div');
-            pop.className = 'judgement-pop';
-            pop.style.left = `${rect.left + rect.width/2 - stageRect.left}px`;
-            pop.style.top = `${rect.top + rect.height/2 - stageRect.top}px`;
-
-            if (result === 'PERFECT') {
-                pop.textContent = 'PERFECT!';
-                pop.classList.add('text-amber-400');
-                score += 1000;
-                combo++;
-            } else if (result === 'GREAT') {
-                pop.textContent = 'GREAT';
-                pop.classList.add('text-sky-400');
-                score += 500;
-                combo++;
-            } else if (result === 'GOOD') {
-                pop.textContent = 'GOOD';
-                pop.classList.add('text-emerald-400');
-                score += 200;
-                combo++;
-            } else {
-                pop.textContent = 'MISS';
-                pop.classList.add('text-rose-500');
-                combo = 0;
-            }
-
-            document.getElementById('score-display').textContent = String(score).padStart(6, '0');
-            document.getElementById('combo-display').textContent = combo;
-
-            document.getElementById('drum-stage').appendChild(pop);
-            setTimeout(() => pop.remove(), 600);
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-
-            const pads = document.querySelectorAll('.drum-pad');
-            pads.forEach(pad => {
-                const handleTrigger = (e) => {
-                    e.preventDefault();
-                    initAudio();
-
-                    const sound = pad.dataset.sound;
-                    triggerDrumSound(sound);
-
-                    pad.classList.add('pad-active');
-                    setTimeout(() => pad.classList.remove('pad-active'), 90);
-
-                    if (currentMode === 'song') {
-                        evaluateTap(sound);
-                    }
-                };
-
-                pad.addEventListener('touchstart', handleTrigger, { passive: false });
-                pad.addEventListener('mousedown', handleTrigger);
-            });
-
-            const btnFree = document.getElementById('btn-mode-free');
-            const btnSong = document.getElementById('btn-mode-song');
-            const panelFree = document.getElementById('status-panel-free');
-            const panelSong = document.getElementById('status-panel-song');
-            const btnSongSelect = document.getElementById('btn-song-select');
-
-            btnFree.addEventListener('click', () => {
-                currentMode = 'free';
-                btnFree.className = "px-2 py-1 text-[11px] font-bold rounded bg-sky-500 text-white shadow";
-                btnSong.className = "px-2 py-1 text-[11px] font-bold rounded text-slate-400 hover:text-white";
-                panelFree.classList.remove('hidden');
-                panelSong.classList.add('hidden');
-                btnSongSelect.classList.add('hidden');
-                startAutoKick();
-            });
-
-            btnSong.addEventListener('click', () => {
-                currentMode = 'song';
-                btnSong.className = "px-2 py-1 text-[11px] font-bold rounded bg-indigo-600 text-white shadow";
-                btnFree.className = "px-2 py-1 text-[11px] font-bold rounded text-slate-400 hover:text-white";
-                panelFree.classList.add('hidden');
-                panelSong.classList.remove('hidden');
-                btnSongSelect.classList.remove('hidden');
-                stopAutoKick();
-
-                document.getElementById('modal-song').classList.remove('hidden');
-            });
-
-            document.getElementById('bpm-slider').addEventListener('input', (e) => {
-                document.getElementById('bpm-value').textContent = e.target.value;
-                if (currentMode === 'free') startAutoKick();
-            });
-
-            document.getElementById('kick-auto-toggle').addEventListener('change', () => {
-                if (currentMode === 'free') startAutoKick();
-            });
-
-            document.getElementById('kick-pattern-select').addEventListener('change', () => {
-                if (currentMode === 'free') startAutoKick();
-            });
-
-            // モーダル閉じるイベント
-            document.getElementById('btn-song-select').addEventListener('click', () => {
-                document.getElementById('modal-song').classList.remove('hidden');
-            });
-            document.getElementById('btn-close-song-modal').addEventListener('click', () => {
-                document.getElementById('modal-song').classList.add('hidden');
-            });
-
-            document.getElementById('btn-settings').addEventListener('click', () => {
-                document.getElementById('modal-settings').classList.remove('hidden');
-            });
-            document.getElementById('btn-close-settings-modal').addEventListener('click', () => {
-                document.getElementById('modal-settings').classList.add('hidden');
-            });
-            document.getElementById('btn-save-settings').addEventListener('click', () => {
-                document.getElementById('modal-settings').classList.add('hidden');
-            });
-
-            document.getElementById('master-volume').addEventListener('input', (e) => {
-                if (masterGainNode) {
-                    masterGainNode.gain.value = parseFloat(e.target.value);
-                }
-            });
-
-            document.getElementById('btn-start-song').addEventListener('click', () => {
-                document.getElementById('modal-song').classList.add('hidden');
-                score = 0;
-                combo = 0;
-                document.getElementById('score-display').textContent = '000000';
-                document.getElementById('combo-display').textContent = '0';
-
-                const chart = demoNoteCharts['demo1'];
-                chart.forEach(note => {
-                    setTimeout(() => {
-                        spawnApproachRing(`pad-${note.pad}`, Math.random());
-                    }, note.time * 1000);
-                });
-            });
-
-            window.addEventListener('touchstart', initAudio, { once: true });
-            window.addEventListener('click', initAudio, { once: true });
-
-            startAutoKick();
+  </div>
+
+  <!-- BACKUP & RESTORE MODAL -->
+  <div id="modal-backup" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl p-4 w-full max-w-md flex flex-col gap-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <h3 class="font-bold text-slate-200 text-sm sm:text-base flex items-center gap-2">
+          <i class="fa-solid fa-floppy-disk text-cyan-400"></i> パターンの保存と復元 (バックアップ)
+        </h3>
+        <button class="btn-close-backup text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
+
+      <p class="text-xs text-slate-400">
+        編集・自作したパターンを含むすべてのドラムデータをJSONファイルとしてエクスポート保存・復元できます。
+      </p>
+
+      <div class="space-y-3">
+        <!-- EXPORT -->
+        <button id="btn-export-json" class="w-full bg-cyan-900/60 hover:bg-cyan-800 text-cyan-200 border border-cyan-700/80 p-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition shadow">
+          <i class="fa-solid fa-file-export text-base"></i> 全パターンをJSONファイルで保存
+        </button>
+
+        <!-- IMPORT -->
+        <label class="w-full bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/80 p-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition shadow">
+          <i class="fa-solid fa-file-import text-base"></i> JSONファイルを読み込んで復元
+          <input type="file" id="input-import-json" accept=".json" class="hidden">
+        </label>
+
+        <!-- RESET -->
+        <button id="btn-reset-default" class="w-full bg-slate-800 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 border border-slate-700 hover:border-rose-800/80 p-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition">
+          <i class="fa-solid fa-rotate-left"></i> 初期状態（デフォルトパターン）に戻す
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * 即興ドラムアレンジャー PRO - CORE ENGINE
+     */
+
+    const DRUMS = [
+      { id: "crash", label: "クラッシュ", color: "bg-amber-500" },
+      { id: "ride", label: "ライド", color: "bg-yellow-600" },
+      { id: "hihat_open", label: "オープンHH", color: "bg-emerald-500" },
+      { id: "hihat_close", label: "クローズHH", color: "bg-emerald-600" },
+      { id: "snare", label: "スネアドラム", color: "bg-pink-500" },
+      { id: "high_tom", label: "ハイタム", color: "bg-indigo-400" },
+      { id: "low_tom", label: "ロータム", color: "bg-indigo-600" },
+      { id: "floor_tom", label: "フロアタム", color: "bg-purple-700" },
+      { id: "kick", label: "バスドラム", color: "bg-rose-600" }
+    ];
+
+    const DEFAULT_BASIC_PATTERNS = [
+      { name: "1. 標準 8ビート (ポップス/ロック)", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:8,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_close",step:0,duration:1},{type:"hihat_close",step:2,duration:1},{type:"hihat_close",step:4,duration:1},{type:"hihat_close",step:6,duration:1},{type:"hihat_close",step:8,duration:1},{type:"hihat_close",step:10,duration:1},{type:"hihat_close",step:12,duration:1},{type:"hihat_close",step:14,duration:1}] },
+      { name: "2. ダンス 4つ打ち (EDM/Club)", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:4,duration:2},{type:"kick",step:8,duration:2},{type:"kick",step:12,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_open",step:2,duration:1},{type:"hihat_open",step:6,duration:1},{type:"hihat_open",step:10,duration:1},{type:"hihat_open",step:14,duration:1}] },
+      { name: "3. 16ビート・ファンク", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:6,duration:2},{type:"kick",step:10,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_close",step:0,duration:1},{type:"hihat_close",step:1,duration:1},{type:"hihat_close",step:2,duration:1},{type:"hihat_close",step:4,duration:1},{type:"hihat_close",step:8,duration:1},{type:"hihat_close",step:12,duration:1}] },
+      { name: "4. アコースティック・ボサノバ", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:6,duration:2},{type:"kick",step:10,duration:2},{type:"snare",step:4,duration:2},{type:"ride",step:0,duration:2},{type:"ride",step:4,duration:2},{type:"ride",step:8,duration:2},{type:"ride",step:12,duration:2}] },
+      { name: "5. トラップ (Trap/HipHop)", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:10,duration:2},{type:"snare",step:8,duration:2},{type:"hihat_close",step:0,duration:1},{type:"hihat_close",step:1,duration:1},{type:"hihat_close",step:2,duration:1},{type:"hihat_close",step:3,duration:1},{type:"hihat_close",step:4,duration:1},{type:"hihat_close",step:6,duration:1}] },
+      { name: "6. 跳ねるブルース・シャッフル", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:8,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_close",step:0,duration:1},{type:"hihat_close",step:3,duration:1},{type:"hihat_close",step:4,duration:1},{type:"hihat_close",step:7,duration:1},{type:"hihat_close",step:8,duration:1},{type:"hihat_close",step:11,duration:1}] },
+      { name: "7. ドライブ・疾走ロックビート", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:3,duration:2},{type:"kick",step:8,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"crash",step:0,duration:4},{type:"ride",step:4,duration:2},{type:"ride",step:8,duration:2},{type:"ride",step:12,duration:2}] },
+      { name: "8. 70s ディスコ・フィーバー", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:4,duration:2},{type:"kick",step:8,duration:2},{type:"kick",step:12,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_open",step:2,duration:1},{type:"hihat_open",step:6,duration:1},{type:"hihat_open",step:10,duration:1},{type:"hihat_open",step:14,duration:1}] },
+      { name: "9. 都市派シティポップ", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:10,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_close",step:0,duration:1},{type:"hihat_close",step:2,duration:1},{type:"hihat_close",step:4,duration:1},{type:"hihat_open",step:7,duration:1},{type:"hihat_close",step:8,duration:1},{type:"hihat_close",step:10,duration:1}] },
+      { name: "10. ダンスホール・レゲトン", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:8,duration:2},{type:"snare",step:3,duration:1},{type:"snare",step:6,duration:2},{type:"snare",step:11,duration:1},{type:"snare",step:14,duration:2}] },
+      { name: "11. 8ビート (シンコペーション)", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:7,duration:2},{type:"kick",step:10,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_close",step:0,duration:1},{type:"hihat_close",step:2,duration:1},{type:"hihat_close",step:4,duration:1},{type:"hihat_close",step:6,duration:1},{type:"hihat_close",step:8,duration:1},{type:"hihat_close",step:10,duration:1},{type:"hihat_close",step:12,duration:1},{type:"hihat_close",step:14,duration:1}] },
+      { name: "12. ハーフタイム・バラード", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:10,duration:2},{type:"snare",step:8,duration:2},{type:"hihat_close",step:0,duration:1},{type:"hihat_close",step:4,duration:1},{type:"hihat_close",step:8,duration:1},{type:"hihat_close",step:12,duration:1}] },
+      { name: "13. 2ステップ・UKガラージ", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:10,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_close",step:2,duration:1},{type:"hihat_close",step:6,duration:1},{type:"hihat_close",step:8,duration:1},{type:"hihat_close",step:14,duration:1}] },
+      { name: "14. ラテン・サンバビート", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:6,duration:2},{type:"kick",step:8,duration:2},{type:"kick",step:14,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"ride",step:0,duration:2},{type:"ride",step:2,duration:2},{type:"ride",step:4,duration:2},{type:"ride",step:6,duration:2},{type:"ride",step:8,duration:2},{type:"ride",step:10,duration:2},{type:"ride",step:12,duration:2},{type:"ride",step:14,duration:2}] },
+      { name: "15. アニソン・ハイテンションビート", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:3,duration:2},{type:"kick",step:6,duration:2},{type:"kick",step:10,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"crash",step:0,duration:4},{type:"hihat_close",step:2,duration:1},{type:"hihat_close",step:4,duration:1},{type:"hihat_close",step:6,duration:1},{type:"hihat_close",step:8,duration:1},{type:"hihat_close",step:10,duration:1},{type:"hihat_close",step:12,duration:1},{type:"hihat_close",step:14,duration:1}] },
+      { name: "16. 80s エレクトロポップ", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:8,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_close",step:0,duration:1},{type:"hihat_close",step:2,duration:1},{type:"hihat_close",step:4,duration:1},{type:"hihat_close",step:6,duration:1},{type:"hihat_close",step:8,duration:1},{type:"hihat_close",step:10,duration:1}] },
+      { name: "17. メタル・ダブルベース", notes: [{type:"kick",step:0,duration:1},{type:"kick",step:2,duration:1},{type:"kick",step:4,duration:1},{type:"kick",step:6,duration:1},{type:"kick",step:8,duration:1},{type:"kick",step:10,duration:1},{type:"kick",step:12,duration:1},{type:"kick",step:14,duration:1},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2}] },
+      { name: "18. アシッドジャズ・スウィング", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:10,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"ride",step:0,duration:2},{type:"ride",step:3,duration:1},{type:"ride",step:4,duration:2},{type:"ride",step:7,duration:1}] },
+      { name: "19. モータウン・ソウルビート", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:8,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_close",step:0,duration:1},{type:"hihat_close",step:1,duration:1},{type:"hihat_close",step:2,duration:1},{type:"hihat_close",step:4,duration:1}] },
+      { name: "20. アコースティック・フォーク", notes: [{type:"kick",step:0,duration:4},{type:"kick",step:8,duration:4},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_close",step:0,duration:2},{type:"hihat_close",step:4,duration:2},{type:"hihat_close",step:8,duration:2},{type:"hihat_close",step:12,duration:2}] }
+    ];
+
+    const DEFAULT_FILLINS_SHORT = [
+      { name: "S-1. スネア4連撃", notes: [{type:"snare",relStep:0,duration:1},{type:"snare",relStep:1,duration:1},{type:"snare",relStep:2,duration:1},{type:"snare",relStep:3,duration:1}] },
+      { name: "S-2. タムタムワンショット", notes: [{type:"high_tom",relStep:0,duration:1},{type:"low_tom",relStep:1,duration:1},{type:"floor_tom",relStep:2,duration:2}] },
+      { name: "S-3. バスドラどかん", notes: [{type:"kick",relStep:0,duration:1},{type:"kick",relStep:1,duration:1},{type:"kick",relStep:2,duration:2}] },
+      { name: "S-4. オープンHHカット", notes: [{type:"hihat_open",relStep:0,duration:2},{type:"snare",relStep:2,duration:2}] },
+      { name: "S-5. スネア＆クラッシュ", notes: [{type:"snare",relStep:0,duration:1},{type:"crash",relStep:2,duration:2}] },
+      { name: "S-6. フロアタム〆", notes: [{type:"floor_tom",relStep:0,duration:2},{type:"floor_tom",relStep:2,duration:2}] },
+      { name: "S-7. トラップ3連スネア", notes: [{type:"snare",relStep:0,duration:1},{type:"snare",relStep:1,duration:1},{type:"snare",relStep:2,duration:1}] },
+      { name: "S-8. ライドシンバルキメ", notes: [{type:"ride",relStep:0,duration:2},{type:"ride",relStep:2,duration:2}] },
+      { name: "S-9. ハイタム連撃", notes: [{type:"high_tom",relStep:0,duration:1},{type:"high_tom",relStep:1,duration:1},{type:"snare",relStep:2,duration:2}] },
+      { name: "S-10. アタックシンコペ", notes: [{type:"kick",relStep:0,duration:1},{type:"snare",relStep:1,duration:1},{type:"crash",relStep:2,duration:2}] }
+    ];
+
+    const DEFAULT_FILLINS_MEDIUM = [
+      { name: "M-1. 王道タム回し", notes: [{type:"snare",relStep:0,duration:1},{type:"snare",relStep:1,duration:1},{type:"high_tom",relStep:2,duration:1},{type:"high_tom",relStep:3,duration:1},{type:"low_tom",relStep:4,duration:1},{type:"low_tom",relStep:5,duration:1},{type:"floor_tom",relStep:6,duration:2}] },
+      { name: "M-2. スネア加速ビルド", notes: [{type:"snare",relStep:0,duration:2},{type:"snare",relStep:2,duration:2},{type:"snare",relStep:4,duration:1},{type:"snare",relStep:5,duration:1},{type:"snare",relStep:6,duration:1},{type:"snare",relStep:7,duration:1}] },
+      { name: "M-3. クラッシュ連打ビルド", notes: [{type:"crash",relStep:0,duration:2},{type:"crash",relStep:2,duration:2},{type:"crash",relStep:4,duration:2},{type:"crash",relStep:6,duration:2}] },
+      { name: "M-4. バスドラ＆スネア交互", notes: [{type:"kick",relStep:0,duration:1},{type:"snare",relStep:1,duration:1},{type:"kick",relStep:2,duration:1},{type:"snare",relStep:3,duration:1},{type:"kick",relStep:4,duration:1},{type:"snare",relStep:5,duration:1},{type:"snare",relStep:6,duration:2}] },
+      { name: "M-5. タムダウンアタック", notes: [{type:"high_tom",relStep:0,duration:2},{type:"low_tom",relStep:2,duration:2},{type:"floor_tom",relStep:4,duration:2},{type:"crash",relStep:6,duration:2}] },
+      { name: "M-6. ハイタム＆ロータム交互", notes: [{type:"high_tom",relStep:0,duration:1},{type:"low_tom",relStep:1,duration:1},{type:"high_tom",relStep:2,duration:1},{type:"low_tom",relStep:3,duration:1},{type:"snare",relStep:4,duration:2}] },
+      { name: "M-7. 3連符アプローチ風", notes: [{type:"snare",relStep:0,duration:2},{type:"snare",relStep:2,duration:1},{type:"snare",relStep:3,duration:1},{type:"floor_tom",relStep:4,duration:2},{type:"crash",relStep:6,duration:2}] },
+      { name: "M-8. オープンハイハット〆", notes: [{type:"hihat_close",relStep:0,duration:1},{type:"hihat_close",relStep:2,duration:1},{type:"hihat_open",relStep:4,duration:2},{type:"snare",relStep:6,duration:2}] },
+      { name: "M-9. ロールフラム〆", notes: [{type:"snare",relStep:0,duration:1},{type:"snare",relStep:1,duration:1},{type:"snare",relStep:2,duration:1},{type:"snare",relStep:3,duration:1},{type:"snare",relStep:4,duration:4}] },
+      { name: "M-10. フロアタム重低音", notes: [{type:"floor_tom",relStep:0,duration:2},{type:"floor_tom",relStep:2,duration:2},{type:"floor_tom",relStep:4,duration:1},{type:"floor_tom",relStep:5,duration:1},{type:"snare",relStep:6,duration:2}] }
+    ];
+
+    const DEFAULT_FILLINS_LONG = [
+      { name: "L-1. サビ前大爆発タムダウン", notes: [{type:"snare",relStep:0,duration:2},{type:"snare",relStep:2,duration:2},{type:"high_tom",relStep:4,duration:2},{type:"high_tom",relStep:6,duration:2},{type:"low_tom",relStep:8,duration:2},{type:"low_tom",relStep:10,duration:2},{type:"floor_tom",relStep:12,duration:2},{type:"crash",relStep:14,duration:2}] },
+      { name: "L-2. フルスネアビルドアップ", notes: [{type:"snare",relStep:0,duration:2},{type:"snare",relStep:2,duration:2},{type:"snare",relStep:4,duration:2},{type:"snare",relStep:6,duration:2},{type:"snare",relStep:8,duration:1},{type:"snare",relStep:10,duration:1},{type:"snare",relStep:12,duration:1},{type:"snare",relStep:13,duration:1},{type:"snare",relStep:14,duration:1},{type:"snare",relStep:15,duration:1}] },
+      { name: "L-3. シンコペーションストップ", notes: [{type:"crash",relStep:0,duration:4},{type:"kick",relStep:0,duration:2},{type:"snare",relStep:8,duration:2},{type:"floor_tom",relStep:12,duration:2},{type:"crash",relStep:14,duration:2}] },
+      { name: "L-4. 交互ドラムロール", notes: [{type:"kick",relStep:0,duration:1},{type:"snare",relStep:2,duration:1},{type:"high_tom",relStep:4,duration:1},{type:"low_tom",relStep:6,duration:1},{type:"floor_tom",relStep:8,duration:1},{type:"snare",relStep:10,duration:1},{type:"snare",relStep:12,duration:1},{type:"crash",relStep:14,duration:2}] },
+      { name: "L-5. マーチングスネア", notes: [{type:"snare",relStep:0,duration:1},{type:"snare",relStep:1,duration:1},{type:"snare",relStep:2,duration:1},{type:"snare",relStep:4,duration:1},{type:"snare",relStep:6,duration:1},{type:"snare",relStep:8,duration:1},{type:"snare",relStep:12,duration:2}] },
+      { name: "L-6. ダンスラッシュビルド", notes: [{type:"kick",relStep:0,duration:2},{type:"kick",relStep:4,duration:2},{type:"snare",relStep:8,duration:1},{type:"snare",relStep:9,duration:1},{type:"snare",relStep:10,duration:1},{type:"snare",relStep:11,duration:1},{type:"snare",relStep:12,duration:1},{type:"snare",relStep:13,duration:1},{type:"snare",relStep:14,duration:1},{type:"snare",relStep:15,duration:1}] },
+      { name: "L-7. ドラマチックストップ", notes: [{type:"crash",relStep:0,duration:4},{type:"snare",relStep:8,duration:2},{type:"floor_tom",relStep:12,duration:2},{type:"crash",relStep:14,duration:2}] },
+      { name: "L-8. フルフラムロール", notes: [{type:"high_tom",relStep:0,duration:1},{type:"high_tom",relStep:1,duration:1},{type:"low_tom",relStep:4,duration:1},{type:"low_tom",relStep:5,duration:1},{type:"floor_tom",relStep:8,duration:1},{type:"floor_tom",relStep:9,duration:1},{type:"snare",relStep:12,duration:2}] },
+      { name: "L-9. 爆発サビ前アプローチ", notes: [{type:"kick",relStep:0,duration:2},{type:"snare",relStep:4,duration:2},{type:"high_tom",relStep:8,duration:1},{type:"low_tom",relStep:10,duration:1},{type:"floor_tom",relStep:12,duration:1},{type:"snare",relStep:14,duration:2}] },
+      { name: "L-10. アフタービートライド連打", notes: [{type:"ride",relStep:0,duration:2},{type:"ride",relStep:4,duration:2},{type:"ride",relStep:8,duration:2},{type:"snare",relStep:12,duration:1},{type:"snare",relStep:14,duration:1}] }
+    ];
+
+    // STATE
+    let bpm = 120;
+    let currentPatternIndex = 0;
+    let queuedPatternIndex = null;
+    let isPlaying = false;
+    let currentStep = 0;
+    let audioCtx = null;
+    let timerId = null;
+
+    let fillinOverrideSteps = {};
+
+    let basicPatterns = JSON.parse(JSON.stringify(DEFAULT_BASIC_PATTERNS));
+    let fillinsShort = JSON.parse(JSON.stringify(DEFAULT_FILLINS_SHORT));
+    let fillinsMedium = JSON.parse(JSON.stringify(DEFAULT_FILLINS_MEDIUM));
+    let fillinsLong = JSON.parse(JSON.stringify(DEFAULT_FILLINS_LONG));
+
+    // EDITOR STATE
+    let editingContext = { targetArray: null, index: -1, isNew: true };
+    let editingPattern = { name: "マイカスタムビート", type: "basic", notes: [] };
+    let editorIsPreviewing = false;
+    let editorStep = 0;
+    let editorTimerId = null;
+
+    let bgmBuffer = null;
+    let bgmSourceNode = null;
+    let bgmGainNode = null;
+    let detectedBPM = null;
+
+    window.addEventListener("DOMContentLoaded", () => {
+      initUI();
+      renderPatternList();
+      renderFillinButtons();
+      renderDrumPads();
+      renderEditorGrid();
+    });
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function initUI() {
+      document.getElementById("btn-play").addEventListener("click", startPerformance);
+      document.getElementById("btn-stop").addEventListener("click", stopPerformance);
+
+      const bpmInput = document.getElementById("bpm-input");
+      bpmInput.addEventListener("change", () => {
+        bpm = Math.max(40, Math.min(240, parseInt(bpmInput.value) || 120));
+        bpmInput.value = bpm;
+      });
+
+      // BGM FILE INPUT WITH AUTO BPM DETECTOR
+      document.getElementById("bgm-input").addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const ctx = getAudioContext();
+        const arrayBuffer = await file.arrayBuffer();
+        bgmBuffer = await ctx.decodeAudioData(arrayBuffer);
+
+        document.getElementById("bgm-name").innerText = file.name;
+        document.getElementById("bgm-info").classList.remove("hidden");
+        document.getElementById("bgm-detected-bpm").innerText = "BPM解析中...";
+        document.getElementById("btn-sync-bpm").classList.add("hidden");
+
+        detectBPM(bgmBuffer).then(estimatedBpm => {
+          if (estimatedBpm) {
+            detectedBPM = estimatedBpm;
+            document.getElementById("bgm-detected-bpm").innerText = `推定BPM: ${detectedBPM}`;
+            document.getElementById("btn-sync-bpm").classList.remove("hidden");
+          } else {
+            document.getElementById("bgm-detected-bpm").innerText = "BPM解析不可";
+          }
         });
-    </script>
+      });
+
+      document.getElementById("btn-sync-bpm").addEventListener("click", () => {
+        if (detectedBPM) {
+          bpm = detectedBPM;
+          document.getElementById("bpm-input").value = bpm;
+          alert(`BPMを ${bpm} に合わせました！`);
+        }
+      });
+
+      document.getElementById("btn-remove-bgm").addEventListener("click", () => {
+        bgmBuffer = null;
+        if (bgmSourceNode) {
+          try { bgmSourceNode.stop(); } catch(e){}
+        }
+        document.getElementById("bgm-info").classList.add("hidden");
+      });
+
+      document.getElementById("bgm-volume").addEventListener("input", (e) => {
+        if (bgmGainNode) {
+          bgmGainNode.gain.value = parseFloat(e.target.value);
+        }
+      });
+
+      // EDITOR MODAL CONTROLS
+      const editorModal = document.getElementById("modal-editor");
+      document.getElementById("btn-open-editor-new").addEventListener("click", () => openEditorForCreate());
+      document.querySelectorAll(".btn-close-editor").forEach(b => b.addEventListener("click", () => {
+        stopEditorPreview();
+        editorModal.classList.add("hidden");
+      }));
+
+      document.getElementById("btn-editor-clear").addEventListener("click", () => {
+        editingPattern.notes = [];
+        renderEditorGrid();
+      });
+
+      document.getElementById("btn-editor-preview-play").addEventListener("click", startEditorPreview);
+      document.getElementById("btn-editor-preview-stop").addEventListener("click", stopEditorPreview);
+
+      // SAVE/UPDATE PATTERN
+      document.getElementById("btn-save-custom-pattern").addEventListener("click", () => {
+        const name = document.getElementById("edit-pattern-name").value || "カスタムパターン";
+        const type = document.getElementById("edit-pattern-type").value;
+
+        // Map notes format (handling relStep for fillins)
+        const notesToSave = editingPattern.notes.map(n => {
+          const noteObj = { type: n.type, duration: n.duration };
+          if (type.startsWith("fill")) {
+            noteObj.relStep = n.step;
+          } else {
+            noteObj.step = n.step;
+          }
+          return noteObj;
+        });
+
+        const savedPat = { name: name, notes: JSON.parse(JSON.stringify(notesToSave)) };
+
+        if (editingContext.isNew) {
+          if (type === "basic") basicPatterns.push(savedPat);
+          if (type === "fill_short") fillinsShort.push(savedPat);
+          if (type === "fill_medium") fillinsMedium.push(savedPat);
+          if (type === "fill_long") fillinsLong.push(savedPat);
+        } else {
+          // Updating existing pattern
+          editingContext.targetArray[editingContext.index] = savedPat;
+        }
+
+        renderPatternList();
+        renderFillinButtons();
+        stopEditorPreview();
+        editorModal.classList.add("hidden");
+        alert(`パターン「${name}」を保存しました！`);
+      });
+
+      // BACKUP & RESTORE MODAL CONTROLS
+      const backupModal = document.getElementById("modal-backup");
+      document.getElementById("btn-open-backup").addEventListener("click", () => backupModal.classList.remove("hidden"));
+      document.querySelectorAll(".btn-close-backup").forEach(b => b.addEventListener("click", () => backupModal.classList.add("hidden")));
+
+      document.getElementById("btn-export-json").addEventListener("click", () => {
+        const backupData = {
+          basicPatterns,
+          fillinsShort,
+          fillinsMedium,
+          fillinsLong
+        };
+        const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "drum_jam_patterns_backup.json";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      document.getElementById("input-import-json").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = JSON.parse(event.target.result);
+            if (data.basicPatterns) basicPatterns = data.basicPatterns;
+            if (data.fillinsShort) fillinsShort = data.fillinsShort;
+            if (data.fillinsMedium) fillinsMedium = data.fillinsMedium;
+            if (data.fillinsLong) fillinsLong = data.fillinsLong;
+
+            currentPatternIndex = 0;
+            renderPatternList();
+            renderFillinButtons();
+            alert("パターンデータを正常に復元・インポートしました！");
+            backupModal.classList.add("hidden");
+          } catch(err) {
+            alert("JSONの読み込みに失敗しました。正しいバックアップファイルを選択してください。");
+          }
+        };
+        reader.readAsText(file);
+      });
+
+      document.getElementById("btn-reset-default").addEventListener("click", () => {
+        if (confirm("すべてのパターンを初期設定状態に戻しますか？（自作・編集内容は消去されます）")) {
+          basicPatterns = JSON.parse(JSON.stringify(DEFAULT_BASIC_PATTERNS));
+          fillinsShort = JSON.parse(JSON.stringify(DEFAULT_FILLINS_SHORT));
+          fillinsMedium = JSON.parse(JSON.stringify(DEFAULT_FILLINS_MEDIUM));
+          fillinsLong = JSON.parse(JSON.stringify(DEFAULT_FILLINS_LONG));
+
+          currentPatternIndex = 0;
+          renderPatternList();
+          renderFillinButtons();
+          alert("初期状態に戻しました。");
+          backupModal.classList.add("hidden");
+        }
+      });
+    }
+
+    // BPM AUTO DETECTOR
+    async function detectBPM(audioBuffer) {
+      try {
+        const rawData = audioBuffer.getChannelData(0);
+        const sampleRate = audioBuffer.sampleRate;
+        const step = Math.floor(sampleRate / 100);
+        const energies = [];
+
+        for (let i = 0; i < rawData.length; i += step) {
+          let sum = 0;
+          for (let j = 0; j < step && (i + j) < rawData.length; j++) {
+            sum += Math.abs(rawData[i + j]);
+          }
+          energies.push(sum);
+        }
+
+        const onsets = [];
+        for (let i = 1; i < energies.length; i++) {
+          onsets.push(Math.max(0, energies[i] - energies[i - 1]));
+        }
+
+        let maxCorr = 0;
+        let bestIntervalSec = 0.5;
+
+        for (let targetBpm = 70; targetBpm <= 170; targetBpm += 1) {
+          const intervalMs = (60.0 / targetBpm) * 100;
+          let corr = 0;
+          const lag = Math.round(intervalMs);
+
+          for (let i = 0; i < onsets.length - lag; i++) {
+            corr += onsets[i] * onsets[i + lag];
+          }
+
+          if (corr > maxCorr) {
+            maxCorr = corr;
+            bestIntervalSec = 60.0 / targetBpm;
+          }
+        }
+
+        return Math.round(60.0 / bestIntervalSec);
+      } catch (e) {
+        return 120;
+      }
+    }
+
+    // OPEN EDITOR FOR CREATE
+    function openEditorForCreate() {
+      editingContext = { targetArray: null, index: -1, isNew: true };
+      editingPattern = { name: "マイカスタムビート", type: "basic", notes: [] };
+
+      document.getElementById("editor-modal-title").innerText = "新規ドラムパターン作成";
+      document.getElementById("edit-pattern-name").value = editingPattern.name;
+      document.getElementById("edit-pattern-type").value = "basic";
+      document.getElementById("edit-pattern-type").disabled = false;
+
+      renderEditorGrid();
+      document.getElementById("modal-editor").classList.remove("hidden");
+    }
+
+    // OPEN EDITOR FOR EDITING EXISTING PATTERN
+    function openEditorForEdit(targetArray, index, type) {
+      editingContext = { targetArray, index, isNew: false };
+      const source = targetArray[index];
+
+      // Convert notes to standard format with step property
+      const mappedNotes = source.notes.map(n => ({
+        type: n.type,
+        step: n.step !== undefined ? n.step : (n.relStep !== undefined ? n.relStep : 0),
+        duration: n.duration || 1
+      }));
+
+      editingPattern = {
+        name: source.name,
+        type: type,
+        notes: JSON.parse(JSON.stringify(mappedNotes))
+      };
+
+      document.getElementById("editor-modal-title").innerText = `「${source.name}」の構造を編集`;
+      document.getElementById("edit-pattern-name").value = editingPattern.name;
+      document.getElementById("edit-pattern-type").value = type;
+      document.getElementById("edit-pattern-type").disabled = true; // Lock type when editing existing
+
+      renderEditorGrid();
+      document.getElementById("modal-editor").classList.remove("hidden");
+    }
+
+    // RENDER UI ELEMENTS WITH EDIT & DELETE BUTTONS
+    function renderPatternList() {
+      const list = document.getElementById("basic-patterns-list");
+      list.innerHTML = "";
+
+      basicPatterns.forEach((p, idx) => {
+        const btn = document.createElement("button");
+        btn.className = `pattern-btn w-full text-left bg-slate-900 hover:bg-slate-800 p-2 rounded-lg text-xs font-semibold border border-slate-800 flex justify-between items-center transition ${idx === currentPatternIndex ? 'active-pattern' : ''}`;
+        btn.id = `pattern-btn-${idx}`;
+        
+        btn.innerHTML = `
+          <span class="truncate max-w-[150px]">${p.name}</span>
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-pen-to-square text-slate-400 hover:text-cyan-300 p-1 text-[11px]" title="構造を編集" data-edit-pat="${idx}"></i>
+            ${basicPatterns.length > 1 ? `<i class="fa-solid fa-trash text-slate-500 hover:text-rose-400 p-1 text-[11px]" title="削除" data-del="${idx}"></i>` : ''}
+            <i class="fa-solid fa-play text-[10px] text-cyan-400"></i>
+          </div>
+        `;
+
+        const editBtn = btn.querySelector("[data-edit-pat]");
+        if (editBtn) {
+          editBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openEditorForEdit(basicPatterns, idx, "basic");
+          });
+        }
+
+        const delBtn = btn.querySelector("[data-del]");
+        if (delBtn) {
+          delBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (confirm(`「${p.name}」を削除しますか？`)) {
+              basicPatterns.splice(idx, 1);
+              if (currentPatternIndex >= basicPatterns.length) {
+                currentPatternIndex = Math.max(0, basicPatterns.length - 1);
+              }
+              renderPatternList();
+            }
+          });
+        }
+        
+        btn.addEventListener("click", () => {
+          if (!isPlaying) {
+            currentPatternIndex = idx;
+            updatePatternUI();
+          } else {
+            queuedPatternIndex = idx;
+            updatePatternUI();
+          }
+        });
+        list.appendChild(btn);
+      });
+    }
+
+    function updatePatternUI() {
+      basicPatterns.forEach((_, idx) => {
+        const btn = document.getElementById(`pattern-btn-${idx}`);
+        if (!btn) return;
+        btn.classList.remove("active-pattern", "queued-pattern");
+
+        if (idx === currentPatternIndex) {
+          btn.classList.add("active-pattern");
+        } else if (idx === queuedPatternIndex) {
+          btn.classList.add("queued-pattern");
+        }
+      });
+
+      if (basicPatterns[currentPatternIndex]) {
+        document.getElementById("status-current-pattern").innerText = basicPatterns[currentPatternIndex].name;
+      }
+      
+      const queuedContainer = document.getElementById("status-queued-container");
+      if (queuedPatternIndex !== null && basicPatterns[queuedPatternIndex]) {
+        queuedContainer.classList.remove("hidden");
+        document.getElementById("status-queued-pattern").innerText = basicPatterns[queuedPatternIndex].name;
+      } else {
+        queuedContainer.classList.add("hidden");
+      }
+    }
+
+    function renderFillinButtons() {
+      const renderGroup = (containerId, fillinsArray, fillinType, colorClass) => {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+
+        fillinsArray.forEach((f, idx) => {
+          const btn = document.createElement("button");
+          btn.className = `bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-bold p-2 rounded-lg text-left hover:${colorClass} transition flex items-center justify-between shadow`;
+          
+          btn.innerHTML = `
+            <span class="truncate max-w-[100px]">${f.name}</span>
+            <div class="flex items-center gap-1.5">
+              <i class="fa-solid fa-pen-to-square text-slate-400 hover:text-cyan-300 p-0.5 text-[10px]" title="構造を編集" data-edit-fill="${idx}"></i>
+              <i class="fa-solid fa-trash text-slate-500 hover:text-rose-400 p-0.5 text-[10px]" title="削除" data-del-fill="${idx}"></i>
+              <i class="fa-solid fa-bolt text-[10px] text-amber-400"></i>
+            </div>
+          `;
+
+          const editBtn = btn.querySelector("[data-edit-fill]");
+          if (editBtn) {
+            editBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              openEditorForEdit(fillinsArray, idx, fillinType);
+            });
+          }
+
+          const delBtn = btn.querySelector("[data-del-fill]");
+          if (delBtn) {
+            delBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              if (confirm(`フィルイン「${f.name}」を削除しますか？`)) {
+                fillinsArray.splice(idx, 1);
+                renderFillinButtons();
+              }
+            });
+          }
+
+          btn.addEventListener("click", () => triggerInstantFillin(f));
+          container.appendChild(btn);
+        });
+      };
+
+      renderGroup("fillins-short", fillinsShort, "fill_short", "border-amber-500");
+      renderGroup("fillins-medium", fillinsMedium, "fill_medium", "border-amber-500");
+      renderGroup("fillins-long", fillinsLong, "fill_long", "border-amber-500");
+    }
+
+    function renderDrumPads() {
+      const container = document.getElementById("drum-pads-container");
+      container.innerHTML = "";
+
+      DRUMS.forEach(d => {
+        const btn = document.createElement("button");
+        btn.className = `pad-btn ${d.color} text-white font-bold py-3 px-2 rounded-xl text-xs flex flex-col items-center justify-center gap-1 shadow-lg active:scale-95`;
+        btn.innerHTML = `<span>${d.label}</span>`;
+
+        const triggerPad = () => {
+          playDrumSound(d.id);
+          btn.classList.add("active");
+          setTimeout(() => btn.classList.remove("active"), 100);
+        };
+
+        btn.addEventListener("pointerdown", triggerPad);
+        container.appendChild(btn);
+      });
+    }
+
+    // EDITOR PIANO ROLL GRID
+    function renderEditorGrid() {
+      const container = document.getElementById("editor-drum-grid");
+      container.innerHTML = "";
+
+      DRUMS.forEach(drum => {
+        const row = document.createElement("div");
+        row.className = "flex h-7 border-b border-slate-800/60 relative";
+
+        const label = document.createElement("div");
+        label.className = "w-16 bg-slate-900 border-r border-slate-800 flex items-center justify-center text-[10px] font-semibold text-slate-400 select-none z-20 shrink-0";
+        label.innerText = drum.label;
+        row.appendChild(label);
+
+        const gridArea = document.createElement("div");
+        gridArea.className = "flex-1 flex relative h-full cursor-pointer";
+
+        for (let s = 0; s < 16; s++) {
+          const cell = document.createElement("div");
+          cell.className = `flex-1 grid-cell ${s % 4 === 0 ? 'beat-start' : ''}`;
+          cell.addEventListener("click", (e) => {
+            if (e.target.classList.contains("resize-handle")) return;
+            toggleEditorNote(drum.id, s);
+          });
+          gridArea.appendChild(cell);
+        }
+
+        editingPattern.notes.filter(n => n.type === drum.id).forEach(note => {
+          const drumBar = document.createElement("div");
+          drumBar.className = `drum-bar ${drum.color} text-white text-[9px] font-bold`;
+          drumBar.style.left = `${(note.step / 16) * 100}%`;
+          drumBar.style.width = `${(note.duration / 16) * 100}%`;
+
+          const handle = document.createElement("div");
+          handle.className = "resize-handle";
+          setupEditorResizeHandler(handle, note);
+
+          drumBar.appendChild(handle);
+          drumBar.addEventListener("click", (e) => {
+            e.stopPropagation();
+            removeEditorNote(drum.id, note.step);
+          });
+
+          gridArea.appendChild(drumBar);
+        });
+
+        row.appendChild(gridArea);
+        container.appendChild(row);
+      });
+    }
+
+    function toggleEditorNote(drumId, step) {
+      const existingIdx = editingPattern.notes.findIndex(n => n.type === drumId && n.step === step);
+      if (existingIdx >= 0) {
+        editingPattern.notes.splice(existingIdx, 1);
+      } else {
+        playDrumSound(drumId);
+        const nextNotes = editingPattern.notes.filter(n => n.type === drumId && n.step > step);
+        let maxDuration = 2;
+        if (nextNotes.length > 0) {
+          const nextStep = Math.min(...nextNotes.map(n => n.step));
+          maxDuration = Math.min(2, nextStep - step);
+        }
+        maxDuration = Math.min(maxDuration, 16 - step);
+        if (maxDuration > 0) {
+          editingPattern.notes.push({ type: drumId, step: step, duration: maxDuration });
+        }
+      }
+      renderEditorGrid();
+    }
+
+    function removeEditorNote(drumId, step) {
+      editingPattern.notes = editingPattern.notes.filter(n => !(n.type === drumId && n.step === step));
+      renderEditorGrid();
+    }
+
+    function setupEditorResizeHandler(handleEl, noteObj) {
+      let startX = 0;
+      let initialDuration = noteObj.duration;
+
+      const onPointerDown = (e) => {
+        e.stopPropagation();
+        startX = e.clientX || e.touches[0].clientX;
+        initialDuration = noteObj.duration;
+        document.addEventListener("pointermove", onPointerMove);
+        document.addEventListener("pointerup", onPointerUp);
+      };
+
+      const onPointerMove = (e) => {
+        const currentX = e.clientX || (e.touches && e.touches[0].clientX);
+        if (!currentX) return;
+
+        const gridWidth = document.getElementById("editor-drum-grid").clientWidth - 64;
+        const stepWidth = gridWidth / 16;
+        const deltaX = currentX - startX;
+        const deltaSteps = Math.round(deltaX / stepWidth);
+
+        let newDuration = Math.max(1, Math.min(16 - noteObj.step, initialDuration + deltaSteps));
+        const sameTrackNotes = editingPattern.notes.filter(n => n.type === noteObj.type && n.step > noteObj.step);
+
+        if (sameTrackNotes.length > 0) {
+          const nextStep = Math.min(...sameTrackNotes.map(n => n.step));
+          newDuration = Math.min(newDuration, nextStep - noteObj.step);
+        }
+
+        noteObj.duration = newDuration;
+        renderEditorGrid();
+      };
+
+      const onPointerUp = () => {
+        document.removeEventListener("pointermove", onPointerMove);
+        document.removeEventListener("pointerup", onPointerUp);
+      };
+
+      handleEl.addEventListener("pointerdown", onPointerDown);
+    }
+
+    // EDITOR LOOP PREVIEW
+    function startEditorPreview() {
+      stopEditorPreview();
+      const ctx = getAudioContext();
+      editorIsPreviewing = true;
+      editorStep = 0;
+
+      document.getElementById("editor-playhead").classList.remove("hidden");
+
+      const stepIntervalMs = ((60.0 / bpm) / 4) * 1000;
+
+      const previewTick = () => {
+        if (!editorIsPreviewing) return;
+
+        const playhead = document.getElementById("editor-playhead");
+        const stepWidthPct = 100 / 16;
+        playhead.style.left = `calc(64px + ${(editorStep) * stepWidthPct}%)`;
+
+        editingPattern.notes.filter(n => n.step === editorStep).forEach(n => {
+          playDrumSound(n.type);
+        });
+
+        editorStep = (editorStep + 1) % 16;
+        editorTimerId = setTimeout(previewTick, stepIntervalMs);
+      };
+
+      previewTick();
+    }
+
+    function stopEditorPreview() {
+      editorIsPreviewing = false;
+      if (editorTimerId) clearTimeout(editorTimerId);
+      document.getElementById("editor-playhead").classList.add("hidden");
+    }
+
+    // INSTANT FILLIN TRIGGER LOGIC
+    function triggerInstantFillin(fillin) {
+      if (!isPlaying) {
+        startPerformance();
+      }
+
+      fillin.notes.forEach(note => {
+        const rel = note.relStep !== undefined ? note.relStep : note.step;
+        const targetStep = (currentStep + rel) % 16;
+        if (!fillinOverrideSteps[targetStep]) {
+          fillinOverrideSteps[targetStep] = [];
+        }
+        fillinOverrideSteps[targetStep].push(note.type);
+      });
+    }
+
+    // PERFORMANCE ENGINE
+    function startPerformance() {
+      stopPerformance();
+      const ctx = getAudioContext();
+
+      isPlaying = true;
+      currentStep = 0;
+
+      if (bgmBuffer) {
+        bgmSourceNode = ctx.createBufferSource();
+        bgmSourceNode.buffer = bgmBuffer;
+
+        bgmGainNode = ctx.createGain();
+        const volSlider = document.getElementById("bgm-volume");
+        bgmGainNode.gain.value = parseFloat(volSlider.value);
+
+        bgmSourceNode.connect(bgmGainNode);
+        bgmGainNode.connect(ctx.destination);
+        bgmSourceNode.start(0);
+      }
+
+      const stepIntervalMs = ((60.0 / bpm) / 4) * 1000;
+
+      const tick = () => {
+        if (!isPlaying) return;
+
+        const beatIdx = Math.floor(currentStep / 4);
+        for (let i = 0; i < 4; i++) {
+          const dot = document.getElementById(`dot-${i}`);
+          if (dot) {
+            dot.className = `w-3 h-3 rounded-full ${i === beatIdx ? 'bg-rose-500 shadow-lg shadow-rose-500/50' : 'bg-slate-800 border border-slate-700'}`;
+          }
+        }
+
+        if (fillinOverrideSteps[currentStep] && fillinOverrideSteps[currentStep].length > 0) {
+          fillinOverrideSteps[currentStep].forEach(drumType => {
+            playDrumSound(drumType);
+          });
+          delete fillinOverrideSteps[currentStep];
+        } else {
+          const currentPattern = basicPatterns[currentPatternIndex];
+          if (currentPattern) {
+            currentPattern.notes.filter(n => (n.step !== undefined ? n.step : n.relStep) === currentStep).forEach(n => {
+              playDrumSound(n.type);
+            });
+          }
+        }
+
+        currentStep++;
+        if (currentStep >= 16) {
+          currentStep = 0;
+
+          if (queuedPatternIndex !== null) {
+            currentPatternIndex = queuedPatternIndex;
+            queuedPatternIndex = null;
+            updatePatternUI();
+          }
+        }
+
+        timerId = setTimeout(tick, stepIntervalMs);
+      };
+
+      tick();
+    }
+
+    function stopPerformance() {
+      isPlaying = false;
+      if (timerId) clearTimeout(timerId);
+      if (bgmSourceNode) {
+        try { bgmSourceNode.stop(); } catch(e){}
+      }
+      fillinOverrideSteps = {};
+      currentStep = 0;
+      updatePatternUI();
+    }
+
+    // HIGH REALISM DRUM SYNTHESIZER
+    function playDrumSound(drumType) {
+      const ctx = getAudioContext();
+      const time = ctx.currentTime;
+
+      if (drumType === "kick") {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.frequency.setValueAtTime(150, time);
+        osc.frequency.exponentialRampToValueAtTime(30, time + 0.12);
+
+        gain.gain.setValueAtTime(1.2, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+
+        osc.start(time);
+        osc.stop(time + 0.15);
+      } 
+      else if (drumType === "snare") {
+        const osc = ctx.createOscillator();
+        const oscGain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(180, time);
+        oscGain.gain.setValueAtTime(0.5, time);
+        oscGain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+        osc.connect(oscGain);
+        oscGain.connect(ctx.destination);
+        osc.start(time);
+        osc.stop(time + 0.1);
+
+        const bufferSize = ctx.sampleRate * 0.15;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const noiseFilter = ctx.createBiquadFilter();
+        noiseFilter.type = "highpass";
+        noiseFilter.frequency.value = 1000;
+
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.8, time);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+
+        noise.start(time);
+      } 
+      else if (drumType.includes("hihat") || drumType === "crash" || drumType === "ride") {
+        const bufferSize = ctx.sampleRate * (drumType === "crash" ? 0.8 : (drumType === "hihat_open" ? 0.3 : 0.08));
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.value = drumType === "crash" ? 3000 : 7000;
+
+        const gain = ctx.createGain();
+        const vol = drumType === "crash" ? 0.6 : 0.4;
+        gain.gain.setValueAtTime(vol, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + (bufferSize / ctx.sampleRate));
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        noise.start(time);
+      } 
+      else if (drumType.includes("tom")) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        let freq = 120;
+        if (drumType === "high_tom") freq = 220;
+        if (drumType === "low_tom") freq = 150;
+        if (drumType === "floor_tom") freq = 90;
+
+        osc.frequency.setValueAtTime(freq, time);
+        osc.frequency.exponentialRampToValueAtTime(30, time + 0.2);
+
+        gain.gain.setValueAtTime(0.9, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(time);
+        osc.stop(time + 0.2);
+      }
+    }
+  </script>
 </body>
 </html>
