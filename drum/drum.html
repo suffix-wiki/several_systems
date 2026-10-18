@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>即興ドラムアレンジャー Pro Mobile Full</title>
+  <title>即興ドラムアレンジャー Pro Mobile Fixed</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -145,7 +145,7 @@
       <i class="fa-solid fa-compact-disc"></i> BGM・基本パターン
     </button>
     <button class="mobile-tab-btn flex-1 py-2 text-center text-slate-400 border-b-2 border-transparent" data-target="panel-right">
-      <i class="fa-solid fa-bolt"></i> 即興フィルイン・パッド
+      <i class="fa-solid fa-bolt"></i> ライブパッド・フィルイン
     </button>
   </div>
 
@@ -154,7 +154,6 @@
 
     <!-- LEFT PANEL: BGM LOAD & BASIC PATTERNS -->
     <aside id="panel-left" class="w-full md:w-80 bg-slate-950 border-r border-slate-800 flex flex-col overflow-hidden h-full md:h-auto">
-      <!-- BGM FILE LOADER -->
       <div class="p-2.5 border-b border-slate-800 bg-slate-900/50 space-y-2 shrink-0">
         <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
           <i class="fa-solid fa-compact-disc text-rose-400"></i> バックグラウンド楽曲 (MP3/WAV)
@@ -193,23 +192,22 @@
       </div>
     </aside>
 
-    <!-- RIGHT MAIN WORKSPACE: INSTANT FILL-INS & LIVE PADS -->
-    <main id="panel-right" class="hidden md:flex flex-1 flex-col overflow-y-auto custom-scrollbar p-2.5 gap-3 bg-slate-900/60 h-full">
+    <!-- RIGHT MAIN WORKSPACE: PADS FIRST FOR EASY ACCESS ON MOBILE -->
+    <main id="panel-right" class="hidden md:flex flex-1 flex-col overflow-y-auto custom-scrollbar p-2.5 gap-2.5 bg-slate-900/60 h-full">
 
       <!-- REALTIME STATUS DISPLAY -->
-      <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between text-xs shrink-0">
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-2 flex items-center justify-between text-xs shrink-0">
         <div class="flex items-center gap-2">
           <div>
             <span class="text-slate-500 block text-[9px]">現在のパターン</span>
-            <span id="status-current-pattern" class="font-bold text-cyan-300 text-xs sm:text-sm truncate max-w-[140px] sm:max-w-[200px] block">8ビート (標準)</span>
+            <span id="status-current-pattern" class="font-bold text-cyan-300 text-xs truncate max-w-[130px] sm:max-w-[200px] block">8ビート (標準)</span>
           </div>
           <div id="status-queued-container" class="hidden">
             <span class="text-amber-500 block text-[9px]">次小節の予約</span>
-            <span id="status-queued-pattern" class="font-bold text-amber-300 text-xs truncate max-w-[100px] block">----</span>
+            <span id="status-queued-pattern" class="font-bold text-amber-300 text-xs truncate max-w-[90px] block">----</span>
           </div>
         </div>
 
-        <!-- BEAT INDICATOR DOTS -->
         <div class="flex items-center gap-1" id="beat-dots">
           <div class="w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-700" id="dot-0"></div>
           <div class="w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-700" id="dot-1"></div>
@@ -218,47 +216,40 @@
         </div>
       </div>
 
-      <!-- INSTANT FILL-IN TRIGGER BUTTONS (全30種類以上) -->
-      <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-2.5 shrink-0">
+      <!-- 1. MANUAL LIVE DRUM PADS (最上部に配置してスマホでも絶対に隠れないように改善) -->
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-1.5 shrink-0">
+        <span class="text-xs font-bold text-rose-400 flex items-center gap-1">
+          <i class="fa-solid fa-hand-pointer"></i> リアルタイム・ドラムパッド (連打用)
+        </span>
+        <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5" id="drum-pads-container">
+          <!-- JS Populated -->
+        </div>
+      </div>
+
+      <!-- 2. INSTANT FILL-IN TRIGGER BUTTONS (スクロール可能) -->
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-2 shrink-0">
         <div class="flex justify-between items-center">
           <span class="text-xs font-bold text-amber-400 flex items-center gap-1">
             <i class="fa-solid fa-bolt"></i> 即時割り込みフィルイン (全30種)
           </span>
-          <span class="text-[10px] text-slate-500">押した瞬間に鳴る！</span>
         </div>
 
-        <!-- SHORT (1/4小節 - 4拍) -->
+        <!-- SHORT -->
         <div>
-          <span class="text-[10px] font-semibold text-slate-400 block mb-1">⚡ ショートフィルイン (1/4小節)</span>
-          <div id="fillins-short" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-32 overflow-y-auto custom-scrollbar">
-            <!-- JS Populated -->
-          </div>
+          <span class="text-[10px] font-semibold text-slate-400 block mb-1">⚡ ショート (1/4小節)</span>
+          <div id="fillins-short" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-24 overflow-y-auto custom-scrollbar"></div>
         </div>
 
-        <!-- MEDIUM (1/2小節 - 8拍) -->
+        <!-- MEDIUM -->
         <div>
-          <span class="text-[10px] font-semibold text-slate-400 block mb-1">⚡ ミディアムフィルイン (1/2小節)</span>
-          <div id="fillins-medium" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-32 overflow-y-auto custom-scrollbar">
-            <!-- JS Populated -->
-          </div>
+          <span class="text-[10px] font-semibold text-slate-400 block mb-1">⚡ ミディアム (1/2小節)</span>
+          <div id="fillins-medium" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-24 overflow-y-auto custom-scrollbar"></div>
         </div>
 
-        <!-- LONG (1小節 - 16拍) -->
+        <!-- LONG -->
         <div>
-          <span class="text-[10px] font-semibold text-slate-400 block mb-1">⚡ ロングフィルイン (1小節)</span>
-          <div id="fillins-long" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-32 overflow-y-auto custom-scrollbar">
-            <!-- JS Populated -->
-          </div>
-        </div>
-      </div>
-
-      <!-- MANUAL LIVE DRUM PADS -->
-      <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-1.5 shrink-0">
-        <span class="text-xs font-bold text-rose-400 flex items-center gap-1">
-          <i class="fa-solid fa-hand-pointer"></i> リアルタイム・ドラムパッド
-        </span>
-        <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5" id="drum-pads-container">
-          <!-- JS Populated -->
+          <span class="text-[10px] font-semibold text-slate-400 block mb-1">⚡ ロング (1小節)</span>
+          <div id="fillins-long" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-24 overflow-y-auto custom-scrollbar"></div>
         </div>
       </div>
 
@@ -311,9 +302,7 @@
       <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar bg-slate-950 p-2 border border-slate-800 rounded-xl relative flex flex-col justify-center">
         <div id="editor-grid-container" class="relative min-w-[500px]">
           <div id="editor-playhead" class="playhead hidden"></div>
-          <div id="editor-drum-grid" class="relative bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
-            <!-- JS Populated -->
-          </div>
+          <div id="editor-drum-grid" class="relative bg-slate-900 border border-slate-800 rounded-lg overflow-hidden"></div>
         </div>
 
         <div id="editor-score-container" class="hidden w-full overflow-x-auto flex flex-col items-center justify-center py-2">
@@ -362,10 +351,6 @@
   </div>
 
   <script>
-    /**
-     * 即興ドラムアレンジャー PRO MOBILE FULL - COMPLETE PRESETS & ENGINE
-     */
-
     const DRUMS = [
       { id: "crash", label: "クラッシュ", color: "bg-amber-500", notePos: 0 },
       { id: "ride", label: "ライド", color: "bg-yellow-600", notePos: 1 },
@@ -378,7 +363,6 @@
       { id: "kick", label: "バスドラム", color: "bg-rose-600", notePos: 7 }
     ];
 
-    // 全20種類の基本ドラムパターン
     const DEFAULT_BASIC_PATTERNS = [
       { name: "1. 標準 8ビート (ポップス/ロック)", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:8,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_close",step:0,duration:1},{type:"hihat_close",step:2,duration:1},{type:"hihat_close",step:4,duration:1},{type:"hihat_close",step:6,duration:1},{type:"hihat_close",step:8,duration:1},{type:"hihat_close",step:10,duration:1},{type:"hihat_close",step:12,duration:1},{type:"hihat_close",step:14,duration:1}] },
       { name: "2. ダンス 4つ打ち (EDM/Club)", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:4,duration:2},{type:"kick",step:8,duration:2},{type:"kick",step:12,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_open",step:2,duration:1},{type:"hihat_open",step:6,duration:1},{type:"hihat_open",step:10,duration:1},{type:"hihat_open",step:14,duration:1}] },
@@ -402,7 +386,6 @@
       { name: "20. アコースティック・フォーク", notes: [{type:"kick",step:0,duration:4},{type:"kick",step:8,duration:4},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_close",step:0,duration:2},{type:"hihat_close",step:4,duration:2},{type:"hihat_close",step:8,duration:2},{type:"hihat_close",step:12,duration:2}] }
     ];
 
-    // 全10種類のショートフィルイン
     const DEFAULT_FILLINS_SHORT = [
       { name: "S-1. スネア4連撃", notes: [{type:"snare",relStep:0,duration:1},{type:"snare",relStep:1,duration:1},{type:"snare",relStep:2,duration:1},{type:"snare",relStep:3,duration:1}] },
       { name: "S-2. タムタムワンショット", notes: [{type:"high_tom",relStep:0,duration:1},{type:"low_tom",relStep:1,duration:1},{type:"floor_tom",relStep:2,duration:2}] },
@@ -416,7 +399,6 @@
       { name: "S-10. アタックシンコペ", notes: [{type:"kick",relStep:0,duration:1},{type:"snare",relStep:1,duration:1},{type:"crash",relStep:2,duration:2}] }
     ];
 
-    // 全10種類のミディアムフィルイン
     const DEFAULT_FILLINS_MEDIUM = [
       { name: "M-1. 王道タム回し", notes: [{type:"snare",relStep:0,duration:1},{type:"snare",relStep:1,duration:1},{type:"high_tom",relStep:2,duration:1},{type:"high_tom",relStep:3,duration:1},{type:"low_tom",relStep:4,duration:1},{type:"low_tom",relStep:5,duration:1},{type:"floor_tom",relStep:6,duration:2}] },
       { name: "M-2. スネア加速ビルド", notes: [{type:"snare",relStep:0,duration:2},{type:"snare",relStep:2,duration:2},{type:"snare",relStep:4,duration:1},{type:"snare",relStep:5,duration:1},{type:"snare",relStep:6,duration:1},{type:"snare",relStep:7,duration:1}] },
@@ -430,7 +412,6 @@
       { name: "M-10. フロアタム重低音", notes: [{type:"floor_tom",relStep:0,duration:2},{type:"floor_tom",relStep:2,duration:2},{type:"floor_tom",relStep:4,duration:1},{type:"floor_tom",relStep:5,duration:1},{type:"snare",relStep:6,duration:2}] }
     ];
 
-    // 全10種類のロングフィルイン
     const DEFAULT_FILLINS_LONG = [
       { name: "L-1. サビ前大爆発タムダウン", notes: [{type:"snare",relStep:0,duration:2},{type:"snare",relStep:2,duration:2},{type:"high_tom",relStep:4,duration:2},{type:"high_tom",relStep:6,duration:2},{type:"low_tom",relStep:8,duration:2},{type:"low_tom",relStep:10,duration:2},{type:"floor_tom",relStep:12,duration:2},{type:"crash",relStep:14,duration:2}] },
       { name: "L-2. フルスネアビルドアップ", notes: [{type:"snare",relStep:0,duration:2},{type:"snare",relStep:2,duration:2},{type:"snare",relStep:4,duration:2},{type:"snare",relStep:6,duration:2},{type:"snare",relStep:8,duration:1},{type:"snare",relStep:10,duration:1},{type:"snare",relStep:12,duration:1},{type:"snare",relStep:13,duration:1},{type:"snare",relStep:14,duration:1},{type:"snare",relStep:15,duration:1}] },
@@ -444,7 +425,6 @@
       { name: "L-10. アフタービートライド連打", notes: [{type:"ride",relStep:0,duration:2},{type:"ride",relStep:4,duration:2},{type:"ride",relStep:8,duration:2},{type:"snare",relStep:12,duration:1},{type:"snare",relStep:14,duration:1}] }
     ];
 
-    // STATE
     let bpm = 120;
     let currentPatternIndex = 0;
     let queuedPatternIndex = null;
@@ -491,7 +471,6 @@
     }
 
     function initUI() {
-      // MOBILE TABS SWITCHING
       document.querySelectorAll(".mobile-tab-btn").forEach(btn => {
         btn.addEventListener("click", () => {
           document.querySelectorAll(".mobile-tab-btn").forEach(b => {
@@ -522,7 +501,6 @@
         bpmInput.value = bpm;
       });
 
-      // BGM FILE INPUT
       document.getElementById("bgm-input").addEventListener("change", async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -569,7 +547,6 @@
         }
       });
 
-      // EDITOR MODAL CONTROLS
       const editorModal = document.getElementById("modal-editor");
       document.getElementById("btn-open-editor-new").addEventListener("click", () => openEditorForCreate());
       document.querySelectorAll(".btn-close-editor").forEach(b => b.addEventListener("click", () => {
@@ -577,7 +554,6 @@
         editorModal.classList.add("hidden");
       }));
 
-      // MODE SWITCH
       document.getElementById("btn-mode-karaoke").addEventListener("click", () => switchEditorMode("karaoke"));
       document.getElementById("btn-mode-score").addEventListener("click", () => switchEditorMode("score"));
 
@@ -622,7 +598,6 @@
         alert(`パターン「${name}」を保存しました！`);
       });
 
-      // BACKUP MODAL
       const backupModal = document.getElementById("modal-backup");
       document.getElementById("btn-open-backup").addEventListener("click", () => backupModal.classList.remove("hidden"));
       document.querySelectorAll(".btn-close-backup").forEach(b => b.addEventListener("click", () => backupModal.classList.add("hidden")));
@@ -679,7 +654,6 @@
       });
     }
 
-    // BPM AUTO DETECTOR
     async function detectBPM(audioBuffer) {
       try {
         const rawData = audioBuffer.getChannelData(0);
@@ -724,7 +698,6 @@
       }
     }
 
-    // SWITCH EDITOR MODE
     function switchEditorMode(mode) {
       editorMode = mode;
       const btnKaraoke = document.getElementById("btn-mode-karaoke");
@@ -786,7 +759,6 @@
       document.getElementById("modal-editor").classList.remove("hidden");
     }
 
-    // RENDER UI ELEMENTS
     function renderPatternList() {
       const list = document.getElementById("basic-patterns-list");
       list.innerHTML = "";
@@ -933,7 +905,6 @@
       });
     }
 
-    // EDITOR PIANO ROLL GRID
     function renderEditorGrid() {
       const container = document.getElementById("editor-drum-grid");
       container.innerHTML = "";
@@ -1053,7 +1024,6 @@
       handleEl.addEventListener("pointerdown", onPointerDown);
     }
 
-    // DRAW DRUM SCORE
     function renderDrumScore(highlightStep = -1) {
       const canvas = document.getElementById("drum-score-canvas");
       if (!canvas) return;
@@ -1132,7 +1102,6 @@
       });
     }
 
-    // EDITOR LOOP PREVIEW
     function startEditorPreview() {
       stopEditorPreview();
       const ctx = getAudioContext();
@@ -1172,7 +1141,6 @@
       if (editorMode === "score") renderDrumScore(-1);
     }
 
-    // INSTANT FILLIN TRIGGER LOGIC
     function triggerInstantFillin(fillin) {
       if (!isPlaying) {
         startPerformance();
@@ -1188,7 +1156,6 @@
       });
     }
 
-    // PERFORMANCE ENGINE
     function startPerformance() {
       stopPerformance();
       const ctx = getAudioContext();
@@ -1264,7 +1231,6 @@
       updatePatternUI();
     }
 
-    // DRUM SYNTHESIZER
     function playDrumSound(drumType) {
       const ctx = getAudioContext();
       const time = ctx.currentTime;
@@ -1352,7 +1318,7 @@
         osc.frequency.exponentialRampToValueAtTime(30, time + 0.2);
 
         gain.gain.setValueAtTime(0.9, time);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+        gain.gain.exponentialRowrampToValueAtTime ? gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2) : gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
 
         osc.connect(gain);
         gain.connect(ctx.destination);
