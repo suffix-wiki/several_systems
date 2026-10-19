@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心理テスト＆本格診断ステーション</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap');
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background: linear-gradient(135deg, #fce7f3 0%, #e0e7ff 100%);
+            min-height: 100vh;
+        }
+        .pop-shadow {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+        .animate-pop {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="text-gray-800 flex flex-col min-h-6vh">
+
+    <!-- ヘッダー -->
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-pink-100 shadow-sm">
+        <div class="max-w-xl mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-xl font-extrabold bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
+                ✨ パッと遊べる！心理＆診断DX
+            </h1>
+            <button id="soundToggle" onclick="toggleSound()" class="text-xs bg-pink-100 text-pink-600 font-bold px-3 py-1.5 rounded-full hover:bg-pink-200 transition">
+                🔊 効果音: ON
+            </button>
+        </div>
+    </header>
+
+    <!-- メインビジュアル / タブメニュー -->
+    <main class="flex-1 max-w-xl w-full mx-auto p-4 pb-12">
+        
+        <!-- タブ切り替えボタン -->
+        <div class="grid grid-cols-3 gap-2 bg-white/60 p-1.5 rounded-2xl mb-6 shadow-sm border border-white">
+            <button onclick="switchTab('single')" id="tab-single" class="py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition bg-pink-500 text-white shadow-md">
+                💡 単発質問系
+            </button>
+            <button onclick="switchTab('diagnostic')" id="tab-diagnostic" class="py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition text-gray-600 hover:bg-white/50">
+                🔮 本格診断
+            </button>
+            <button onclick="switchTab('compatibility')" id="tab-compatibility" class="py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition text-gray-600 hover:bg-white/50">
+                💕 2人相性
+            </button>
+        </div>
+
+        <!-- 1. 単発質問系セクション -->
+        <div id="section-single" class="space-y-4 animate-pop">
+            <div class="bg-white/90 rounded-3xl p-6 pop-shadow border border-pink-50">
+                <div class="flex justify-between items-center mb-4">
+                    <span id="single-category-badge" class="text-xs font-bold px-3 py-1 bg-pink-100 text-pink-600 rounded-full">直感・連想系</span>
+                    <span id="single-progress" class="text-xs text-gray-400 font-bold">1 / 10問</span>
+                </div>
+                
+                <div id="single-card-content">
+                    <!-- 問題文が動的に入ります -->
+                </div>
+            </div>
+
+            <div class="flex justify-between gap-3">
+                <button onclick="prevSingle()" class="flex-1 bg-white hover:bg-gray-50 font-bold py-3 px-4 rounded-2xl shadow border border-gray-100 text-gray-600 transition">
+                    ◀ 前の問題
+                </button>
+                <button onclick="nextSingle()" class="flex-1 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold py-3 px-4 rounded-2xl shadow-lg transition">
+                    次の問題 ▶
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. 本格診断系セクション -->
+        <div id="section-diagnostic" class="hidden space-y-4 animate-pop">
+            <div id="diag-menu-view">
+                <h2 class="text-lg font-bold mb-3 px-1 text-gray-700">📌 診断ジャンルを選んでね</h2>
+                <div class="grid grid-cols-1 gap-3">
+                    <div onclick="startDiagnostic('psychopath')" class="bg-white p-5 rounded-3xl pop-shadow border border-indigo-50 hover:border-indigo-300 transition cursor-pointer flex items-center gap-4">
+                        <div class="text-3xl bg-indigo-50 p-3 rounded-2xl">🧠</div>
+                        <div>
+                            <h3 class="font-bold text-base text-gray-800">サイコパス度診断</h3>
+                            <p class="text-xs text-gray-500">日常のさりげない選択から、あなたの隠れた冷徹度や合理性を診断（全6問）</p>
+                        </div>
+                    </div>
+                    <div onclick="startDiagnostic('sm')" class="bg-white p-5 rounded-3xl pop-shadow border border-pink-50 hover:border-pink-300 transition cursor-pointer flex items-center gap-4">
+                        <div class="text-3xl bg-pink-50 p-3 rounded-2xl">😈</div>
+                        <div>
+                            <h3 class="font-bold text-base text-gray-800">ドS・ドM度診断</h3>
+                            <p class="text-xs text-gray-500">恋愛や人間関係における支配欲・従属欲のバランスを徹底分析（全6問）</p>
+                        </div>
+                    </div>
+                    <div onclick="startDiagnostic('rpg')" class="bg-white p-5 rounded-3xl pop-shadow border border-purple-50 hover:border-purple-300 transition cursor-pointer flex items-center gap-4">
+                        <div class="text-3xl bg-purple-50 p-3 rounded-2xl">⚔️</div>
+                        <div>
+                            <h3 class="font-bold text-base text-gray-800">RPG職業・冒険者タイプ診断</h3>
+                            <p class="text-xs text-gray-500">異世界に転生したらどの職業？パーティでの立ち回りや戦闘スタイル（全6問）</p>
+                        </div>
+                    </div>
+                    <div onclick="startDiagnostic('inner')" class="bg-white p-5 rounded-3xl pop-shadow border border-amber-50 hover:border-amber-300 transition cursor-pointer flex items-center gap-4">
+                        <div class="text-3xl bg-amber-50 p-3 rounded-2xl">🎭</div>
+                        <div>
+                            <h3 class="font-bold text-base text-gray-800">裏性格・黒歴史メーカー</h3>
+                            <p class="text-xs text-gray-500">表の顔の裏に隠された、あなた自身の本性や意外なウィークポイント（全6問）</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 診断クイズ回答画面 -->
+            <div id="diag-quiz-view" class="hidden bg-white/90 rounded-3xl p-6 pop-shadow border border-indigo-50">
+                <div class="flex justify-between items-center mb-4">
+                    <span id="diag-title-badge" class="text-xs font-bold px-3 py-1 bg-indigo-100 text-indigo-600 rounded-full">診断中</span>
+                    <span id="diag-progress" class="text-xs text-gray-400 font-bold">問 1 / 6</span>
+                </div>
+                <div id="diag-question-container">
+                    <!-- 設問と選択肢 -->
+                </div>
+            </div>
+
+            <!-- 診断結果画面 -->
+            <div id="diag-result-view" class="hidden bg-white/90 rounded-3xl p-6 pop-shadow border border-purple-50 space-y-4">
+                <!-- 結果内容が入ります -->
+            </div>
+        </div>
+
+        <!-- 3. 2人相性診断セクション（交代入力式） -->
+        <div id="section-compatibility" class="hidden space-y-4 animate-pop">
+            <!-- ステップ0: 名前入力 -->
+            <div id="compat-step-names" class="bg-white/90 rounded-3xl p-6 pop-shadow border border-pink-50 space-y-4">
+                <div class="text-center py-2">
+                    <span class="text-3xl">💕</span>
+                    <h2 class="text-lg font-extrabold text-gray-800 mt-2">2人の相性マッチング診断</h2>
+                    <p class="text-xs text-gray-500 mt-1">1台のスマホを交代で使って回答！2人の価値観の相性を徹底解剖します。</p>
+                </div>
+                <div class="space-y-3 pt-2">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">プレイヤーA のお名前</label>
+                        <input type="text" id="playerA-name" placeholder="例：太郎" class="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">プレイヤーB のお名前</label>
+                        <input type="text" id="playerB-name" placeholder="例：花子" class="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm">
+                    </div>
+                    <button onclick="startCompatibilityQuiz()" class="w-full mt-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg transition text-sm">
+                        診断スタート 🚀
+                    </button>
+                </div>
+            </div>
+
+            <!-- ステップ1~2: プレイヤー回答画面 -->
+            <div id="compat-quiz-view" class="hidden bg-white/90 rounded-3xl p-6 pop-shadow border border-pink-50">
+                <div class="flex justify-between items-center mb-4">
+                    <span id="compat-turn-badge" class="text-xs font-bold px-3 py-1 bg-pink-100 text-pink-600 rounded-full">プレイヤーAのターン</span>
+                    <span id="compat-progress" class="text-xs text-gray-400 font-bold">問 1 / 5</span>
+                </div>
+                <div id="compat-question-container"></div>
+            </div>
+
+            <!-- ステップ3: 交代パス画面 -->
+            <div id="compat-pass-view" class="hidden bg-white/90 rounded-3xl p-8 pop-shadow border border-pink-50 text-center space-y-4">
+                <div class="text-4xl">📱✨</div>
+                <h3 class="text-lg font-bold text-gray-800" id="compat-pass-title">プレイヤーAの回答が完了しました！</h3>
+                <p class="text-xs text-gray-500">スマホを <span id="compat-next-player-name" class="font-bold text-pink-500">プレイヤーB</span> に渡してください。</p>
+                <button onclick="startNextPlayerTurn()" class="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg transition text-sm">
+                    準備OK！回答を始める 🎯
+                </button>
+            </div>
+
+            <!-- ステップ4: 相性診断結果 -->
+            <div id="compat-result-view" class="hidden bg-white/90 rounded-3xl p-6 pop-shadow border border-pink-50 space-y-4">
+                <!-- 結果表示 -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- フッター -->
+    <footer class="text-center py-4 text-xs text-gray-400">
+        ✨ 心理テスト＆診断ステーション - Mobile Web App
+    </footer>
+
+    <!-- JavaScript ロジック -->
+    <script>
+        // --- 音声効果 (Web Audio API) ---
+        let soundEnabled = true;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+            if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } else if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+                osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'complete') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(554.37, now + 0.1);
+                osc.frequency.setValueAtTime(659.25, now + 0.2);
+                osc.frequency.setValueAtTime(880, now + 0.3);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.6);
+                osc.start(now);
+                osc.stop(now + 0.6);
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('soundToggle');
+            btn.textContent = soundEnabled ? "🔊 効果音: ON" : "🔇 効果音: OFF";
+            btn.className = soundEnabled ? "text-xs bg-pink-100 text-pink-600 font-bold px-3 py-1.5 rounded-full hover:bg-pink-200 transition" : "text-xs bg-gray-100 text-gray-500 font-bold px-3 py-1.5 rounded-full hover:bg-gray-200 transition";
+            playSound('click');
+        }
+
+        // --- タブ切り替え ---
+        function switchTab(tab) {
+            playSound('click');
+            ['single', 'diagnostic', 'compatibility'].forEach(t => {
+                document.getElementById(`section-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).className = "py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition text-gray-600 hover:bg-white/50";
+            });
+            document.getElementById(`section-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).className = "py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition bg-pink-500 text-white shadow-md";
+        }
+
+        // ==========================================
+        // 1. 単発質問系データ＆ロジック (直感＆選択肢ミックス)
+        // ==========================================
+        const singleQuestions = [
+            {
+                type: 'intuitive',
+                category: '直感・恋愛系',
+                question: '「真っ暗な夜道を一人で歩いている時、背後から足音が聞こえました。振り返ると何がいましたか？」',
+                instruction: '頭の中にパッと浮かんだものを心に留めてから、下の「答えを見る」ボタンを押してね！',
+                answerEmoji: '👥👻🐾',
+                answerTitle: 'あなたが今、無意識に求めている人間関係',
+                explanation: '背後にいた存在は、あなたの深層心理が求めている人との距離感を反映しています。\n\n・「友人や恋人・人間」だった場合：今とても寂しさを感じており、誰かにギュッと寄り添ってほしい、愛されたい欲求が高まっています。\n・「幽霊や怪異」だった場合：日々のストレスやプレッシャーから現実逃避したいサイン。一人になりたい気持ちの表れです。\n・「動物やペット」だった場合：癒やしを猛烈に求めています。気を使わない穏やかな関係に包まれたい心理状態です。'
+            },
+            {
+                type: 'choice',
+                category: '深層心理・本音系',
+                question: '目の前にある真っ白な紙に、自由にペンで絵を描くとしたら、まず何を描きますか？',
+                options: [
+                    { text: '〇や△などの「幾何学模様・記号」', emoji: '🔷', title: '【論理的で冷静な知性派】', desc: 'あなたは物事を客観的に捉えるスマートな人。感情に流されず、冷静な判断を下す才能があります。' },
+                    { text: '「お花や動物など自然のイラスト」', emoji: '🌸', title: '【愛情豊かで癒やし系】', desc: 'あなたは非常にピュアで、周囲を明るくする優しさの持ち主。人間関係の調停役として愛されています。' },
+                    { text: '「自分の顔や似顔絵」', emoji: '🪞', title: '【自己分析バッチリの職人肌】', desc: '自分自身への関心が非常に高く、自分の個性を大切にする人。マイペースを貫く強い芯があります。' },
+                    { text: '「意味のない落書き・グルグル線」', emoji: '🌀', title: '【実は溜め込みがちな爆弾キャラ】', desc: '今、無意識のストレスや発散したいエネルギーが満タン！ユーモアと爆発力を秘めた魅力的なタイプです。' }
+                ]
+            },
+            {
+                type: 'intuitive',
+                category: '対人・シチュエーション',
+                question: '「森の中を歩いていたら、目の前に美しい泉がありました。その泉の水をどうしますか？」',
+                instruction: '直感でどう行動するか思い浮かべてね！',
+                answerEmoji: '💧🤲✨',
+                answerTitle: 'あなたの「金銭感覚＆秘密の欲求」',
+                explanation: '泉の水へのアプローチで、あなたの欲望のコントロール度がわかります。\n\n・「そのまま手ですくってゴクゴク飲んだ」：直感派でお金が入ったらすぐ使っちゃう豪快タイプ！人懐っこい人気者です。\n・「綺麗だけど飲むのは我慢した・眺めた」：非常に慎重で堅実な貯蓄家。危機管理能力が高く頼れる存在です。\n・「顔や手を洗ってリフレッシュした」：気分転換が上手で、ストレスを上手に逃がすプロフェッショナルな人です。'
+            },
+            {
+                type: 'choice',
+                category: '恋愛・パートナーシップ',
+                question: 'カフェでケーキを頼みました。一番最初にどこから食べますか？',
+                options: [
+                    { text: '上に乗っている「いちご・フルーツ」', emoji: '🍓', title: '【主役気質のご褒美大好き派】', desc: '一番美味しいものを最初に食べるあなた。恋愛でも情熱的で、ロマンチックな展開を人一倍好みます。' },
+                    { text: '一番好きな「クリームやチョコの部分」', emoji: '🍫', title: '【甘え上手な愛されキャラ】', desc: '美味しいところをじっくり味わうタイプ。恋人にはたっぷり甘えたいし、甘やかされたいおねだり上手。' },
+                    { text: '「スポンジや周囲の生地」から堅実に', emoji: '🍰', title: '【慎重派で一途なピュア恋人】', desc: '計画的に味を楽しむあなたは、恋愛でもじっくり時間をかけて信頼関係を築く誠実なタイプです。' },
+                    { text: '「全体を少しずつバランスよく」', emoji: '🍽️', title: '【気配り上手な平和主義者】', desc: '相手のペースに合わせて楽しめる協調性の高い人。デートの計画や気配りはピカイチの安心感。' }
+                ]
+            },
+            {
+                type: 'intuitive',
+                category: 'ライフスタイル',
+                question: '「朝起きたら、鳥の言葉が分かるようになっていました。最初に何と言っていますか？」',
+                instruction: '鳥があなたに話しかけた第一声を想像してみて！',
+                answerEmoji: '🐦💬☀️',
+                answerTitle: 'あなたの「現在の本音と未来への予言」',
+                explanation: '鳥のセリフは、あなたの脳が今一番気にしていることの表れです。\n\n・「お腹空いた・ごはんちょうだい」と言っていた場合：日々のルーティンにお疲れ気味。美味しいものを食べてしっかり休息を取りましょう！\n・「こっちへおいで！楽しい場所があるよ」と言っていた場合：新しい挑戦や旅行、変化を求めているサイン。思い切った冒険が吉。\n・「気をつけて、油断しないで」と言っていた場合：直感が冴え渡っています。少し慎重に進むべきタイミングです。'
+            },
+            {
+                type: 'choice',
+                category: '性格・行動パターン',
+                question: 'カバンの中に一つだけ絶対に忘れてはいけない忘れたらパニックになるものは？',
+                options: [
+                    { text: 'スマートフォン（スマホ）', emoji: '📱', title: '【情報感度MAXのトレンドセッター】', desc: '常に世界と繋がっていたい社交的な人。好奇心が旺盛で、新しいトレンドや話題に敏感です。' },
+                    { text: 'お財布・カードケース', emoji: '👛', title: '【現実主義なしっかり者】', desc: '地に足がついた堅実な思考の持ち主。不測の事態にも動じない強いサバイバル力があります。' },
+                    { text: '鍵（家の鍵・車の鍵）', emoji: '🔑', title: '【プライベート重視のこだわり派】', desc: '自分のテリトリーやリラックスできる空間を何より大切にする人。家時間が最高の充電に。' },
+                    { text: 'ハンカチ・ティッシュなどのエチケット用品', emoji: '🧻', title: '【気配りピカイチの優しい天使】', desc: '周囲への配慮を欠かさない、思いやりにあふれた人。誰かのピンチにさっと手を差し伸べられます。' }
+                ]
+            }
+        ];
+
+        let currentSingleIndex = 0;
+        let showIntuitiveAnswer = false;
+
+        function renderSingleQuestion() {
+            const q = singleQuestions[currentSingleIndex];
+            document.getElementById('single-progress').textContent = `${currentSingleIndex + 1} / ${singleQuestions.length}`;
+            document.getElementById('single-category-badge').textContent = q.category;
+
+            const container = document.getElementById('single-card-content');
+
+            if (q.type === 'intuitive') {
+                container.innerHTML = `
+                    <div class="text-center space-y-4 py-3">
+                        <div class="text-4xl">🪄</div>
+                        <h2 class="text-base sm:text-lg font-bold text-gray-800 leading-relaxed">${q.question}</h2>
+                        <p class="text-xs text-pink-600 bg-pink-50 py-2 px-4 rounded-xl font-medium inline-block">${q.instruction}</p>
+                        
+                        ${!showIntuitiveAnswer ? `
+                            <div class="pt-4">
+                                <button onclick="revealIntuitive()" class="bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold py-3 px-8 rounded-2xl shadow-lg hover:opacity-90 transition text-sm">
+                                    答えと解説を見る 👁️‍🗨️
+                                </button>
+                            </div>
+                        ` : `
+                            <div class="mt-4 p-5 bg-gradient-to-br from-pink-50 to-indigo-50 rounded-2xl border border-pink-100 text-left space-y-3 animate-pop">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-2xl">${q.answerEmoji}</span>
+                                    <h3 class="font-bold text-gray-800 text-sm sm:text-base">${q.answerTitle}</h3>
+                                </div>
+                                <p class="text-xs sm:text-sm text-gray-600 whitespace-pre-line leading-relaxed">${q.explanation}</p>
+                            </div>
+                        `}
+                    </div>
+                `;
+            } else {
+                let optionsHtml = q.options.map((opt, idx) => `
+                    <button onclick="selectSingleChoice(${idx})" class="w-full text-left p-3.5 rounded-2xl border border-gray-100 bg-white hover:bg-pink-50/60 hover:border-pink-200 transition flex items-center gap-3 group">
+                        <span class="text-xl bg-pink-50 p-2 rounded-xl group-hover:scale-110 transition">${opt.emoji}</span>
+                        <span class="text-xs sm:text-sm font-bold text-gray-700 flex-1">${opt.text}</span>
+                    </button>
+                `).join('');
+
+                container.innerHTML = `
+                    <div class="space-y-4">
+                        <h2 class="text-base sm:text-lg font-bold text-gray-800 leading-relaxed">${q.question}</h2>
+                        <div class="space-y-2.5 pt-1" id="single-choices-box">
+                            ${optionsHtml}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function revealIntuitive() {
+            playSound('correct');
+            showIntuitiveAnswer = true;
+            renderSingleQuestion();
+        }
+
+        function selectSingleChoice(idx) {
+            playSound('correct');
+            const q = singleQuestions[currentSingleIndex];
+            const opt = q.options[idx];
+            const container = document.getElementById('single-card-content');
+
+            container.innerHTML = `
+                <div class="space-y-4 animate-pop text-left">
+                    <h2 class="text-base sm:text-lg font-bold text-gray-800 leading-relaxed">${q.question}</h2>
+                    <div class="p-5 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border border-purple-100 space-y-3">
+                        <div class="flex items-center gap-3">
+                            <span class="text-3xl bg-white p-2.5 rounded-2xl shadow-sm">${opt.emoji}</span>
+                            <div>
+                                <span class="text-xs font-bold text-purple-600">あなたの選択結果</span>
+                                <h3 class="font-bold text-gray-800 text-sm sm:text-base">${opt.title}</h3>
+                            </div>
+                        </div>
+                        <p class="text-xs sm:text-sm text-gray-600 leading-relaxed pt-1">${opt.desc}</p>
+                    </div>
+                    <div class="text-center pt-2">
+                        <button onclick="resetSingleChoiceView()" class="text-xs text-gray-400 font-bold underline hover:text-gray-600">選択肢を選び直す</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function resetSingleChoiceView() {
+            playSound('click');
+            renderSingleQuestion();
+        }
+
+        function nextSingle() {
+            playSound('click');
+            showIntuitiveAnswer = false;
+            currentSingleIndex = (currentSingleIndex + 1) % singleQuestions.length;
+            renderSingleQuestion();
+        }
+
+        function prevSingle() {
+            playSound('click');
+            showIntuitiveAnswer = false;
+            currentSingleIndex = (currentSingleIndex - 1 + singleQuestions.length) % singleQuestions.length;
+            renderSingleQuestion();
+        }
+
+
+        // ==========================================
+        // 2. 本格診断系データ＆ロジック (全6問×4ジャンル)
+        // ==========================================
+        const diagnosticData = {
+            psychopath: {
+                title: 'サイコパス度診断',
+                badgeBg: 'bg-indigo-100 text-indigo-600',
+                questions: [
+                    { q: '見知らぬパーティーで、一人でポツンとスマホをいじっている人がいます。どう声をかけますか？', options: [{t: '「一緒に乾杯しませんか？」と笑顔で誘う', p: 0}, {t: '特に気にせず、自分も別のグループに混ざる', p: 1}, {t: '「何してるんですか？」と画面を覗き込む', p: 3}, {t: '不気味なので一切近づかない', p: 2}]},
+                    { q: '他人の不幸を聞いた時、心の中で真っ先に思うことは？', options: [{t: '「大変そうだな、何か力になれないかな」', p: 0}, {t: '「自分じゃなくて良かった…」と密かに安心する', p: 2}, {t: '「人間関係って面倒だな」と冷めた目で見る', p: 3}, {t: '特に何も感じない・忘れる', p: 1}]},
+                    { q: 'チェスや対戦ゲームで、圧倒的に優勢な時、あなたはどうプレイする？', options: [{t: 'サクッと手短に勝利を決めて終わらせる', p: 1}, {t: 'あえて相手に希望を持たせてからじっくり追い詰める', p: 3}, {t: '手加減して相手の見せ場を作る', p: 0}, {t: '特に意識せず淡々とプレイする', p: 2}]},
+                    { q: '他人の秘密を知ってしまった時、どう扱いますか？', options: [{t: '絶対に誰にも言わず墓場まで持っていく', p: 0}, {t: '親しい人にだけこっそり共有しちゃう', p: 2}, {t: '自分にとって有利な状況で使えるよう記憶しておく', p: 3}, {t: '興味がないのですぐに忘れる', p: 1}]},
+                    { q: '街を歩いていて、野良猫が可愛い仕草をしています。あなたの反応は？', options: [{t: '「かわいい〜！」と駆け寄って撫でる', p: 0}, {t: '遠くから眺めて癒やされる', p: 1}, {t: '何を考えてるんだろうと冷静に観察する', p: 2}, {t: '通り過ぎるだけで特に感情はない', p: 3}]},
+                    { q: '「目的のためには手段を選ばない」という言葉についてどう思う？', options: [{t: '絶対に許されないことだと思う', p: 0}, {t: '時と場合によっては仕方ないこともある', p: 2}, {t: '合理的で効率が良い生き方だと思う', p: 3}, {t: 'あまり考えたことがない', p: 1}]}
+                ],
+                results: [
+                    { min: 0, max: 5, title: 'ピュア天使度100%・共感の塊タイプ', desc: 'あなたは非常に情緒豊かで、他人の痛みや喜びに深く共感できる温かい心の持ち主です。サイコパス度ゼロ！愛されキャラです。' },
+                    { min: 6, max: 11, title: 'バランス良好・常識人タイプ', desc: '感情のコントロールが上手で、現実的な思考と優しさのバランスが完璧に取れている素晴らしい市民です。' },
+                    { min: 12, max: 15, title: 'クールな戦略家・一匹狼タイプ', desc: '感情に流されず、物事を極めて合理的・客観的に判断する冷徹な知性を持っています。リーダーシップの素質あり！' },
+                    { min: 16, max: 18, title: '予測不能の天才サイコパス気質', desc: '独自の哲学と驚くほど合理的すぎる思考回路の持ち主。常人には思いつかない発想で周囲を驚かせるカリスマ。' }
+                ]
+            },
+            sm: {
+                title: 'ドS・ドM度診断',
+                badgeBg: 'bg-pink-100 text-pink-600',
+                questions: [
+                    { q: 'グループで遊ぶ時、計画を立てたり仕切ったりするのは好き？', options: [{t: '自分がグイグイ引っ張って仕切りたい！', s: 3, m: 0}, {t: 'みんなの意見を聞いて調整するのが好き', s: 1, m: 1}, {t: '誰かについていく方がラクで安心', s: 0, m: 3}, {t: 'その場のノリで臨機応変に変わる', s: 1, m: 1}]},
+                    { q: '恋人や親しい人からイジられたり、少しからかわれた時の気持ちは？', options: [{t: 'イジり返してギャフンと言わせたい（S）', s: 3, m: 0}, {t: '仲が良い証拠なので、むしろ嬉しくなる（M）', s: 0, m: 3}, {t: '度が過ぎるとちょっとイラッとする', s: 2, m: 1}, {t: 'スルーするか笑顔で流す', s: 1, m: 1}]},
+                    { q: '誰かに頼みごとをされて、一生懸命頑張っている時、あなたの心理は？', options: [{t: '「私に感謝しなさい！」とドヤ顔したくなる', s: 3, m: 0}, {t: '「役に立てて嬉しい！」とやりがいを感じる', s: 0, m: 3}, {t: 'めんどくさいけど頼まれたら断れない', s: 1, m: 2}, {t: 'お互い様だし淡々とこなす', s: 1, m: 1}]},
+                    { q: 'ホラー映画や絶叫アトラクションに乗った時のあなたの状態は？', options: [{t: '隣で怖がっている友達を面白がって観察する', s: 3, m: 0}, {t: '叫びながらもスリルを楽しんでいる', s: 1, m: 1}, {t: '怖すぎて誰かの服の裾をギュッと掴んでしまう', s: 0, m: 3}, {t: '冷静にツッコミを入れながら見る', s: 2, m: 0}]},
+                    { q: '喧嘩や意見の対立が起きた時、最後に折れるのはどっちが多い？', options: [{t: '絶対に自分が納得するまで折れない！', s: 3, m: 0}, {t: '相手が機嫌を損ねるなら自分が折れる方が早い', s: 0, m: 3}, {t: 'お互い妥協点を探して話し合う', s: 1, m: 1}, {t: '面倒なのでその場からフェードアウトする', s: 1, m: 2}]},
+                    { q: '「厳しい指導や愛のあるスパルタ」についてどう思う？', options: [{t: '成長のためにはビシバシ鍛えるべきだ！', s: 3, m: 0}, {t: '褒めて伸ばしてほしい、厳しいのは苦手…', s: 0, m: 3}, {t: '人によって使い分けるべき', s: 1, m: 1}, {t: 'あまり関わりたくない', s: 1, m: 1}]}
+                ],
+                results: [
+                    { type: 'S', minScore: 12, title: '絶対君主！「ドS」プリンス・プリンセス', desc: '圧倒的な指導力と、相手をコントロールした時の快感を秘めたドS気質。頼りがい抜群ですが、たまには優しさの飴も忘れないように！' },
+                    { type: 'M', minScore: 12, title: '愛されたい一途な「ドM」エンジェル', desc: '相手に尽くすこと、リードしてもらうことに最高の喜びを感じる献身タイプ。守ってあげたくなる愛されオーラ全開です。' },
+                    { type: 'BALANCED', minScore: 0, title: '臨機応変な「ツンデレ・オールラウンダー」', desc: '状況や相手によってSとMを巧みに使い分ける器用な人。相手の懐に入るのが上手な愛されチャレンジャー！' }
+                ]
+            },
+            rpg: {
+                title: 'RPG職業・冒険者タイプ診断',
+                badgeBg: 'bg-purple-100 text-purple-600',
+                questions: [
+                    { q: '冒険の旅に出発する時、まず最初に何をする？', options: [{t: '最強の武器と防具をショップで買い揃える', role: 'warrior'}, {t: '魔法書を読み漁り、新しい呪文を覚える', role: 'mage'}, {t: '仲間を集めてパーティーの作戦会議を開く', role: 'leader'}, {t: '美味い酒場を探して情報収集する', role: 'rogue'}]},
+                    { q: 'ダンジョンで迷路に行き詰まった！どうやって突破する？', options: [{t: '壁を力づくで破壊してショートカットする！', role: 'warrior'}, {t: '魔法のコンパスやサーチ呪文を使う', role: 'mage'}, {t: 'みんなで知恵を出し合って安全なルートを選ぶ', role: 'leader'}, {t: '隠し通路や裏技を探してスルッと抜ける', role: 'rogue'}]},
+                    { q: 'パーティーの仲間が大きなピンチ！あなたの行動は？', options: [{t: '自分が盾になって敵の攻撃をすべて引き受ける！', role: 'warrior'}, {t: '強力な回復魔法や支援バフを瞬時にかける！', role: 'mage'}, {t: '冷静に指示を出して全員を安全に撤退させる', role: 'leader'}, {t: '敵の背後に回り込んで一撃で不意打ちする！', role: 'rogue'}]},
+                    { q: '宝箱を発見しました。どうやって開ける？', options: [{t: '罠なんて気にせず豪快に蹴り開ける！', role: 'warrior'}, {t: '魔力で罠の気配がないか徹底的に鑑定する', role: 'mage'}, {t: '全員が安全な距離にいるか確認してから開ける', role: 'leader'}, {t: '華麗なピッキング技術で瞬時に解錠する', role: 'rogue'}]},
+                    { q: '強大なボスモンスターが目の前に現れた！第一声は？', options: [{t: '「面白そうだ、俺の剣のサビにしてやるぜ！」', role: 'warrior'}, {t: '「弱点属性の分析完了…勝機はあるわ」', role: 'mage'}, {t: '「よし、作戦通りに各個撃破するぞ！」', role: 'leader'}, {t: '「お宝を落としたらいただくぜ」', role: 'rogue'}]},
+                    { q: '冒険が終わったあと、手に入れた莫大な報酬はどう使う？', options: [{t: 'さらに強い武器や防具の強化に全額投資する', role: 'warrior'}, {t: 'レアな魔法書や研究の資金にする', role: 'mage'}, {t: 'みんなで盛大な宴会を開いて盛大に祝う', role: 'leader'}, {t: '誰にもバレない秘密の場所に隠しておく', role: 'rogue'}]}
+                ],
+                results: [
+                    { role: 'warrior', title: '🛡️ 最前線の切り込み隊長「戦士（ウォリアー）」', desc: '勇敢で行動力があり、困難に直面しても真っ向から立ち向かう頼れる存在。強い正義感と突破力で周囲を引っ張ります！' },
+                    { role: 'mage', title: '🔮 知略に優れた天才「魔導士（メイジ）」', desc: '高い分析力と広い視野を持ち、物事を論理的に解決する頭脳派。鋭い洞察力で誰も思いつかないアイデアを閃きます。' },
+                    { role: 'leader', title: '👑 パーティーの要「勇者・リーダー気質」', desc: '圧倒的なカリスマ性と包容力を持ち、自然と人が集まってくる天性のまとめ役。みんなの心を一つにするプロ！' },
+                    { role: 'rogue', title: '🗡️ 神出鬼没の策士「盗賊・ローグ」', desc: '高い適応力と機転の利き具合はピカイチ。独自の視点とクールなユーモアでピンチをチャンスに変える天才！' }
+                ]
+            },
+            inner: {
+                title: '裏性格・黒歴史メーカー',
+                badgeBg: 'bg-amber-100 text-amber-700',
+                questions: [
+                    { q: '一人で部屋にいる時、無意識にやってしまうことは？', options: [{t: '過去の恥ずかしい記憶を思い出して頭を抱える', p: 1}, {t: '鏡の前で変なポーズやセリフをつぶやいている', p: 3}, {t: '好きな音楽を聴いてライブの妄想をする', p: 2}, {t: 'ひたすら動画やネットサーフィンに没頭する', p: 0}]},
+                    { q: '「自分って天才かも…」と密かに思ってしまう瞬間は？', options: [{t: '料理の味付けが完璧に決まった時', p: 1}, {t: '中二病全開の妄想や小説のプロットを思いついた時', p: 3}, {t: '仕事や勉強で誰も気づかない効率化を見つけた時', p: 2}, {t: '特に思ったことはない', p: 0}]},
+                    { q: '友達から「実は天然だよね」と言われた時の内心は？', options: [{t: '「そんなことないし！」と全力でツッコミを入れる', p: 1}, {t: '（ふふふ、計画通り…俺の計算の内さ）とドヤる', p: 3}, {t: '「そうかな？」と素直に受け止めて照れる', p: 0}, {t: 'ちょっと恥ずかしいので話題を変える', p: 2}]},
+                    { q: '大勢の前で派手に転んだり、盛大な言い間違いをした時、どうする？', options: [{t: '一瞬で顔が真っ赤になり、その場で消えたくなる', p: 1}, {t: '「これも世界の不可避なバグか…」と哲学する', p: 3}, {t: '「痛っ！いてて…」と愛嬌で笑いに変える', p: 0}, {t: '何事もなかったかのように立ち去る', p: 2}]},
+                    { q: '自分のスマホの検索履歴を他人に見られたらどうなる？', options: [{t: '死刑宣告より恐ろしい、即座にスマホを破壊する', p: 3}, {t: '「くだらないこと調べてんな」と思われる程度でセーフ', p: 1}, {t: '普通に真面目なことしか調べてないので堂々と見せられる', p: 0}, {t: '恥ずかしいけど笑いにはできる', p: 2}]},
+                    { q: '秘密の趣味や、誰にも言えないこだわりはある？', options: [{t: '人には言えない熱狂的な推しや世界観がある', p: 3}, {t: '特にない、オープンに生きているつもり', p: 0}, {t: 'ちょっと変わった料理の食べ方くらいならある', p: 1}, {t: '自分だけの秘密基地のような空間が好き', p: 2}]}
+                ],
+                results: [
+                    { min: 0, max: 5, title: '裏表一切なし！清流の如きピュア人間', desc: '黒歴史なんてどこ吹く風。いつも自然体でオープンに生きている、周囲から愛される誠実なピュアパーソン！' },
+                    { min: 6, max: 11, title: 'ちょっぴりシャイな常識人・愛されキャラ', desc: '時々過去の思い出に悶絶しつつも、普段はしっかり社会に溶け込んでいる親しみやすい素敵なあなた。' },
+                    { min: 12, max: 15, title: '隠れ中二病・ロマンチスト秘蔵っ子', desc: '頭の中に広大でファンタジーな世界観を秘めたクリエイティブな人。独自のこだわりと鋭いセンスの持ち主！' },
+                    { min: 16, max: 18, title: '覚醒せしダークヒーロー・妄想マスター', desc: '全知全能の自己世界観を持つ究極のロマンチスト！あなたの脳内を映像化したら大ヒット間違いなしの天才肌。' }
+                ]
+            }
+        };
+
+        let currentDiagKey = null;
+        let currentDiagIndex = 0;
+        let diagScore = 0;
+        let diagAnswersLog = [];
+
+        function startDiagnostic(key) {
+            playSound('click');
+            currentDiagKey = key;
+            currentDiagIndex = 0;
+            diagScore = 0;
+            diagAnswersLog = [];
+
+            document.getElementById('diag-menu-view').classList.add('hidden');
+            document.getElementById('diag-quiz-view').classList.remove('hidden');
+            document.getElementById('diag-result-view').classList.add('hidden');
+
+            const conf = diagnosticData[key];
+            document.getElementById('diag-title-badge').textContent = conf.title;
+            document.getElementById('diag-title-badge').className = `text-xs font-bold px-3 py-1 rounded-full ${conf.badgeBg}`;
+
+            renderDiagnosticQuestion();
+        }
+
+        function renderDiagnosticQuestion() {
+            const conf = diagnosticData[currentDiagKey];
+            const qObj = conf.questions[currentDiagIndex];
+            document.getElementById('diag-progress').textContent = `問 ${currentDiagIndex + 1} / ${conf.questions.length}`;
+
+            let optionsHtml = qObj.options.map((opt, idx) => `
+                <button onclick="answerDiagnostic(${idx})" class="w-full text-left p-3.5 rounded-2xl border border-gray-100 bg-white hover:bg-indigo-50/60 hover:border-indigo-200 transition flex items-center gap-3 group">
+                    <span class="w-7 h-7 flex items-center justify-center bg-indigo-50 text-indigo-600 font-bold rounded-xl text-xs group-hover:bg-indigo-500 group-hover:text-white transition">${String.fromCharCode(65 + idx)}</span>
+                    <span class="text-xs sm:text-sm font-bold text-gray-700 flex-1">${opt.t}</span>
+                </button>
+            `).join('');
+
+            document.getElementById('diag-question-container').innerHTML = `
+                <div class="space-y-4 animate-pop">
+                    <h2 class="text-base sm:text-lg font-bold text-gray-800 leading-relaxed">${qObj.q}</h2>
+                    <div class="space-y-2.5 pt-1">
+                        ${optionsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function answerDiagnostic(optIdx) {
+            playSound('correct');
+            const conf = diagnosticData[currentDiagKey];
+            const qObj = conf.questions[currentDiagIndex];
+            const selectedOpt = qObj.options[optIdx];
+
+            diagAnswersLog.push(selectedOpt);
+
+            if (currentDiagKey === 'sm') {
+                diagScore += (selectedOpt.s || 0); // S度で集計
+            } else if (currentDiagKey === 'rpg') {
+                // ロール別にカウント
+            } else {
+                diagScore += (selectedOpt.p || 0);
+            }
+
+            currentDiagIndex++;
+            if (currentDiagIndex < conf.questions.length) {
+                renderDiagnosticQuestion();
+            } else {
+                showDiagnosticResult();
+            }
+        }
+
+        function showDiagnosticResult() {
+            playSound('complete');
+            document.getElementById('diag-quiz-view').classList.add('hidden');
+            const resultView = document.getElementById('diag-result-view');
+            resultView.classList.remove('hidden');
+
+            const conf = diagnosticData[currentDiagKey];
+            let title = '', desc = '';
+
+            if (currentDiagKey === 'sm') {
+                let totalS = diagAnswersLog.reduce((sum, item) => sum + (item.s || 0), 0);
+                let totalM = diagAnswersLog.reduce((sum, item) => sum + (item.m || 0), 0);
+                let matched = conf.results[2]; // balanced
+                if (totalS >= totalM + 3) matched = conf.results[0];
+                else if (totalM >= totalS + 3) matched = conf.results[1];
+                title = matched.title;
+                desc = `【ドS度: ${totalS}pt / ドM度: ${totalM}pt】\n\n${matched.desc}`;
+            } else if (currentDiagKey === 'rpg') {
+                let counts = {};
+                diagAnswersLog.forEach(item => { counts[item.role] = (counts[item.role] || 0) + 1; });
+                let bestRole = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+                let matched = conf.results.find(r => r.role === bestRole) || conf.results[0];
+                title = matched.title;
+                desc = matched.desc;
+            } else {
+                let matched = conf.results[conf.results.length - 1];
+                for (let r of conf.results) {
+                    if (diagScore >= r.min && diagScore <= r.max) {
+                        matched = r;
+                        break;
+                    }
+                }
+                title = matched.title;
+                desc = `【診断スコア: ${diagScore} pt】\n\n${matched.desc}`;
+            }
+
+            resultView.innerHTML = `
+                <div class="text-center space-y-4 animate-pop">
+                    <span class="text-4xl">🎉</span>
+                    <h3 class="text-xs font-bold text-indigo-500 uppercase tracking-widest">${conf.title} 診断結果</h3>
+                    <h2 class="text-lg sm:text-xl font-extrabold text-gray-800 leading-tight">${title}</h2>
+                    <div class="p-5 bg-indigo-50/70 rounded-2xl text-left border border-indigo-100">
+                        <p class="text-xs sm:text-sm text-gray-700 whitespace-pre-line leading-relaxed">${desc}</p>
+                    </div>
+                    <button onclick="resetDiagnosticMenu()" class="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg transition text-sm">
+                        診断メニューに戻る 🔄
+                    </button>
+                </div>
+            `;
+        }
+
+        function resetDiagnosticMenu() {
+            playSound('click');
+            document.getElementById('diag-result-view').classList.add('hidden');
+            document.getElementById('diag-menu-view').classList.remove('hidden');
+        }
+
+
+        // ==========================================
+        // 3. 2人相性診断データ＆ロジック (交代入力式)
+        // ==========================================
+        const compatibilityQuestions = [
+            {
+                q: '「休日に急に完全フリーな一日ができました。あなたの理想の過ごし方は？」',
+                options: [
+                    { t: '家でまったり動画やゲーム、一歩も外に出ない', type: 'home' },
+                    { t: '気になっていたカフェや街へお出かけ・ショッピング', type: 'active' },
+                    { t: '友人やパートナーとワイワイ遊びに出かける', type: 'social' },
+                    { t: 'たまった家事や自分磨きを完璧に片付ける', type: 'diligent' }
+                ]
+            },
+            {
+                q: '「恋人や友達とレストランに入りました。メニュー選びで一番重視するのは？」',
+                options: [
+                    { t: '直感で一番美味しそうなものを直球で選ぶ！', type: 'intuitive' },
+                    { t: '口コミやSNSの評価、一番人気をリサーチする', type: 'research' },
+                    { t: 'コスパやボリューム、満足度を一番に考える', type: 'cost' },
+                    { t: '期間限定や珍しいメニューにチャレンジする', type: 'unique' }
+                ]
+            },
+            {
+                q: '「旅行の計画を立てる時、あなたはどのタイプ？」',
+                options: [
+                    { t: '分刻みでスケジュールを完璧に組む派', type: 'planner' },
+                    { t: '大まかな目的地だけ決めて、現地でノリで決める派', type: 'flexible' },
+                    { t: '計画を立てるのが好きなので、全部お任せしちゃう派', type: 'follower' },
+                    { t: 'メンバーに合わせて柔軟に変える調整役', type: 'mediator' }
+                ]
+            },
+            {
+                q: '「意見が食い違ってプチ喧嘩になりそう…！どうやって解決する？」',
+                options: [
+                    { t: 'お互いの意見を論理的にぶつけて納得いくまで話し合う', type: 'logic' },
+                    { t: 'その場の空気を壊したくないので、一度自分が折れる', type: 'compromise' },
+                    { t: '少し時間を置いてお互い冷静になってから話す', type: 'cool' },
+                    { t: '美味しいものを食べて機嫌を直してもらう', type: 'food' }
+                ]
+            },
+            {
+                q: '「人生で一番大切にしたいモットーや価値観はどれ？」',
+                options: [
+                    { t: '「楽しければすべて良し！笑顔とユーモア」', type: 'fun' },
+                    { t: '「一期一会と誠実さ、信頼関係が一番」', type: 'trust' },
+                    { t: '「マイペースと自分のこだわりを貫く」', type: 'my_pace' },
+                    { t: '「成長と挑戦、常に新しい自分へ」', type: 'growth' }
+                ]
+            }
+        ];
+
+        let compatData = {
+            playerA: { name: '', answers: [] },
+            playerB: { name: '', answers: [] },
+            currentTurn: 'A', // 'A' or 'B'
+            currentIndex: 0
+        };
+
+        function startCompatibilityQuiz() {
+            const nameA = document.getElementById('playerA-name').value.trim();
+            const nameB = document.getElementById('playerB-name').value.trim();
+
+            if (!nameA || !nameB) {
+                alert('プレイヤーAとプレイヤーBのお名前を入力してください！');
+                return;
+            }
+
+            playSound('click');
+            compatData.playerA.name = nameA;
+            compatData.playerB.name = nameB;
+            compatData.playerA.answers = [];
+            compatData.playerB.answers = [];
+            compatData.currentTurn = 'A';
+            compatData.currentIndex = 0;
+
+            document.getElementById('compat-step-names').classList.add('hidden');
+            document.getElementById('compat-quiz-view').classList.remove('hidden');
+
+            renderCompatibilityQuestion();
+        }
+
+        function renderCompatibilityQuestion() {
+            const currentName = compatData.currentTurn === 'A' ? compatData.playerA.name : compatData.playerB.name;
+            document.getElementById('compat-turn-badge').textContent = `${currentName}さんのターン`;
+            document.getElementById('compat-progress').textContent = `問 ${compatData.currentIndex + 1} / ${compatibilityQuestions.length}`;
+
+            const qObj = compatibilityQuestions[compatData.currentIndex];
+            let optionsHtml = qObj.options.map((opt, idx) => `
+                <button onclick="answerCompatibility(${idx})" class="w-full text-left p-3.5 rounded-2xl border border-gray-100 bg-white hover:bg-pink-50/60 hover:border-pink-200 transition flex items-center gap-3 group">
+                    <span class="w-7 h-7 flex items-center justify-center bg-pink-50 text-pink-600 font-bold rounded-xl text-xs group-hover:bg-pink-500 group-hover:text-white transition">${String.fromCharCode(65 + idx)}</span>
+                    <span class="text-xs sm:text-sm font-bold text-gray-700 flex-1">${opt.t}</span>
+                </button>
+            `).join('');
+
+            document.getElementById('compat-question-container').innerHTML = `
+                <div class="space-y-4 animate-pop">
+                    <h2 class="text-base sm:text-lg font-bold text-gray-800 leading-relaxed">${qObj.q}</h2>
+                    <div class="space-y-2.5 pt-1">
+                        ${optionsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        function answerCompatibility(optIdx) {
+            playSound('correct');
+            const qObj = compatibilityQuestions[compatData.currentIndex];
+            const selectedType = qObj.options[optIdx].type;
+
+            if (compatData.currentTurn === 'A') {
+                compatData.playerA.answers.push(selectedType);
+            } else {
+                compatData.playerB.answers.push(selectedType);
+            }
+
+            compatData.currentIndex++;
+
+            if (compatData.currentIndex < compatibilityQuestions.length) {
+                renderCompatibilityQuestion();
+            } else {
+                // ターン終了処理
+                if (compatData.currentTurn === 'A') {
+                    // プレイヤーBに交代
+                    compatData.currentTurn = 'B';
+                    compatData.currentIndex = 0;
+                    document.getElementById('compat-quiz-view').classList.add('hidden');
+                    document.getElementById('compat-pass-title').textContent = `${compatData.playerA.name}さんの回答が完了しました！`;
+                    document.getElementById('compat-next-player-name').textContent = compatData.playerB.name;
+                    document.getElementById('compat-pass-view').classList.remove('hidden');
+                } else {
+                    // 両者完了 -> 結果発表
+                    showCompatibilityResult();
+                }
+            }
+        }
+
+        function startNextPlayerTurn() {
+            playSound('click');
+            document.getElementById('compat-pass-view').classList.add('hidden');
+            document.getElementById('compat-quiz-view').classList.remove('hidden');
+            renderCompatibilityQuestion();
+        }
+
+        function showCompatibilityResult() {
+            playSound('complete');
+            document.getElementById('compat-quiz-view').classList.add('hidden');
+            const resultView = document.getElementById('compat-result-view');
+            resultView.classList.remove('hidden');
+
+            // 一致度計算
+            let matchCount = 0;
+            for (let i = 0; i < compatibilityQuestions.length; i++) {
+                if (compatData.playerA.answers[i] === compatData.playerB.answers[i]) {
+                    matchCount++;
+                }
+            }
+            let matchRate = Math.round((matchCount / compatibilityQuestions.length) * 100);
+            if (matchRate < 30) matchRate = 35 + Math.floor(Math.random() * 20); // 最低保証演出
+
+            let rankTitle = '';
+            let rankDesc = '';
+            let advice = '';
+
+            if (matchRate >= 80) {
+                rankTitle = '💖 奇跡のソウルメイト級（一致度 ' + matchRate + '%）';
+                rankDesc = '2人の価値観やテンポはまるで双子のようにシンクロしています！言葉を交わさなくてもお互いの考えていることが手に取るように分かる最高の相性です。';
+                advice = 'お互いの居心地が良すぎて、逆にマンネリに注意！新しい体験を2人で開拓するとさらに絆が深まります。';
+            } else if (matchRate >= 60) {
+                rankTitle = '✨ 息ぴったりベストパートナー級（一致度 ' + matchRate + '%）';
+                rankDesc = '似ているところもあり、お互いにリスペクトし合える理想的なバランスの相性です。一緒にいて居心地が良く、自然体で笑い合える関係です。';
+                advice = '意見が分かれた時は、「お互いの違いを面白がる余裕」を持つと、何倍も楽しい関係でいられます！';
+            } else {
+                rankTitle = '⚡ 化学反応バツグンの凸凹コンビ級（一致度 ' + matchRate + '%）';
+                rankDesc = '考え方やアプローチがまるで違うからこそ、お互いに新鮮な発見や刺激を与え合えるエキサイティングな関係です！';
+                advice = '「自分にはない視点」を面白がり、相手の意見に耳を傾けることで、最強の補完コンビになれます！';
+            }
+
+            resultView.innerHTML = `
+                <div class="text-center space-y-4 animate-pop">
+                    <span class="text-4xl">🎉</span>
+                    <h3 class="text-xs font-bold text-pink-500 uppercase tracking-widest">${compatData.playerA.name} ＆ ${compatData.playerB.name} の相性診断</h3>
+                    <h2 class="text-lg sm:text-xl font-extrabold text-gray-800 leading-tight">${rankTitle}</h2>
+                    
+                    <div class="p-5 bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl text-left border border-pink-100 space-y-3">
+                        <div>
+                            <span class="text-xs font-bold text-pink-600 block mb-1">【2人の分析結果】</span>
+                            <p class="text-xs sm:text-sm text-gray-700 leading-relaxed">${rankDesc}</p>
+                        </div>
+                        <div class="pt-2 border-t border-pink-100/60">
+                            <span class="text-xs font-bold text-purple-600 block mb-1">【仲良しでいるためのアドバイス】</span>
+                            <p class="text-xs sm:text-sm text-gray-700 leading-relaxed">${advice}</p>
+                        </div>
+                    </div>
+
+                    <button onclick="resetCompatibility()" class="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg transition text-sm">
+                        もう一度相性診断をする 🔄
+                    </button>
+                </div>
+            `;
+        }
+
+        function resetCompatibility() {
+            playSound('click');
+            document.getElementById('compat-result-view').classList.add('hidden');
+            document.getElementById('compat-step-names').classList.remove('hidden');
+            document.getElementById('playerA-name').value = '';
+            document.getElementById('playerB-name').value = '';
+        }
+
+        // 初期化実行
+        window.onload = function() {
+            renderSingleQuestion();
+        };
+    </script>
+</body>
+</html>
