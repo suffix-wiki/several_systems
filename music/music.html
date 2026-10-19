@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>かんたん作曲 Studio Ultimate Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+  <!-- MIDI File Parser Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.min.js"></script>
+  <style>
+    :root {
+      --bg-main: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #38bdf8;
+    }
+    body {
+      background-color: var(--bg-main);
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+    .grid-cell {
+      box-sizing: border-box;
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .grid-cell.beat-start {
+      border-left: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .note-bar, .drum-bar {
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+      z-index: 10;
+      cursor: pointer;
+    }
+    .resize-handle {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 12px;
+      background: rgba(255, 255, 255, 0.3);
+      border-top-right-radius: 4px;
+      border-bottom-right-radius: 4px;
+      cursor: ew-resize;
+      touch-action: none;
+    }
+    .playhead {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background-color: #f43f5e;
+      box-shadow: 0 0 8px #f43f5e;
+      z-index: 30;
+      pointer-events: none;
+    }
+    .measure-tab.active {
+      border-bottom: 3px solid #38bdf8;
+      background-color: #334155;
+      color: #38bdf8;
+    }
+    .tab-btn.active {
+      border-bottom: 2px solid #38bdf8;
+      color: #38bdf8;
+    }
+  </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+  <!-- TOP HEADER / CONTROL BAR -->
+  <header class="bg-slate-900 border-b border-slate-800 p-2 sm:p-3 flex flex-wrap items-center justify-between gap-2 z-40">
+    <div class="flex items-center gap-2 sm:gap-3">
+      <div class="flex items-center gap-1.5 text-cyan-400 font-bold text-base sm:text-lg">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        <span>かんたん作曲 Studio Ultimate Pro</span>
+      </div>
+    </div>
+
+    <!-- MAIN CONTROLS -->
+    <div class="flex items-center gap-2">
+      <button id="btn-play-all" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 text-xs sm:text-sm transition">
+        <i class="fa-solid fa-play"></i> 全体再生
+      </button>
+      <button id="btn-play-loop" class="bg-cyan-700 hover:bg-cyan-600 text-white px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 text-xs sm:text-sm transition">
+        <i class="fa-solid fa-rotate-right"></i> 1小節ループ
+      </button>
+      <button id="btn-stop" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 text-xs sm:text-sm transition">
+        <i class="fa-solid fa-square"></i> 停止
+      </button>
+
+      <!-- BASE BPM SETTING -->
+      <div class="flex items-center gap-1 bg-slate-800 px-2 py-1 rounded-lg border border-slate-700 text-xs sm:text-sm" title="全体基本テンポ">
+        <span class="text-slate-400 font-medium">基本BPM:</span>
+        <input type="number" id="bpm-input" min="40" max="240" value="120" class="w-12 bg-transparent text-center font-bold text-cyan-300 focus:outline-none">
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="flex items-center gap-1.5">
+      <button id="btn-save-project" title="保存/復元" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2 rounded-lg text-xs sm:text-sm flex items-center gap-1">
+        <i class="fa-solid fa-floppy-disk"></i> <span class="hidden sm:inline">プロジェクト保存</span>
+      </button>
+      <button id="btn-export-mp3" title="MP3で出力" class="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-bold px-2.5 py-1.5 rounded-lg text-xs sm:text-sm flex items-center gap-1 shadow-lg shadow-pink-900/30">
+        <i class="fa-solid fa-file-audio"></i> <span>MP3出力</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT SPLIT -->
+  <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+
+    <!-- LEFT SIDEBAR: PRESETS & LIBRARY -->
+    <aside class="w-full md:w-80 bg-slate-900/90 border-r border-slate-800 flex flex-col overflow-hidden max-h-[35vh] md:max-h-full border-b md:border-b-0">
+      <div class="flex border-b border-slate-800 bg-slate-950 text-xs sm:text-sm">
+        <button class="tab-btn flex-1 py-2 font-semibold active text-center" data-tab="tab-melody">メロディ</button>
+        <button class="tab-btn flex-1 py-2 font-semibold text-center text-slate-400" data-tab="tab-drums">ドラム</button>
+        <button class="tab-btn flex-1 py-2 font-semibold text-center text-slate-400" data-tab="tab-chords">コード・伴奏</button>
+        <button class="tab-btn flex-1 py-2 font-semibold text-center text-slate-400" data-tab="tab-import">曲/テンプレ</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-3 custom-scrollbar text-xs sm:text-sm space-y-4">
+
+        <!-- MELODY TAB CONTENT -->
+        <div id="tab-melody" class="tab-content space-y-3">
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">メロディ音色</label>
+            <select id="melody-instrument" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-slate-200 focus:outline-none focus:border-cyan-500">
+              <option value="piano">🎹 グランドピアノ</option>
+              <option value="electric_piano">🎹 エレクトリックピアノ</option>
+              <option value="synth_lead">🎛 Synth Lead (ポップス)</option>
+              <option value="flute">🪈 フルート</option>
+              <option value="violin">🎻 バイオリン</option>
+              <option value="sax">🎷 アルトサックス</option>
+              <option value="8bit">👾 8-Bit レトロシンセ</option>
+            </select>
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-slate-400 font-semibold">メロディテンプレート (サビ対応)</span>
+              <button id="btn-save-melody-pattern" class="text-cyan-400 text-xs hover:underline"><i class="fa-solid fa-plus"></i> 現在の小節を保存</button>
+            </div>
+            <div id="melody-presets-list" class="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+              <!-- JS populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- DRUMS TAB CONTENT -->
+        <div id="tab-drums" class="tab-content hidden space-y-3">
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-slate-400 font-semibold">ドラム基本パターン</span>
+              <button id="btn-save-drum-pattern" class="text-cyan-400 text-xs hover:underline"><i class="fa-solid fa-plus"></i> 現在の小節を保存</button>
+            </div>
+            <div id="drum-presets-list" class="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar">
+              <!-- JS populated -->
+            </div>
+          </div>
+
+          <div class="border-t border-slate-800 pt-2">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-slate-400 font-semibold">ドラムフィルイン (長さを指定)</span>
+              <button id="btn-save-drum-roll" class="text-cyan-400 text-xs hover:underline"><i class="fa-solid fa-plus"></i> 自作ロール保存</button>
+            </div>
+            <div class="grid grid-cols-3 gap-1 mb-2 text-center" id="fillin-length-selector">
+              <button class="fillin-len-btn bg-amber-600 text-white font-bold py-1 rounded text-[11px]" data-len="16">1小節 (全16拍)</button>
+              <button class="fillin-len-btn bg-slate-800 text-slate-300 hover:bg-slate-700 py-1 rounded text-[11px]" data-len="8">1/2小節 (後半8拍)</button>
+              <button class="fillin-len-btn bg-slate-800 text-slate-300 hover:bg-slate-700 py-1 rounded text-[11px]" data-len="4">1/4小節 (後半4拍)</button>
+            </div>
+            <div id="drum-roll-presets-list" class="space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar">
+              <!-- JS populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- CHORDS & ACCOMPANIMENT TAB -->
+        <div id="tab-chords" class="tab-content hidden space-y-3">
+          <div class="bg-slate-800/80 p-2.5 rounded-lg border border-slate-700 flex items-center justify-between">
+            <span class="font-semibold text-slate-200">コード伴奏を鳴らす</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="toggle-accompaniment" class="sr-only peer" checked>
+              <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
+            </label>
+          </div>
+
+          <div>
+            <label class="block text-slate-400 font-semibold mb-1">伴奏の音色</label>
+            <select id="accompaniment-instrument" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-slate-200 focus:outline-none focus:border-cyan-500">
+              <option value="acoustic_guitar">🎸 アコースティックギター</option>
+              <option value="electric_guitar">🎸 クリーンエレキギター</option>
+              <option value="piano">🎹 ピアノ伴奏</option>
+              <option value="synth_pad">🌌 シンセパッド (温かみ)</option>
+              <option value="strings">🎻 ストリングスアンサンブル</option>
+              <option value="bass_and_keys">🎹 鍵盤＋ベース自動伴奏</option>
+            </select>
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-slate-400 font-semibold">コード進行テンプレート</span>
+              <button id="btn-save-chord-prog" class="text-cyan-400 text-xs hover:underline"><i class="fa-solid fa-plus"></i> 全小節のコードを保存</button>
+            </div>
+            <div id="chord-presets-list" class="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+              <!-- JS populated -->
+            </div>
+          </div>
+        </div>
+
+        <!-- FILE IMPORT & TEMPLATE MANAGEMENT TAB -->
+        <div id="tab-import" class="tab-content hidden space-y-4">
+
+          <!-- TEMPLATE BACKUP & RESTORE -->
+          <div class="bg-slate-800/80 p-3 rounded-lg border border-slate-700 space-y-2">
+            <div class="font-bold text-amber-300 flex items-center justify-between">
+              <span><i class="fa-solid fa-boxes-packing"></i> テンプレート管理 & バックアップ</span>
+            </div>
+            <p class="text-[11px] text-slate-400">自作・標準テンプレートを一括保存・復元・初期化します。</p>
+            <div class="grid grid-cols-2 gap-1.5 pt-1">
+              <button id="btn-export-templates" class="bg-amber-900/60 hover:bg-amber-800 text-amber-200 border border-amber-700 p-1.5 rounded font-bold text-xs text-center">
+                <i class="fa-solid fa-download"></i> テンプレ保存
+              </button>
+              <label class="bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 border border-emerald-700 p-1.5 rounded font-bold text-xs text-center cursor-pointer">
+                <i class="fa-solid fa-upload"></i> テンプレ復元
+                <input type="file" id="input-import-templates" accept=".json" class="hidden">
+              </label>
+            </div>
+            <button id="btn-reset-templates" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 p-1.5 rounded font-semibold text-[11px] text-center mt-1">
+              <i class="fa-solid fa-rotate-left text-cyan-400"></i> 初期標準テンプレに戻す
+            </button>
+          </div>
+
+          <!-- MIDI IMPORT -->
+          <div class="bg-slate-800/80 p-3 rounded-lg border border-slate-700 space-y-2">
+            <div class="font-bold text-cyan-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-file-audio"></i> MIDIファイルをプロット
+            </div>
+            <p class="text-[11px] text-slate-400">MIDI(.mid)を読み込み、メロディとドラムを本アプリの格子（小節）に自動展開します。</p>
+            <label class="block w-full bg-cyan-900/60 hover:bg-cyan-800 text-cyan-200 border border-cyan-700 p-2 rounded text-center font-bold cursor-pointer transition">
+              <i class="fa-solid fa-upload"></i> MIDIファイルを選択 (.mid)
+              <input type="file" id="input-import-midi" accept=".mid,.midi" class="hidden">
+            </label>
+          </div>
+
+          <!-- AUDIO BGM IMPORT -->
+          <div class="bg-slate-800/80 p-3 rounded-lg border border-slate-700 space-y-2">
+            <div class="font-bold text-pink-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-music"></i> MP3/WAVをBGMとして読み込み
+            </div>
+            <p class="text-[11px] text-slate-400">音源まるごとバックで再生させながら、自作のメロディやドラムを重ねてアレンジ演奏できます。</p>
+            <label class="block w-full bg-pink-900/60 hover:bg-pink-800 text-pink-200 border border-pink-700 p-2 rounded text-center font-bold cursor-pointer transition">
+              <i class="fa-solid fa-file-waveform"></i> 音声ファイルを選択 (.mp3/.wav)
+              <input type="file" id="input-import-audio" accept="audio/*" class="hidden">
+            </label>
+
+            <!-- BGM CONTROLS -->
+            <div id="bgm-controls" class="hidden pt-2 border-t border-slate-700 space-y-2">
+              <div class="flex justify-between items-center text-xs">
+                <span class="text-slate-300 font-semibold truncate max-w-[150px]" id="bgm-filename">ファイル名</span>
+                <button id="btn-remove-bgm" class="text-rose-400 hover:text-rose-300 text-[10px]"><i class="fa-solid fa-trash"></i> BGM削除</button>
+              </div>
+              <div class="flex items-center gap-2 text-xs">
+                <span class="text-slate-400">BGM音量:</span>
+                <input type="range" id="bgm-volume" min="0" max="1" step="0.05" value="0.7" class="flex-1 accent-pink-500">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- RIGHT MAIN WORKSPACE -->
+    <main class="flex-1 flex flex-col overflow-hidden bg-slate-950">
+
+      <!-- MEASURE SELECTOR STRIP -->
+      <div class="bg-slate-900 border-b border-slate-800 flex items-center justify-between px-2 py-1.5 overflow-x-auto custom-scrollbar">
+        <div class="flex items-center gap-1" id="measure-tabs-container">
+          <!-- Populated by JS -->
+        </div>
+        <div class="flex items-center gap-1 pl-2">
+          <button id="btn-add-measure" class="bg-cyan-900/60 hover:bg-cyan-800 text-cyan-300 border border-cyan-700/50 px-2.5 py-1 rounded text-xs font-bold whitespace-nowrap flex items-center gap-1">
+            <i class="fa-solid fa-plus"></i> 小節追加
+          </button>
+          <button id="btn-remove-measure" class="bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/50 px-2.5 py-1 rounded text-xs font-bold whitespace-nowrap flex items-center gap-1">
+            <i class="fa-solid fa-minus"></i> 削除
+          </button>
+        </div>
+      </div>
+
+      <!-- CURRENT MEASURE CHORD & PER-MEASURE TEMPO CONTROL -->
+      <div class="bg-slate-900/70 px-3 py-1.5 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-semibold text-slate-400 whitespace-nowrap"><i class="fa-solid fa-music text-cyan-400"></i> この小節のコード:</span>
+          <select id="current-measure-chord" class="bg-slate-800 border border-slate-700 text-cyan-300 text-xs sm:text-sm font-bold rounded px-2 py-1 focus:outline-none">
+            <option value="C">C (ドミソ - 明るい基本)</option>
+            <option value="G">G (ソシレ - 展開)</option>
+            <option value="Am">Am (ラドミ - 切ない/哀愁)</option>
+            <option value="F">F (ファラド - 開放感)</option>
+            <option value="Dm">Dm (レファラ - しっとり)</option>
+            <option value="Em">Em (ミソシ - 深み)</option>
+            <option value="E7">E7 (ミソ#シレ - サビ前ドラマチック)</option>
+            <option value="A7">A7 (ラド#ミソ)</option>
+            <option value="FM7">FM7 (ファラドミ - おしゃれポップ)</option>
+            <option value="CM7">CM7 (ドミソシ - 透明感)</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-1.5 bg-slate-800/90 px-2.5 py-1 rounded-lg border border-slate-700">
+          <span class="text-xs text-slate-400 font-medium"><i class="fa-solid fa-gauge-high text-amber-400"></i> この小節のBPM:</span>
+          <input type="number" id="measure-bpm-input" min="40" max="240" class="w-12 bg-slate-900 border border-slate-700 text-center text-xs font-bold text-amber-300 rounded focus:outline-none">
+          <button id="btn-reset-measure-bpm" class="text-[10px] text-slate-400 hover:text-white underline ml-1">全体BPMに合わせる</button>
+        </div>
+      </div>
+
+      <!-- SEQUENCER CANVAS / EDITOR AREA -->
+      <div class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar relative p-2" id="editor-container">
+        <div id="sequencer-grid" class="relative min-w-[600px]">
+
+          <!-- PLAYHEAD LINE -->
+          <div id="playhead" class="playhead hidden"></div>
+
+          <!-- MELODY SECTION -->
+          <div class="mb-4">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-xs font-bold text-cyan-400 flex items-center gap-1">
+                <i class="fa-solid fa-lines-leaning"></i> メロディ入力 (ピアノロール - 16分割)
+              </span>
+              <span class="text-[10px] text-slate-500">タップで音配置 / 右端スライドで長さ変更</span>
+            </div>
+            <div id="piano-roll-grid" class="relative bg-slate-900/90 border border-slate-800 rounded-lg overflow-hidden">
+              <!-- Generated by JS -->
+            </div>
+          </div>
+
+          <!-- DRUMS SECTION -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-xs font-bold text-pink-400 flex items-center gap-1">
+                <i class="fa-solid fa-drum"></i> リアルドラム ＆ フィルイン入力
+              </span>
+              <span class="text-[10px] text-slate-500">タップで音配置 / 右端スライドで音長</span>
+            </div>
+            <div id="drum-grid" class="relative bg-slate-900/90 border border-slate-800 rounded-lg overflow-hidden">
+              <!-- Generated by JS -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- MODAL: PROJECT SAVE / RESTORE -->
+  <div id="modal-project" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-xl p-4 w-full max-w-md text-xs sm:text-sm space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <h3 class="font-bold text-slate-200 text-base"><i class="fa-solid fa-folder-open text-cyan-400"></i> プロジェクトの保存・復元</h3>
+        <button class="btn-close-modal text-slate-400 hover:text-white text-lg">&times;</button>
+      </div>
+
+      <div class="space-y-2">
+        <span class="text-slate-400 font-semibold block">ブラウザ内一時保存</span>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btn-save-local" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2 rounded text-left">
+            <i class="fa-solid fa-download text-cyan-400"></i> ブラウザ保存
+          </button>
+          <button id="btn-load-local" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2 rounded text-left">
+            <i class="fa-solid fa-upload text-emerald-400"></i> ブラウザ復元
+          </button>
+        </div>
+      </div>
+
+      <hr class="border-slate-800">
+
+      <div class="space-y-2">
+        <span class="text-slate-400 font-semibold block">JSONファイル入出力</span>
+        <div class="flex flex-col gap-2">
+          <button id="btn-export-json" class="bg-cyan-900/60 hover:bg-cyan-800 text-cyan-200 border border-cyan-700 p-2 rounded font-semibold text-center">
+            <i class="fa-solid fa-file-export"></i> プロジェクトをJSONで保存
+          </button>
+          <label class="bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 border border-emerald-700 p-2 rounded font-semibold text-center cursor-pointer">
+            <i class="fa-solid fa-file-import"></i> JSONファイルを読み込んで復元
+            <input type="file" id="input-import-json" accept=".json" class="hidden">
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * かんたん作曲 Studio Ultimate Pro - ENGINE & CONTROLLER
+     */
+
+    const PITCHES = [
+      { name: "C5", label: "ド (高)", freq: 523.25, midiNote: 72 },
+      { name: "B4", label: "シ", freq: 493.88, midiNote: 71 },
+      { name: "A4", label: "ラ", freq: 440.00, midiNote: 69 },
+      { name: "G4", label: "ソ", freq: 392.00, midiNote: 67 },
+      { name: "F4", label: "ファ", freq: 349.23, midiNote: 65 },
+      { name: "E4", label: "ミ", freq: 329.63, midiNote: 64 },
+      { name: "D4", label: "レ", freq: 293.66, midiNote: 62 },
+      { name: "C4", label: "ド (中)", freq: 261.63, midiNote: 60 }
+    ];
+
+    const DRUM_TYPES = [
+      { id: "crash", label: "クラッシュ", color: "bg-amber-500", midiKeys: [49, 57] },
+      { id: "ride", label: "ライド", color: "bg-yellow-600", midiKeys: [51, 59] },
+      { id: "hihat_open", label: "オープンHH", color: "bg-emerald-500", midiKeys: [46] },
+      { id: "hihat_close", label: "クローズHH", color: "bg-emerald-600", midiKeys: [42, 44] },
+      { id: "snare", label: "スネアドラム", color: "bg-pink-500", midiKeys: [38, 40] },
+      { id: "high_tom", label: "ハイタム", color: "bg-indigo-400", midiKeys: [50, 48] },
+      { id: "low_tom", label: "ロータム", color: "bg-indigo-600", midiKeys: [47, 45] },
+      { id: "floor_tom", label: "フロアタム", color: "bg-purple-700", midiKeys: [43, 41] },
+      { id: "kick", label: "バスドラム", color: "bg-rose-600", midiKeys: [35, 36] }
+    ];
+
+    const CHORD_FREQS = {
+      "C": [261.63, 329.63, 392.00],
+      "G": [196.00, 246.94, 293.66],
+      "Am": [220.00, 261.63, 329.63],
+      "F": [174.61, 220.00, 261.63],
+      "Dm": [146.83, 174.61, 220.00],
+      "Em": [164.81, 196.00, 246.94],
+      "E7": [164.81, 207.65, 246.94, 293.66],
+      "A7": [220.00, 277.18, 329.63, 392.00],
+      "FM7": [174.61, 220.00, 261.63, 329.63],
+      "CM7": [261.63, 329.63, 392.00, 493.88]
+    };
+
+    const INITIAL_PRESETS = {
+      melody: [
+        { id: "m1", name: "1. 王道ポップス (Aメロ)", notes: [{pitch:"G4",step:0,duration:2},{pitch:"A4",step:2,duration:2},{pitch:"C5",step:4,duration:4},{pitch:"G4",step:8,duration:4},{pitch:"E4",step:12,duration:4}] },
+        { id: "m2", name: "2. 切ないJ-POP (Bメロ)", notes: [{pitch:"E4",step:0,duration:3},{pitch:"G4",step:3,duration:1},{pitch:"A4",step:4,duration:4},{pitch:"G4",step:8,duration:2},{pitch:"E4",step:10,duration:2},{pitch:"D4",step:12,duration:4}] },
+        { id: "m3", name: "3. 【サビ】王道メロディアス爆発", notes: [{pitch:"C5",step:0,duration:4},{pitch:"B4",step:4,duration:2},{pitch:"A4",step:6,duration:2},{pitch:"G4",step:8,duration:4},{pitch:"C5",step:12,duration:4}] },
+        { id: "m4", name: "4. 【サビ】高揚感かけあがりサビ", notes: [{pitch:"E4",step:0,duration:2},{pitch:"G4",step:2,duration:2},{pitch:"A4",step:4,duration:2},{pitch:"C5",step:6,duration:2},{pitch:"D5",step:8,duration:4},{pitch:"C5",step:12,duration:4}] },
+        { id: "m5", name: "5. 【サビ】泣きサビ・ロングトーン", notes: [{pitch:"A4",step:0,duration:6},{pitch:"G4",step:6,duration:2},{pitch:"F4",step:8,duration:4},{pitch:"E4",step:12,duration:4}] },
+        { id: "m6", name: "6. 【サビ】王道キャッチー連打", notes: [{pitch:"C5",step:0,duration:2},{pitch:"C5",step:2,duration:2},{pitch:"C5",step:4,duration:2},{pitch:"B4",step:6,duration:2},{pitch:"A4",step:8,duration:4},{pitch:"G4",step:12,duration:4}] },
+        { id: "m7", name: "7. 躍動ダンスリード", notes: [{pitch:"C5",step:0,duration:2},{pitch:"C5",step:3,duration:1},{pitch:"A4",step:4,duration:2},{pitch:"G4",step:6,duration:2},{pitch:"A4",step:8,duration:4},{pitch:"C5",step:12,duration:4}] },
+        { id: "m8", name: "8. エキゾチック・オリエンタル", notes: [{pitch:"C4",step:0,duration:2},{pitch:"E4",step:2,duration:2},{pitch:"F4",step:4,duration:4},{pitch:"B4",step:8,duration:4},{pitch:"C5",step:12,duration:4}] },
+        { id: "m9", name: "9. 80s Synth Wave", notes: [{pitch:"A4",step:0,duration:2},{pitch:"A4",step:2,duration:2},{pitch:"C5",step:4,duration:2},{pitch:"A4",step:6,duration:2},{pitch:"G4",step:8,duration:4},{pitch:"E4",step:12,duration:4}] },
+        { id: "m10", name: "10. 静寂バラード", notes: [{pitch:"G4",step:0,duration:4},{pitch:"E4",step:4,duration:4},{pitch:"D4",step:8,duration:4},{pitch:"C4",step:12,duration:4}] },
+        { id: "m11", name: "11. 【サビ】ダンスポップ・アッパーサビ", notes: [{pitch:"E4",step:0,duration:2},{pitch:"E4",step:2,duration:2},{pitch:"G4",step:4,duration:4},{pitch:"A4",step:8,duration:2},{pitch:"C5",step:10,duration:2},{pitch:"A4",step:12,duration:4}] },
+        { id: "m12", name: "12. 爽快ロックアプローチ", notes: [{pitch:"E4",step:0,duration:2},{pitch:"E4",step:2,duration:2},{pitch:"G4",step:4,duration:2},{pitch:"A4",step:6,duration:2},{pitch:"C5",step:8,duration:8}] },
+        { id: "m13", name: "13. ヒーリングペンタトニック", notes: [{pitch:"G4",step:0,duration:4},{pitch:"A4",step:4,duration:4},{pitch:"C5",step:8,duration:4},{pitch:"D4",step:12,duration:4}] },
+        { id: "m14", name: "14. ヒーロー主題歌風クライマックス", notes: [{pitch:"C4",step:0,duration:2},{pitch:"D4",step:2,duration:2},{pitch:"E4",step:4,duration:2},{pitch:"G4",step:6,duration:2},{pitch:"C5",step:8,duration:8}] },
+        { id: "m15", name: "15. 【サビ】シンコペーション情熱サビ", notes: [{pitch:"G4",step:0,duration:3},{pitch:"C5",step:3,duration:3},{pitch:"B4",step:6,duration:2},{pitch:"A4",step:8,duration:4},{pitch:"G4",step:12,duration:4}] }
+      ],
+      drums: [
+        { id: "d1", name: "1. 標準 8ビート", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:8,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_close",step:0,duration:1},{type:"hihat_close",step:2,duration:1},{type:"hihat_close",step:4,duration:1},{type:"hihat_close",step:6,duration:1},{type:"hihat_close",step:8,duration:1},{type:"hihat_close",step:10,duration:1},{type:"hihat_close",step:12,duration:1},{type:"hihat_close",step:14,duration:1}] },
+        { id: "d2", name: "2. ダンス 4つ打ち (EDM)", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:4,duration:2},{type:"kick",step:8,duration:2},{type:"kick",step:12,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_open",step:2,duration:1},{type:"hihat_open",step:6,duration:1},{type:"hihat_open",step:10,duration:1},{type:"hihat_open",step:14,duration:1}] },
+        { id: "d3", name: "3. 16ビート・ファンク", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:6,duration:2},{type:"kick",step:10,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_close",step:0,duration:1},{type:"hihat_close",step:1,duration:1},{type:"hihat_close",step:2,duration:1},{type:"hihat_close",step:4,duration:1},{type:"hihat_close",step:8,duration:1},{type:"hihat_close",step:12,duration:1}] },
+        { id: "d4", name: "4. アコースティック・ボサノバ", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:6,duration:2},{type:"kick",step:10,duration:2},{type:"snare",step:4,duration:2},{type:"ride",step:0,duration:2},{type:"ride",step:4,duration:2},{type:"ride",step:8,duration:2},{type:"ride",step:12,duration:2}] },
+        { id: "d5", name: "5. ダンスホール・レゲトン", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:8,duration:2},{type:"snare",step:3,duration:1},{type:"snare",step:6,duration:2},{type:"snare",step:11,duration:1},{type:"snare",step:14,duration:2}] },
+        { id: "d6", name: "6. トラップ (Trap)", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:10,duration:2},{type:"snare",step:8,duration:2},{type:"hihat_close",step:0,duration:1},{type:"hihat_close",step:1,duration:1},{type:"hihat_close",step:2,duration:1},{type:"hihat_close",step:3,duration:1},{type:"hihat_close",step:4,duration:1},{type:"hihat_close",step:6,duration:1}] },
+        { id: "d7", name: "7. 跳ねるブルース・シャッフル", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:8,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_close",step:0,duration:1},{type:"hihat_close",step:3,duration:1},{type:"hihat_close",step:4,duration:1},{type:"hihat_close",step:7,duration:1},{type:"hihat_close",step:8,duration:1},{type:"hihat_close",step:11,duration:1}] },
+        { id: "d8", name: "8. ドライブ・ロックビート", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:3,duration:2},{type:"kick",step:8,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"crash",step:0,duration:4},{type:"ride",step:4,duration:2},{type:"ride",step:8,duration:2},{type:"ride",step:12,duration:2}] },
+        { id: "d9", name: "9. 70s ディスコフィーバー", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:4,duration:2},{type:"kick",step:8,duration:2},{type:"kick",step:12,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_open",step:2,duration:1},{type:"hihat_open",step:6,duration:1},{type:"hihat_open",step:10,duration:1},{type:"hihat_open",step:14,duration:1}] },
+        { id: "d10", name: "10. 都市派シティポップ", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:10,duration:2},{type:"snare",step:4,duration:2},{type:"snare",step:12,duration:2},{type:"hihat_close",step:0,duration:1},{type:"hihat_close",step:2,duration:1},{type:"hihat_close",step:4,duration:1},{type:"hihat_open",step:7,duration:1},{type:"hihat_close",step:8,duration:1},{type:"hihat_close",step:10,duration:1}] }
+      ],
+
+      drumRolls16: [
+        { id: "r16_1", name: "16-1. 全小節スネア連打ビルド", notes: [{type:"snare",step:0,duration:1},{type:"snare",step:2,duration:1},{type:"snare",step:4,duration:1},{type:"snare",step:6,duration:1},{type:"snare",step:8,duration:1},{type:"snare",step:10,duration:1},{type:"snare",step:12,duration:1},{type:"snare",step:13,duration:1},{type:"snare",step:14,duration:1},{type:"snare",step:15,duration:1}] },
+        { id: "r16_2", name: "16-2. 全小節タム階段ダウン", notes: [{type:"high_tom",step:0,duration:2},{type:"high_tom",step:4,duration:2},{type:"low_tom",step:8,duration:2},{type:"floor_tom",step:12,duration:2},{type:"crash",step:14,duration:2}] },
+        { id: "r16_3", name: "16-3. シンコペーションブレイク", notes: [{type:"snare",step:0,duration:2},{type:"kick",step:3,duration:2},{type:"snare",step:6,duration:2},{type:"crash",step:10,duration:2},{type:"snare",step:14,duration:2}] },
+        { id: "r16_4", name: "16-4. 交互ドラムロール", notes: [{type:"kick",step:0,duration:1},{type:"snare",step:2,duration:1},{type:"high_tom",step:4,duration:1},{type:"low_tom",step:6,duration:1},{type:"floor_tom",step:8,duration:1},{type:"snare",step:10,duration:1},{type:"snare",step:12,duration:1},{type:"crash",step:14,duration:2}] },
+        { id: "r16_5", name: "16-5. マーチングスネア", notes: [{type:"snare",step:0,duration:1},{type:"snare",step:1,duration:1},{type:"snare",step:2,duration:1},{type:"snare",step:4,duration:1},{type:"snare",step:6,duration:1},{type:"snare",step:8,duration:1},{type:"snare",step:12,duration:2}] },
+        { id: "r16_6", name: "16-6. ダンスラッシュビルド", notes: [{type:"kick",step:0,duration:2},{type:"kick",step:4,duration:2},{type:"snare",step:8,duration:1},{type:"snare",step:9,duration:1},{type:"snare",step:10,duration:1},{type:"snare",step:11,duration:1},{type:"snare",step:12,duration:1},{type:"snare",step:13,duration:1},{type:"snare",step:14,duration:1},{type:"snare",step:15,duration:1}] },
+        { id: "r16_7", name: "16-7. ドラマチックストップ", notes: [{type:"crash",step:0,duration:4},{type:"snare",step:8,duration:2},{type:"floor_tom",step:12,duration:2},{type:"crash",step:14,duration:2}] },
+        { id: "r16_8", name: "16-8. フルフラムロール", notes: [{type:"high_tom",step:0,duration:1},{type:"high_tom",step:1,duration:1},{type:"low_tom",step:4,duration:1},{type:"low_tom",step:5,duration:1},{type:"floor_tom",step:8,duration:1},{type:"floor_tom",step:9,duration:1},{type:"snare",step:12,duration:2}] },
+        { id: "r16_9", name: "16-9. 爆発サビ前アプローチ", notes: [{type:"kick",step:0,duration:2},{type:"snare",step:4,duration:2},{type:"high_tom",step:8,duration:1},{type:"low_tom",step:10,duration:1},{type:"floor_tom",step:12,duration:1},{type:"snare",step:14,duration:2}] },
+        { id: "r16_10", name: "16-10. アフタービートライド連打", notes: [{type:"ride",step:0,duration:2},{type:"ride",step:4,duration:2},{type:"ride",step:8,duration:2},{type:"snare",step:12,duration:1},{type:"snare",step:14,duration:1}] }
+      ],
+
+      drumRolls8: [
+        { id: "r8_1", name: "8-1. 王道タムまわし (後半8拍)", notes: [{type:"snare",step:8,duration:1},{type:"snare",step:9,duration:1},{type:"high_tom",step:10,duration:1},{type:"high_tom",step:11,duration:1},{type:"low_tom",step:12,duration:1},{type:"low_tom",step:13,duration:1},{type:"floor_tom",step:14,duration:1},{type:"floor_tom",step:15,duration:1}] },
+        { id: "r8_2", name: "8-2. スネア加速ラッシュ (後半8拍)", notes: [{type:"snare",step:8,duration:2},{type:"snare",step:10,duration:2},{type:"snare",step:12,duration:1},{type:"snare",step:13,duration:1},{type:"snare",step:14,duration:1},{type:"snare",step:15,duration:1}] },
+        { id: "r8_3", name: "8-3. タムダウンアタック (後半8拍)", notes: [{type:"high_tom",step:8,duration:2},{type:"low_tom",step:10,duration:2},{type:"floor_tom",step:12,duration:2},{type:"crash",step:14,duration:2}] },
+        { id: "r8_4", name: "8-4. バスドラ＆スネア連打 (後半8拍)", notes: [{type:"kick",step:8,duration:1},{type:"snare",step:9,duration:1},{type:"kick",step:10,duration:1},{type:"snare",step:11,duration:1},{type:"kick",step:12,duration:1},{type:"snare",step:13,duration:1},{type:"snare",step:14,duration:2}] },
+        { id: "r8_5", name: "8-5. クラッシュ連打ビルド (後半8拍)", notes: [{type:"crash",step:8,duration:2},{type:"crash",step:10,duration:2},{type:"crash",step:12,duration:2},{type:"crash",step:14,duration:2}] },
+        { id: "r8_6", name: "8-6. ハイタム＆ロータム交互 (後半8拍)", notes: [{type:"high_tom",step:8,duration:1},{type:"low_tom",step:9,duration:1},{type:"high_tom",step:10,duration:1},{type:"low_tom",step:11,duration:1},{type:"snare",step:12,duration:2}] },
+        { id: "r8_7", name: "8-7. 3連符アプローチ風 (後半8拍)", notes: [{type:"snare",step:8,duration:2},{type:"snare",step:10,duration:1},{type:"snare",step:11,duration:1},{type:"floor_tom",step:12,duration:2},{type:"crash",step:14,duration:2}] },
+        { id: "r8_8", name: "8-8. オープンハイハット〆 (後半8拍)", notes: [{type:"hihat_close",step:8,duration:1},{type:"hihat_close",step:10,duration:1},{type:"hihat_open",step:12,duration:2},{type:"snare",step:14,duration:2}] },
+        { id: "r8_9", name: "8-9. ロールフラム〆 (後半8拍)", notes: [{type:"snare",step:8,duration:1},{type:"snare",step:9,duration:1},{type:"snare",step:10,duration:1},{type:"snare",step:11,duration:1},{type:"snare",step:12,duration:4}] },
+        { id: "r8_10", name: "8-10. フロアタム重低音 (後半8拍)", notes: [{type:"floor_tom",step:8,duration:2},{type:"floor_tom",step:10,duration:2},{type:"floor_tom",step:12,duration:1},{type:"floor_tom",step:13,duration:1},{type:"snare",step:14,duration:2}] }
+      ],
+
+      drumRolls4: [
+        { id: "r4_1", name: "4-1. 定番1拍キメ (後半4拍)", notes: [{type:"snare",step:12,duration:1},{type:"snare",step:13,duration:1},{type:"snare",step:14,duration:2}] },
+        { id: "r4_2", name: "4-2. タムタムワンショット (後半4拍)", notes: [{type:"high_tom",step:12,duration:1},{type:"low_tom",step:13,duration:1},{type:"floor_tom",step:14,duration:2}] },
+        { id: "r4_3", name: "4-3. スネア4連撃 (後半4拍)", notes: [{type:"snare",step:12,duration:1},{type:"snare",step:13,duration:1},{type:"snare",step:14,duration:1},{type:"snare",step:15,duration:1}] },
+        { id: "r4_4", name: "4-4. クラッシュ1発アクセント (後半4拍)", notes: [{type:"crash",step:12,duration:4},{type:"kick",step:12,duration:2}] },
+        { id: "r4_5", name: "4-5. バスドラドカン (後半4拍)", notes: [{type:"kick",step:12,duration:1},{type:"kick",step:13,duration:1},{type:"kick",step:14,duration:2}] },
+        { id: "r4_6", name: "4-6. オープンHHカット (後半4拍)", notes: [{type:"hihat_open",step:12,duration:2},{type:"snare",step:14,duration:2}] },
+        { id: "r4_7", name: "4-7. フロアタム〆 (後半4拍)", notes: [{type:"floor_tom",step:12,duration:2},{type:"floor_tom",step:14,duration:2}] },
+        { id: "r4_8", name: "4-8. スネア＆クラッシュ (後半4拍)", notes: [{type:"snare",step:12,duration:1},{type:"crash",step:14,duration:2}] },
+        { id: "r4_9", name: "4-9. ライドシンバルキメ (後半4拍)", notes: [{type:"ride",step:12,duration:2},{type:"ride",step:14,duration:2}] },
+        { id: "r4_10", name: "4-10. トラップ3連スネア (後半4拍)", notes: [{type:"snare",step:12,duration:1},{type:"snare",step:13,duration:1},{type:"snare",step:14,duration:1}] }
+      ],
+
+      chords: [
+        { id: "c1", name: "1. 王道進行 (F → G → Em → Am)", sequence: ["F", "G", "Em", "Am"] },
+        { id: "c2", name: "2. カノン進行 (C → G → Am → Em)", sequence: ["C", "G", "Am", "Em"] },
+        { id: "c3", name: "3. 小悪魔進行 (Am → F → G → C)", sequence: ["Am", "F", "G", "C"] },
+        { id: "c4", name: "4. J-POP感動進行 (C → Am → F → G)", sequence: ["C", "Am", "F", "G"] },
+        { id: "c5", name: "5. City Pop / JAZZ (FM7 → E7 → Am → CM7)", sequence: ["FM7", "E7", "Am", "CM7"] },
+        { id: "c6", name: "6. EDMビルドアップ (Am → C → G → Dm)", sequence: ["Am", "C", "G", "Dm"] },
+        { id: "c7", name: "7. 王道マイナー進行 (Am → Dm → G → C)", sequence: ["Am", "Dm", "G", "C"] },
+        { id: "c8", name: "8. ポップパンク進行 (C → G → Am → F)", sequence: ["C", "G", "Am", "F"] },
+        { id: "c9", name: "9. セツナ系進行 (F → E7 → Am → C)", sequence: ["F", "E7", "Am", "C"] },
+        { id: "c10", name: "10. 疾走系アニソン進行 (Am → F → C → G)", sequence: ["Am", "F", "C", "G"] }
+      ]
+    };
+
+    let activePresets = JSON.parse(JSON.stringify(INITIAL_PRESETS));
+
+    let songState = {
+      bpm: 120,
+      currentMeasure: 0,
+      enableAccompaniment: true,
+      selectedFillinLength: 16,
+      measures: [
+        { chord: "C", bpm: 120, melody: [], drums: [] },
+        { chord: "G", bpm: 120, melody: [], drums: [] },
+        { chord: "Am", bpm: 120, melody: [], drums: [] },
+        { chord: "F", bpm: 120, melody: [], drums: [] }
+      ],
+      melodyInstrument: "piano",
+      accompanimentInstrument: "acoustic_guitar"
+    };
+
+    let audioCtx = null;
+    let isPlaying = false;
+    let playMode = "all";
+    let playbackTimeout = null;
+
+    let bgmBuffer = null;
+    let bgmSourceNode = null;
+    let bgmGainNode = null;
+
+    window.addEventListener("DOMContentLoaded", () => {
+      // Load stored custom templates if exists
+      const savedPresets = localStorage.getItem("kantan_studio_presets");
+      if (savedPresets) {
+        try { activePresets = JSON.parse(savedPresets); } catch(e){}
+      }
+
+      initUI();
+      renderMeasureTabs();
+      renderGrid();
+      renderPresetsList();
+    });
+
+    function savePresetsToStorage() {
+      localStorage.setItem("kantan_studio_presets", JSON.stringify(activePresets));
+    }
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function initUI() {
+      // TAB CONTROLS
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".tab-btn").forEach(b => {
+            b.classList.remove("active");
+            b.classList.add("text-slate-400");
+          });
+          document.querySelectorAll(".tab-content").forEach(c => c.classList.add("hidden"));
+          
+          btn.classList.add("active");
+          btn.classList.remove("text-slate-400");
+          document.getElementById(btn.dataset.tab).classList.remove("hidden");
+        });
+      });
+
+      // PLAYBACK CONTROLS
+      document.getElementById("btn-play-all").addEventListener("click", () => startPlayback("all"));
+      document.getElementById("btn-play-loop").addEventListener("click", () => startPlayback("loop"));
+      document.getElementById("btn-stop").addEventListener("click", stopPlayback);
+
+      // BASE BPM
+      const bpmInput = document.getElementById("bpm-input");
+      bpmInput.addEventListener("change", () => {
+        let val = parseInt(bpmInput.value) || 120;
+        songState.bpm = Math.max(40, Math.min(240, val));
+        bpmInput.value = songState.bpm;
+      });
+
+      // PER MEASURE BPM
+      const measureBpmInput = document.getElementById("measure-bpm-input");
+      measureBpmInput.addEventListener("change", () => {
+        let val = parseInt(measureBpmInput.value) || songState.bpm;
+        songState.measures[songState.currentMeasure].bpm = Math.max(40, Math.min(240, val));
+        renderMeasureTabs();
+      });
+
+      document.getElementById("btn-reset-measure-bpm").addEventListener("click", () => {
+        songState.measures[songState.currentMeasure].bpm = songState.bpm;
+        measureBpmInput.value = songState.bpm;
+        renderMeasureTabs();
+      });
+
+      // ACCOMPANIMENT TOGGLE
+      document.getElementById("toggle-accompaniment").addEventListener("change", (e) => {
+        songState.enableAccompaniment = e.target.checked;
+      });
+
+      // FILL-IN LENGTH SELECTOR
+      document.querySelectorAll(".fillin-len-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".fillin-len-btn").forEach(b => {
+            b.classList.remove("bg-amber-600", "text-white", "font-bold");
+            b.classList.add("bg-slate-800", "text-slate-300");
+          });
+          btn.classList.add("bg-amber-600", "text-white", "font-bold");
+          btn.classList.remove("bg-slate-800", "text-slate-300");
+
+          songState.selectedFillinLength = parseInt(btn.dataset.len);
+          renderPresetsList();
+        });
+      });
+
+      // MEASURE ADD/REMOVE
+      document.getElementById("btn-add-measure").addEventListener("click", () => {
+        songState.measures.push({ chord: "C", bpm: songState.bpm, melody: [], drums: [] });
+        renderMeasureTabs();
+        selectMeasure(songState.measures.length - 1);
+      });
+
+      document.getElementById("btn-remove-measure").addEventListener("click", () => {
+        if (songState.measures.length > 1) {
+          songState.measures.pop();
+          if (songState.currentMeasure >= songState.measures.length) {
+            songState.currentMeasure = songState.measures.length - 1;
+          }
+          renderMeasureTabs();
+          renderGrid();
+        }
+      });
+
+      // CHORD SELECTOR
+      document.getElementById("current-measure-chord").addEventListener("change", (e) => {
+        songState.measures[songState.currentMeasure].chord = e.target.value;
+        renderMeasureTabs();
+      });
+
+      // INSTRUMENT SELECTORS
+      document.getElementById("melody-instrument").addEventListener("change", (e) => songState.melodyInstrument = e.target.value);
+      document.getElementById("accompaniment-instrument").addEventListener("change", (e) => songState.accompanimentInstrument = e.target.value);
+
+      // MODAL
+      const modal = document.getElementById("modal-project");
+      document.getElementById("btn-save-project").addEventListener("click", () => modal.classList.remove("hidden"));
+      document.querySelectorAll(".btn-close-modal").forEach(b => b.addEventListener("click", () => modal.classList.add("hidden")));
+
+      // SAVE/LOAD LOCAL
+      document.getElementById("btn-save-local").addEventListener("click", () => {
+        localStorage.setItem("kantan_studio_project", JSON.stringify(songState));
+        alert("ブラウザ内に保存しました！");
+        modal.classList.add("hidden");
+      });
+
+      document.getElementById("btn-load-local").addEventListener("click", () => {
+        const data = localStorage.getItem("kantan_studio_project");
+        if (data) {
+          songState = JSON.parse(data);
+          document.getElementById("bpm-input").value = songState.bpm;
+          document.getElementById("toggle-accompaniment").checked = songState.enableAccompaniment !== false;
+          renderMeasureTabs();
+          renderGrid();
+          renderPresetsList();
+          alert("保存した曲を復元しました！");
+          modal.classList.add("hidden");
+        } else {
+          alert("保存データがありません。");
+        }
+      });
+
+      // EXPORT/IMPORT JSON
+      document.getElementById("btn-export-json").addEventListener("click", () => {
+        const blob = new Blob([JSON.stringify(songState, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "my_song_project.json";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      document.getElementById("input-import-json").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            songState = JSON.parse(event.target.result);
+            document.getElementById("bpm-input").value = songState.bpm || 120;
+            document.getElementById("toggle-accompaniment").checked = songState.enableAccompaniment !== false;
+            renderMeasureTabs();
+            renderGrid();
+            renderPresetsList();
+            alert("JSONから曲を復元しました！");
+            modal.classList.add("hidden");
+          } catch(err) {
+            alert("JSONの読み込みに失敗しました。");
+          }
+        };
+        reader.readAsText(file);
+      });
+
+      // TEMPLATE BACKUP & RESTORE CONTROLS
+      document.getElementById("btn-export-templates").addEventListener("click", () => {
+        const blob = new Blob([JSON.stringify(activePresets, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "my_custom_templates.json";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      document.getElementById("input-import-templates").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            activePresets = JSON.parse(event.target.result);
+            savePresetsToStorage();
+            renderPresetsList();
+            alert("テンプレート全データの読み込み・復元が完了しました！");
+          } catch(err) {
+            alert("テンプレートファイルの読み込みに失敗しました。");
+          }
+        };
+        reader.readAsText(file);
+      });
+
+      document.getElementById("btn-reset-templates").addEventListener("click", () => {
+        if (confirm("すべてのテンプレートを初期の標準状態に戻しますか？")) {
+          activePresets = JSON.parse(JSON.stringify(INITIAL_PRESETS));
+          savePresetsToStorage();
+          renderPresetsList();
+          alert("標準テンプレートに戻しました。");
+        }
+      });
+
+      // MIDI FILE IMPORT
+      document.getElementById("input-import-midi").addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const midi = new Midi(arrayBuffer);
+
+          if (midi.header.tempos.length > 0) {
+            songState.bpm = Math.round(midi.header.tempos[0].bpm);
+            document.getElementById("bpm-input").value = songState.bpm;
+          }
+
+          const secondsPerBeat = 60.0 / songState.bpm;
+          const secondsPerMeasure = secondsPerBeat * 4;
+          const totalMeasures = Math.max(1, Math.min(32, Math.ceil(midi.duration / secondsPerMeasure)));
+
+          songState.measures = [];
+          for (let i = 0; i < totalMeasures; i++) {
+            songState.measures.push({ chord: "C", bpm: songState.bpm, melody: [], drums: [] });
+          }
+
+          midi.tracks.forEach(track => {
+            const isPercussion = track.channel === 9 || track.instrument.percussion;
+
+            track.notes.forEach(note => {
+              const measureIdx = Math.floor(note.time / secondsPerMeasure);
+              if (measureIdx >= totalMeasures) return;
+
+              const stepInMeasure = Math.floor(((note.time % secondsPerMeasure) / secondsPerMeasure) * 16);
+              const durationSteps = Math.max(1, Math.min(16 - stepInMeasure, Math.round((note.duration / secondsPerMeasure) * 16)));
+
+              if (isPercussion) {
+                const drumType = DRUM_TYPES.find(d => d.midiKeys.includes(note.midi));
+                if (drumType) {
+                  songState.measures[measureIdx].drums.push({ type: drumType.id, step: stepInMeasure, duration: durationSteps });
+                }
+              } else {
+                let closestPitch = "C4";
+                let minDiff = 999;
+                PITCHES.forEach(p => {
+                  const diff = Math.abs(p.midiNote - note.midi);
+                  if (diff < minDiff) {
+                    minDiff = diff;
+                    closestPitch = p.name;
+                  }
+                });
+                songState.measures[measureIdx].melody.push({ pitch: closestPitch, step: stepInMeasure, duration: durationSteps });
+              }
+            });
+          });
+
+          renderMeasureTabs();
+          renderGrid();
+          alert(`MIDI「${file.name}」の読み込み＆プロットが完了しました！（${totalMeasures}小節）`);
+        } catch(err) {
+          alert("MIDIファイルの解析に失敗しました。");
+        }
+      });
+
+      // AUDIO BGM IMPORT
+      document.getElementById("input-import-audio").addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const ctx = getAudioContext();
+        const arrayBuffer = await file.arrayBuffer();
+        bgmBuffer = await ctx.decodeAudioData(arrayBuffer);
+
+        document.getElementById("bgm-filename").innerText = file.name;
+        document.getElementById("bgm-controls").classList.remove("hidden");
+        alert(`BGM音源「${file.name}」を読み込みました！再生ボタンを押すと一緒に鳴ります。`);
+      });
+
+      document.getElementById("btn-remove-bgm").addEventListener("click", () => {
+        bgmBuffer = null;
+        if (bgmSourceNode) {
+          try { bgmSourceNode.stop(); } catch(e){}
+        }
+        document.getElementById("bgm-controls").classList.add("hidden");
+      });
+
+      document.getElementById("bgm-volume").addEventListener("input", (e) => {
+        if (bgmGainNode) {
+          bgmGainNode.gain.value = parseFloat(e.target.value);
+        }
+      });
+
+      // SAVE CUSTOM PATTERNS
+      document.getElementById("btn-save-melody-pattern").addEventListener("click", () => {
+        const name = prompt("マイメロディパターンの名前:", "カスタムメロディ " + (activePresets.melody.length + 1));
+        if (name) {
+          const newPreset = { id: "cust_m_" + Date.now(), name: name, notes: JSON.parse(JSON.stringify(songState.measures[songState.currentMeasure].melody)) };
+          activePresets.melody.push(newPreset);
+          savePresetsToStorage();
+          renderPresetsList();
+        }
+      });
+
+      document.getElementById("btn-save-drum-pattern").addEventListener("click", () => {
+        const name = prompt("マイドラムパターンの名前:", "カスタムドラム " + (activePresets.drums.length + 1));
+        if (name) {
+          const newPreset = { id: "cust_d_" + Date.now(), name: name, notes: JSON.parse(JSON.stringify(songState.measures[songState.currentMeasure].drums)) };
+          activePresets.drums.push(newPreset);
+          savePresetsToStorage();
+          renderPresetsList();
+        }
+      });
+
+      document.getElementById("btn-save-drum-roll").addEventListener("click", () => {
+        const name = prompt("自作ドラムロールの名前:", "カスタムロール " + (activePresets.drumRolls16.length + 1));
+        if (name) {
+          const newPreset = { id: "cust_r_" + Date.now(), name: name, notes: JSON.parse(JSON.stringify(songState.measures[songState.currentMeasure].drums)) };
+          activePresets.drumRolls16.push(newPreset);
+          savePresetsToStorage();
+          renderPresetsList();
+        }
+      });
+
+      document.getElementById("btn-save-chord-prog").addEventListener("click", () => {
+        const name = prompt("コード進行の名前:", "マイコード進行 " + (activePresets.chords.length + 1));
+        if (name) {
+          const newPreset = { id: "cust_c_" + Date.now(), name: name, sequence: songState.measures.map(m => m.chord) };
+          activePresets.chords.push(newPreset);
+          savePresetsToStorage();
+          renderPresetsList();
+        }
+      });
+
+      document.getElementById("btn-export-mp3").addEventListener("click", exportToMP3);
+    }
+
+    // RENDER FUNCTIONS
+    function renderMeasureTabs() {
+      const container = document.getElementById("measure-tabs-container");
+      container.innerHTML = "";
+
+      songState.measures.forEach((m, idx) => {
+        const btn = document.createElement("button");
+        btn.className = `measure-tab px-3 py-1 text-xs font-bold rounded-t bg-slate-800 text-slate-300 hover:bg-slate-700 whitespace-nowrap transition ${idx === songState.currentMeasure ? 'active' : ''}`;
+        btn.innerHTML = `${idx + 1}小節 <span class="text-[10px] opacity-70">(${m.chord}/${m.bpm || songState.bpm}BPM)</span>`;
+        btn.addEventListener("click", () => selectMeasure(idx));
+        container.appendChild(btn);
+      });
+
+      const currentM = songState.measures[songState.currentMeasure];
+      document.getElementById("current-measure-chord").value = currentM.chord;
+      document.getElementById("measure-bpm-input").value = currentM.bpm || songState.bpm;
+    }
+
+    function selectMeasure(idx) {
+      songState.currentMeasure = idx;
+      renderMeasureTabs();
+      renderGrid();
+    }
+
+    function renderGrid() {
+      renderPianoRoll();
+      renderDrumGrid();
+    }
+
+    function renderPianoRoll() {
+      const container = document.getElementById("piano-roll-grid");
+      container.innerHTML = "";
+      const currentM = songState.measures[songState.currentMeasure];
+
+      PITCHES.forEach(pitch => {
+        const row = document.createElement("div");
+        row.className = "flex h-7 border-b border-slate-800/60 relative";
+
+        const label = document.createElement("div");
+        label.className = "w-16 bg-slate-900 border-r border-slate-800 flex items-center justify-center text-[11px] font-semibold text-slate-400 select-none z-20 shrink-0";
+        label.innerText = pitch.label;
+        row.appendChild(label);
+
+        const gridArea = document.createElement("div");
+        gridArea.className = "flex-1 flex relative h-full cursor-pointer";
+
+        for (let s = 0; s < 16; s++) {
+          const cell = document.createElement("div");
+          cell.className = `flex-1 grid-cell ${s % 4 === 0 ? 'beat-start' : ''}`;
+          cell.addEventListener("click", (e) => {
+            if (e.target.classList.contains("resize-handle")) return;
+            toggleMelodyNote(pitch.name, s);
+          });
+          gridArea.appendChild(cell);
+        }
+
+        currentM.melody.filter(n => n.pitch === pitch.name).forEach(note => {
+          const noteBar = document.createElement("div");
+          noteBar.className = "note-bar bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[10px] font-bold";
+          noteBar.style.left = `${(note.step / 16) * 100}%`;
+          noteBar.style.width = `${(note.duration / 16) * 100}%`;
+
+          const handle = document.createElement("div");
+          handle.className = "resize-handle";
+          setupResizeHandler(handle, note, "melody");
+
+          noteBar.appendChild(handle);
+          noteBar.addEventListener("click", (e) => {
+            e.stopPropagation();
+            removeMelodyNote(pitch.name, note.step);
+          });
+
+          gridArea.appendChild(noteBar);
+        });
+
+        row.appendChild(gridArea);
+        container.appendChild(row);
+      });
+    }
+
+    function renderDrumGrid() {
+      const container = document.getElementById("drum-grid");
+      container.innerHTML = "";
+      const currentM = songState.measures[songState.currentMeasure];
+
+      DRUM_TYPES.forEach(drum => {
+        const row = document.createElement("div");
+        row.className = "flex h-7 border-b border-slate-800/60 relative";
+
+        const label = document.createElement("div");
+        label.className = "w-16 bg-slate-900 border-r border-slate-800 flex items-center justify-center text-[10px] font-semibold text-slate-400 select-none z-20 shrink-0";
+        label.innerText = drum.label;
+        row.appendChild(label);
+
+        const gridArea = document.createElement("div");
+        gridArea.className = "flex-1 flex relative h-full cursor-pointer";
+
+        for (let s = 0; s < 16; s++) {
+          const cell = document.createElement("div");
+          cell.className = `flex-1 grid-cell ${s % 4 === 0 ? 'beat-start' : ''}`;
+          cell.addEventListener("click", (e) => {
+            if (e.target.classList.contains("resize-handle")) return;
+            toggleDrumNote(drum.id, s);
+          });
+          gridArea.appendChild(cell);
+        }
+
+        currentM.drums.filter(n => n.type === drum.id).forEach(note => {
+          const drumBar = document.createElement("div");
+          drumBar.className = `drum-bar ${drum.color} text-white text-[9px] font-bold`;
+          drumBar.style.left = `${(note.step / 16) * 100}%`;
+          drumBar.style.width = `${(note.duration / 16) * 100}%`;
+
+          const handle = document.createElement("div");
+          handle.className = "resize-handle";
+          setupResizeHandler(handle, note, "drums");
+
+          drumBar.appendChild(handle);
+          drumBar.addEventListener("click", (e) => {
+            e.stopPropagation();
+            removeDrumNote(drum.id, note.step);
+          });
+
+          gridArea.appendChild(drumBar);
+        });
+
+        row.appendChild(gridArea);
+        container.appendChild(row);
+      });
+    }
+
+    function setupResizeHandler(handleEl, noteObj, type) {
+      let startX = 0;
+      let initialDuration = noteObj.duration;
+
+      const onPointerDown = (e) => {
+        e.stopPropagation();
+        startX = e.clientX || e.touches[0].clientX;
+        initialDuration = noteObj.duration;
+        document.addEventListener("pointermove", onPointerMove);
+        document.addEventListener("pointerup", onPointerUp);
+      };
+
+      const onPointerMove = (e) => {
+        const currentX = e.clientX || (e.touches && e.touches[0].clientX);
+        if (!currentX) return;
+
+        const gridWidth = document.getElementById("piano-roll-grid").clientWidth - 64;
+        const stepWidth = gridWidth / 16;
+        const deltaX = currentX - startX;
+        const deltaSteps = Math.round(deltaX / stepWidth);
+
+        let newDuration = Math.max(1, Math.min(16 - noteObj.step, initialDuration + deltaSteps));
+
+        const currentM = songState.measures[songState.currentMeasure];
+        const sameTrackNotes = type === "melody" 
+          ? currentM.melody.filter(n => n.pitch === noteObj.pitch && n.step > noteObj.step)
+          : currentM.drums.filter(n => n.type === noteObj.type && n.step > noteObj.step);
+
+        if (sameTrackNotes.length > 0) {
+          const nextStep = Math.min(...sameTrackNotes.map(n => n.step));
+          newDuration = Math.min(newDuration, nextStep - noteObj.step);
+        }
+
+        noteObj.duration = newDuration;
+        renderGrid();
+      };
+
+      const onPointerUp = () => {
+        document.removeEventListener("pointermove", onPointerMove);
+        document.removeEventListener("pointerup", onPointerUp);
+      };
+
+      handleEl.addEventListener("pointerdown", onPointerDown);
+    }
+
+    function toggleMelodyNote(pitch, step) {
+      const currentM = songState.measures[songState.currentMeasure];
+      const existingIdx = currentM.melody.findIndex(n => n.pitch === pitch && n.step === step);
+
+      if (existingIdx >= 0) {
+        currentM.melody.splice(existingIdx, 1);
+      } else {
+        playPitchAudition(pitch);
+        const nextNotes = currentM.melody.filter(n => n.pitch === pitch && n.step > step);
+        let maxDuration = 4;
+        if (nextNotes.length > 0) {
+          const nextStep = Math.min(...nextNotes.map(n => n.step));
+          maxDuration = Math.min(4, nextStep - step);
+        }
+        maxDuration = Math.min(maxDuration, 16 - step);
+
+        if (maxDuration > 0) {
+          currentM.melody.push({ pitch: pitch, step: step, duration: maxDuration });
+        }
+      }
+      renderGrid();
+    }
+
+    function removeMelodyNote(pitch, step) {
+      const currentM = songState.measures[songState.currentMeasure];
+      currentM.melody = currentM.melody.filter(n => !(n.pitch === pitch && n.step === step));
+      renderGrid();
+    }
+
+    function toggleDrumNote(drumId, step) {
+      const currentM = songState.measures[songState.currentMeasure];
+      const existingIdx = currentM.drums.findIndex(n => n.type === drumId && n.step === step);
+
+      if (existingIdx >= 0) {
+        currentM.drums.splice(existingIdx, 1);
+      } else {
+        playDrumAudition(drumId);
+        const nextNotes = currentM.drums.filter(n => n.type === drumId && n.step > step);
+        let maxDuration = 2;
+        if (nextNotes.length > 0) {
+          const nextStep = Math.min(...nextNotes.map(n => n.step));
+          maxDuration = Math.min(2, nextStep - step);
+        }
+        maxDuration = Math.min(maxDuration, 16 - step);
+
+        if (maxDuration > 0) {
+          currentM.drums.push({ type: drumId, step: step, duration: maxDuration });
+        }
+      }
+      renderGrid();
+    }
+
+    function removeDrumNote(drumId, step) {
+      const currentM = songState.measures[songState.currentMeasure];
+      currentM.drums = currentM.drums.filter(n => !(n.type === drumId && n.step === step));
+      renderGrid();
+    }
+
+    // RENDER PRESETS WITH DELETE BUTTONS
+    function renderPresetsList() {
+      const renderHelper = (listId, categoryKey, presets, colorClass, applyFn) => {
+        const list = document.getElementById(listId);
+        list.innerHTML = "";
+        presets.forEach((p, index) => {
+          const item = document.createElement("div");
+          item.className = "w-full bg-slate-800 hover:bg-slate-700 rounded text-xs text-slate-200 border border-slate-700 flex justify-between items-center overflow-hidden transition";
+          
+          const labelBtn = document.createElement("button");
+          labelBtn.className = "flex-1 text-left p-2 flex justify-between items-center truncate";
+          labelBtn.innerHTML = `<span class="truncate">${p.name}</span> <i class="fa-solid fa-chevron-right text-[10px] ${colorClass} ml-1"></i>`;
+          labelBtn.addEventListener("click", () => applyFn(p));
+
+          const delBtn = document.createElement("button");
+          delBtn.className = "px-2 py-2 text-slate-500 hover:text-rose-400 hover:bg-slate-900 border-l border-slate-700 transition";
+          delBtn.innerHTML = `<i class="fa-solid fa-trash text-[10px]"></i>`;
+          delBtn.title = "テンプレートを削除";
+          delBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (confirm(`テンプレート「${p.name}」を削除しますか？`)) {
+              presets.splice(index, 1);
+              savePresetsToStorage();
+              renderPresetsList();
+            }
+          });
+
+          item.appendChild(labelBtn);
+          item.appendChild(delBtn);
+          list.appendChild(item);
+        });
+      };
+
+      // Melody
+      renderHelper("melody-presets-list", "melody", activePresets.melody, "text-cyan-400", p => {
+        songState.measures[songState.currentMeasure].melody = JSON.parse(JSON.stringify(p.notes));
+        renderGrid();
+      });
+
+      // Drums
+      renderHelper("drum-presets-list", "drums", activePresets.drums, "text-pink-400", p => {
+        songState.measures[songState.currentMeasure].drums = JSON.parse(JSON.stringify(p.notes));
+        renderGrid();
+      });
+
+      // Drum Rolls
+      let activeRollCategory = "drumRolls16";
+      let activeRollPresets = activePresets.drumRolls16;
+      if (songState.selectedFillinLength === 8) {
+        activeRollCategory = "drumRolls8";
+        activeRollPresets = activePresets.drumRolls8;
+      }
+      if (songState.selectedFillinLength === 4) {
+        activeRollCategory = "drumRolls4";
+        activeRollPresets = activePresets.drumRolls4;
+      }
+
+      renderHelper("drum-roll-presets-list", activeRollCategory, activeRollPresets, "text-amber-400", p => {
+        const currentM = songState.measures[songState.currentMeasure];
+        const len = songState.selectedFillinLength || 16;
+        const startStep = 16 - len;
+
+        const preservedDrums = currentM.drums.filter(n => n.step < startStep);
+        const newFillinNotes = JSON.parse(JSON.stringify(p.notes));
+
+        currentM.drums = [...preservedDrums, ...newFillinNotes];
+        renderGrid();
+      });
+
+      // Chords
+      renderHelper("chord-presets-list", "chords", activePresets.chords, "text-emerald-400", p => {
+        while (songState.measures.length < p.sequence.length) {
+          songState.measures.push({ chord: "C", bpm: songState.bpm, melody: [], drums: [] });
+        }
+        p.sequence.forEach((chord, idx) => songState.measures[idx].chord = chord);
+        renderMeasureTabs();
+        renderGrid();
+      });
+    }
+
+    // AUDIO SYNTHESIS
+    function playPitchAudition(pitchName) {
+      const ctx = getAudioContext();
+      const p = PITCHES.find(item => item.name === pitchName);
+      if (p) synthNote(ctx, ctx.currentTime, p.freq, 0.3, songState.melodyInstrument);
+    }
+
+    function playDrumAudition(drumId) {
+      const ctx = getAudioContext();
+      synthDrum(ctx, ctx.currentTime, drumId, 0.2);
+    }
+
+    function synthNote(ctx, time, freq, duration, instrument) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.frequency.setValueAtTime(freq, time);
+
+      switch(instrument) {
+        case "piano":
+          osc.type = "triangle";
+          gain.gain.setValueAtTime(0.6, time);
+          gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+          break;
+        case "synth_lead":
+          osc.type = "sawtooth";
+          gain.gain.setValueAtTime(0.3, time);
+          gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
+          break;
+        case "flute":
+          osc.type = "sine";
+          gain.gain.setValueAtTime(0.4, time);
+          gain.gain.linearRampToValueAtTime(0.001, time + duration);
+          break;
+        case "8bit":
+          osc.type = "square";
+          gain.gain.setValueAtTime(0.2, time);
+          gain.gain.linearRampToValueAtTime(0.01, time + duration);
+          break;
+        default:
+          osc.type = "sine";
+          gain.gain.setValueAtTime(0.4, time);
+          gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
+      }
+
+      osc.start(time);
+      osc.stop(time + duration);
+    }
+
+    function synthDrum(ctx, time, drumType, duration = 0.2) {
+      if (drumType === "kick") {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.frequency.setValueAtTime(150, time);
+        osc.frequency.exponentialRampToValueAtTime(30, time + 0.12);
+
+        gain.gain.setValueAtTime(1.2, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+
+        osc.start(time);
+        osc.stop(time + 0.15);
+      } 
+      else if (drumType === "snare") {
+        const osc = ctx.createOscillator();
+        const oscGain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(180, time);
+        oscGain.gain.setValueAtTime(0.5, time);
+        oscGain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+        osc.connect(oscGain);
+        oscGain.connect(ctx.destination);
+        osc.start(time);
+        osc.stop(time + 0.1);
+
+        const bufferSize = ctx.sampleRate * 0.15;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const noiseFilter = ctx.createBiquadFilter();
+        noiseFilter.type = "highpass";
+        noiseFilter.frequency.value = 1000;
+
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.8, time);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+
+        noise.start(time);
+      } 
+      else if (drumType.includes("hihat") || drumType === "crash" || drumType === "ride") {
+        const bufferSize = ctx.sampleRate * (drumType === "crash" ? 0.8 : (drumType === "hihat_open" ? 0.3 : 0.08));
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.value = drumType === "crash" ? 3000 : 7000;
+
+        const gain = ctx.createGain();
+        const vol = drumType === "crash" ? 0.6 : 0.4;
+        gain.gain.setValueAtTime(vol, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + (bufferSize / ctx.sampleRate));
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        noise.start(time);
+      } 
+      else if (drumType.includes("tom")) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        let freq = 120;
+        if (drumType === "high_tom") freq = 220;
+        if (drumType === "low_tom") freq = 150;
+        if (drumType === "floor_tom") freq = 90;
+
+        osc.frequency.setValueAtTime(freq, time);
+        osc.frequency.exponentialRampToValueAtTime(30, time + 0.2);
+
+        gain.gain.setValueAtTime(0.9, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(time);
+        osc.stop(time + 0.2);
+      }
+    }
+
+    function synthChord(ctx, time, chordName, duration, instrument) {
+      if (!songState.enableAccompaniment) return;
+
+      const freqs = CHORD_FREQS[chordName] || CHORD_FREQS["C"];
+      freqs.forEach(f => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.type = instrument === "synth_pad" ? "sawtooth" : "triangle";
+        osc.frequency.setValueAtTime(f, time);
+        gain.gain.setValueAtTime(0.15, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+        osc.start(time);
+        osc.stop(time + duration);
+      });
+    }
+
+    // PLAYBACK LOOP WITH AUDIO BGM SYNCHRONIZATION
+    function startPlayback(mode) {
+      stopPlayback();
+      const ctx = getAudioContext();
+
+      isPlaying = true;
+      playMode = mode;
+
+      let currentStepIndex = mode === "loop" ? songState.currentMeasure * 16 : 0;
+      const totalSteps = songState.measures.length * 16;
+      const endStepIndex = mode === "loop" ? (songState.currentMeasure + 1) * 16 : totalSteps;
+
+      document.getElementById("playhead").classList.remove("hidden");
+
+      if (bgmBuffer) {
+        bgmSourceNode = ctx.createBufferSource();
+        bgmSourceNode.buffer = bgmBuffer;
+
+        bgmGainNode = ctx.createGain();
+        const volSlider = document.getElementById("bgm-volume");
+        bgmGainNode.gain.value = parseFloat(volSlider.value);
+
+        bgmSourceNode.connect(bgmGainNode);
+        bgmGainNode.connect(ctx.destination);
+
+        let offsetSec = 0;
+        for (let i = 0; i < Math.floor(currentStepIndex / 16); i++) {
+          const mBpm = songState.measures[i].bpm || songState.bpm;
+          offsetSec += (60.0 / mBpm) * 4;
+        }
+        bgmSourceNode.start(0, offsetSec);
+      }
+
+      const scheduleStep = () => {
+        if (!isPlaying) return;
+
+        const measureIdx = Math.floor(currentStepIndex / 16);
+        const stepInMeasure = currentStepIndex % 16;
+        const currentM = songState.measures[measureIdx];
+
+        const measureBPM = currentM.bpm || songState.bpm;
+        const secondsPerBeat = 60.0 / measureBPM;
+        const secondsPerStep = secondsPerBeat / 4;
+
+        if (measureIdx !== songState.currentMeasure && playMode === "all") {
+          selectMeasure(measureIdx);
+        }
+
+        const playhead = document.getElementById("playhead");
+        const stepWidthPct = 100 / 16;
+        playhead.style.left = `calc(64px + ${(stepInMeasure) * stepWidthPct}%)`;
+
+        const now = ctx.currentTime;
+
+        // Play Melody
+        currentM.melody.filter(n => n.step === stepInMeasure).forEach(n => {
+          const p = PITCHES.find(item => item.name === n.pitch);
+          if (p) synthNote(ctx, now, p.freq, n.duration * secondsPerStep, songState.melodyInstrument);
+        });
+
+        // Play Drums
+        currentM.drums.filter(n => n.step === stepInMeasure).forEach(n => {
+          synthDrum(ctx, now, n.type, n.duration * secondsPerStep);
+        });
+
+        // Play Chord
+        if (stepInMeasure === 0) {
+          synthChord(ctx, now, currentM.chord, 16 * secondsPerStep, songState.accompanimentInstrument);
+        }
+
+        currentStepIndex++;
+        if (currentStepIndex >= endStepIndex) {
+          if (playMode === "loop") {
+            currentStepIndex = songState.currentMeasure * 16;
+          } else {
+            stopPlayback();
+            return;
+          }
+        }
+
+        playbackTimeout = setTimeout(scheduleStep, secondsPerStep * 1000);
+      };
+
+      scheduleStep();
+    }
+
+    function stopPlayback() {
+      isPlaying = false;
+      if (playbackTimeout) clearTimeout(playbackTimeout);
+      if (bgmSourceNode) {
+        try { bgmSourceNode.stop(); } catch(e){}
+      }
+      document.getElementById("playhead").classList.add("hidden");
+    }
+
+    // MP3 EXPORT WITH BGM MIXING
+    async function exportToMP3() {
+      alert("BGMミックス高音質MP3を作成しています... OKを押してお待ちください。");
+
+      let totalDuration = 0;
+      songState.measures.forEach(m => {
+        const bpm = m.bpm || songState.bpm;
+        totalDuration += (60.0 / bpm) * 4;
+      });
+
+      const sampleRate = 44100;
+      const offlineCtx = new OfflineAudioContext(2, Math.ceil(sampleRate * totalDuration), sampleRate);
+
+      if (bgmBuffer) {
+        const bgmSource = offlineCtx.createBufferSource();
+        bgmSource.buffer = bgmBuffer;
+        const bgmGain = offlineCtx.createGain();
+        const volSlider = document.getElementById("bgm-volume");
+        bgmGain.gain.value = parseFloat(volSlider.value);
+
+        bgmSource.connect(bgmGain);
+        bgmGain.connect(offlineCtx.destination);
+        bgmSource.start(0);
+      }
+
+      let currentMeasureStartTime = 0;
+
+      songState.measures.forEach(m => {
+        const bpm = m.bpm || songState.bpm;
+        const secondsPerBeat = 60.0 / bpm;
+        const secondsPerStep = secondsPerBeat / 4;
+
+        m.melody.forEach(n => {
+          const p = PITCHES.find(item => item.name === n.pitch);
+          if (p) synthNote(offlineCtx, currentMeasureStartTime + (n.step * secondsPerStep), p.freq, n.duration * secondsPerStep, songState.melodyInstrument);
+        });
+
+        m.drums.forEach(n => {
+          synthDrum(offlineCtx, currentMeasureStartTime + (n.step * secondsPerStep), n.type, n.duration * secondsPerStep);
+        });
+
+        synthChord(offlineCtx, currentMeasureStartTime, m.chord, 16 * secondsPerStep, songState.accompanimentInstrument);
+
+        currentMeasureStartTime += 16 * secondsPerStep;
+      });
+
+      const renderedBuffer = await offlineCtx.startRendering();
+
+      const channels = 2;
+      const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
+      const left = renderedBuffer.getChannelData(0);
+      const right = renderedBuffer.getChannelData(1);
+
+      const sampleCount = left.length;
+      const leftInt16 = new Int16Array(sampleCount);
+      const rightInt16 = new Int16Array(sampleCount);
+
+      for (let i = 0; i < sampleCount; i++) {
+        leftInt16[i] = Math.max(-32768, Math.min(32767, left[i] * 32767));
+        rightInt16[i] = Math.max(-32768, Math.min(32767, right[i] * 32767));
+      }
+
+      const mp3Data = [];
+      const bufferSize = 1152;
+      for (let i = 0; i < sampleCount; i += bufferSize) {
+        const leftChunk = leftInt16.subarray(i, i + bufferSize);
+        const rightChunk = rightInt16.subarray(i, i + bufferSize);
+        const mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+        if (mp3buf.length > 0) mp3Data.push(mp3buf);
+      }
+
+      const endBuf = mp3encoder.flush();
+      if (endBuf.length > 0) mp3Data.push(endBuf);
+
+      const blob = new Blob(mp3Data, { type: 'audio/mp3' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "my_song_with_bgm.mp3";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
