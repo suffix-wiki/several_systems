@@ -1,0 +1,2258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>資産・負債管理アプリ - Asset Manager Pro v3.5</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-wallet text-2xl"></i>
+                <h1 class="text-xl font-bold tracking-wider">Asset & Liability Manager Pro v3.5</h1>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="exportData()" title="エクスポート" class="bg-indigo-700 hover:bg-indigo-800 text-sm px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5 shadow-sm cursor-pointer">
+                    <i class="fa-solid fa-download"></i><span class="hidden sm:inline">エクスポート</span>
+                </button>
+                <label title="インポート" class="bg-indigo-700 hover:bg-indigo-800 text-sm px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center space-x-1.5 shadow-sm">
+                    <i class="fa-solid fa-upload"></i><span class="hidden sm:inline">インポート</span>
+                    <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(event)">
+                </label>
+                <button onclick="switchTab('settings')" title="設定" class="bg-indigo-700 hover:bg-indigo-800 text-sm px-3 py-1.5 rounded-lg transition flex items-center space-x-1.5 shadow-sm cursor-pointer">
+                    <i class="fa-solid fa-gear"></i><span class="hidden sm:inline">設定</span>
+                </button>
+            </div>
+        </div>
+        <!-- Navigation Tabs -->
+        <nav class="bg-indigo-700 px-4 flex overflow-x-auto space-x-1 text-sm scrollbar-none border-t border-indigo-500/30">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="tab-btn px-4 py-2.5 font-medium whitespace-nowrap border-b-2 border-white text-white cursor-pointer">資産・負債一覧</button>
+            <button onclick="switchTab('history')" id="nav-history" class="tab-btn px-4 py-2.5 font-medium whitespace-nowrap border-b-2 border-transparent text-indigo-200 hover:text-white cursor-pointer">取引履歴</button>
+            <button onclick="switchTab('analytics-pie')" id="nav-analytics-pie" class="tab-btn px-4 py-2.5 font-medium whitespace-nowrap border-b-2 border-transparent text-indigo-200 hover:text-white cursor-pointer">① 円グラフ分析</button>
+            <button onclick="switchTab('analytics-trend')" id="nav-analytics-trend" class="tab-btn px-4 py-2.5 font-medium whitespace-nowrap border-b-2 border-transparent text-indigo-200 hover:text-white cursor-pointer">② 残高推移</button>
+            <button onclick="switchTab('analytics-monthly')" id="nav-analytics-monthly" class="tab-btn px-4 py-2.5 font-medium whitespace-nowrap border-b-2 border-transparent text-indigo-200 hover:text-white cursor-pointer">③ 毎月の収支・ピボット</button>
+            <button onclick="switchTab('settings')" id="nav-settings" class="tab-btn px-4 py-2.5 font-medium whitespace-nowrap border-b-2 border-transparent text-indigo-200 hover:text-white cursor-pointer hidden">設定</button>
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
+        <!-- Dashboard Tab -->
+        <section id="tab-dashboard" class="space-y-6">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium">総資産</p>
+                        <h2 id="total-assets" class="text-2xl font-bold mt-1 text-blue-600">¥0</h2>
+                    </div>
+                    <div class="p-3 bg-blue-50 text-blue-600 rounded-xl"><i class="fa-solid fa-piggy-bank text-xl"></i></div>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium">総負債</p>
+                        <h2 id="total-liabilities" class="text-2xl font-bold mt-1 text-red-600">¥0</h2>
+                    </div>
+                    <div class="p-3 bg-red-50 text-red-600 rounded-xl"><i class="fa-solid fa-credit-card text-xl"></i></div>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 font-medium">純資産 (資産 - 負債)</p>
+                        <h2 id="total-net" class="text-2xl font-bold mt-1">¥0</h2>
+                    </div>
+                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl"><i class="fa-solid fa-chart-line text-xl"></i></div>
+                </div>
+            </div>
+
+            <!-- Controls & Filters -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-list text-indigo-600"></i> 資産・負債項目一覧</h3>
+                    <button onclick="openAssetModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm cursor-pointer">
+                        <i class="fa-solid fa-plus"></i> 資産・負債項目を追加
+                    </button>
+                </div>
+
+                <!-- Filter Panel -->
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-gray-600 uppercase tracking-wider"><i class="fa-solid fa-filter"></i> フィルター条件 (初期全選択)</span>
+                        <button onclick="resetAssetFilters()" class="text-xs text-indigo-600 hover:underline cursor-pointer">フィルターリセット</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">自由検索</label>
+                            <input type="text" id="asset-search" oninput="renderAssetTable()" placeholder="名称、メモ等で検索..." class="w-full text-sm bg-white border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">種別絞り込み</label>
+                            <div id="filter-type-checkboxes" class="flex flex-wrap gap-3 bg-white p-2.5 border border-gray-300 rounded text-xs">
+                                <label class="flex items-center gap-1.5 cursor-pointer font-medium"><input type="checkbox" value="資産" checked onchange="onDashboardTypeChange()"> 資産</label>
+                                <label class="flex items-center gap-1.5 cursor-pointer font-medium"><input type="checkbox" value="負債" checked onchange="onDashboardTypeChange()"> 負債</label>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">カテゴリ絞り込み</label>
+                            <div id="filter-category-checkboxes" class="flex flex-wrap gap-2 max-h-24 overflow-y-auto bg-white p-2.5 border border-gray-300 rounded text-xs"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-gray-200 text-xs text-gray-500 uppercase tracking-wider bg-gray-50">
+                                <th class="p-3">名称</th>
+                                <th class="p-3">カテゴリ</th>
+                                <th class="p-3">種別</th>
+                                <th class="p-3 text-right">現在残高</th>
+                                <th class="p-3">最新更新日</th>
+                                <th class="p-3 text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="asset-table-body" class="divide-y divide-gray-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- History Tab -->
+        <section id="tab-history" class="space-y-6 hidden">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-indigo-600"></i> 取引履歴一覧</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">時系列自動ソート・残高自動再計算・順序クロス防止バリデーション適用中</p>
+                    </div>
+                    <button onclick="openHistoryModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm cursor-pointer">
+                        <i class="fa-solid fa-plus"></i> 取引追加
+                    </button>
+                </div>
+
+                <!-- Hierarchical Filters for History -->
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-gray-600 uppercase tracking-wider"><i class="fa-solid fa-filter"></i> 階層連動フィルター (初期全選択)</span>
+                        <button onclick="resetHistoryFilters()" class="text-xs text-indigo-600 hover:underline cursor-pointer">フィルターリセット</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">1. 資産と負債</label>
+                            <div id="hist-filter-type" class="flex flex-wrap gap-2 bg-white p-2 border border-gray-300 rounded text-xs min-h-[38px]">
+                                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="資産" checked onchange="onHistTypeFilterChange()"> 資産</label>
+                                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="負債" checked onchange="onHistTypeFilterChange()"> 負債</label>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">2. カテゴリ (連動)</label>
+                            <div id="hist-filter-cat" class="flex flex-wrap gap-2 max-h-24 overflow-y-auto bg-white p-2 border border-gray-300 rounded text-xs"></div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">3. 個別項目 (連動)</label>
+                            <div id="hist-filter-item" class="flex flex-wrap gap-2 max-h-24 overflow-y-auto bg-white p-2 border border-gray-300 rounded text-xs"></div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">4. 勘定科目</label>
+                            <div id="hist-filter-account" class="flex flex-wrap gap-2 max-h-24 overflow-y-auto bg-white p-2 border border-gray-300 rounded text-xs"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">自由検索</label>
+                        <input type="text" id="history-search" oninput="renderHistoryTable()" placeholder="取引内容などで検索..." class="w-full text-sm bg-white border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <!-- History Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-gray-200 text-xs text-gray-500 uppercase tracking-wider bg-gray-50">
+                                <th class="p-3">更新日</th>
+                                <th class="p-3">カテゴリ</th>
+                                <th class="p-3">対象項目</th>
+                                <th class="p-3">勘定科目</th>
+                                <th class="p-3">取引内容</th>
+                                <th class="p-3 text-right">更新後残高</th>
+                                <th class="p-3 text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body" class="divide-y divide-gray-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analytics Tab 1: Pie Charts -->
+        <section id="tab-analytics-pie" class="space-y-6 hidden">
+            <!-- ① Present Assets & Liabilities Breakdown -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-indigo-600"></i> ① 現行資産・負債内訳</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div class="relative h-64 flex justify-center items-center"><canvas id="pieChart1"></canvas></div>
+                    <div class="overflow-x-auto max-h-64 overflow-y-auto">
+                        <table class="w-full text-left text-sm border-collapse">
+                            <thead><tr class="border-b text-xs text-gray-500 uppercase bg-gray-50"><th class="p-2">種別</th><th class="p-2 text-right">金額</th><th class="p-2 text-right">構成比</th></tr></thead>
+                            <tbody id="pie-table-1" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ② Category Breakdown with Type Filter -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-indigo-600"></i> ② カテゴリ別内訳</h3>
+                    <div class="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border text-xs">
+                        <span class="font-bold text-gray-600">資産と負債:</span>
+                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="資産" checked onchange="renderPie2()"> 資産</label>
+                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="負債" checked onchange="renderPie2()"> 負債</label>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div class="relative h-64 flex justify-center items-center"><canvas id="pieChart2"></canvas></div>
+                    <div class="overflow-x-auto max-h-64 overflow-y-auto">
+                        <table class="w-full text-left text-sm border-collapse">
+                            <thead><tr class="border-b text-xs text-gray-500 uppercase bg-gray-50"><th class="p-2">カテゴリ</th><th class="p-2 text-right">金額</th><th class="p-2 text-right">構成比</th></tr></thead>
+                            <tbody id="pie-table-2" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ③ Individual Item Breakdown with Linked Filters -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                <div class="flex flex-col gap-3">
+                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-chart-pie text-indigo-600"></i> ③ 個別項目別内訳</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg border text-xs">
+                        <div>
+                            <span class="font-bold text-gray-600 block mb-1">1. 資産と負債</span>
+                            <div id="pie3-filter-type" class="flex gap-3 bg-white p-2 border rounded">
+                                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="資産" checked onchange="onPie3TypeChange()"> 資産</label>
+                                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="負債" checked onchange="onPie3TypeChange()"> 負債</label>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="font-bold text-gray-600 block mb-1">2. カテゴリ (連動)</span>
+                            <div id="pie3-filter-cat" class="flex flex-wrap gap-2 max-h-20 overflow-y-auto bg-white p-2 border rounded"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div class="relative h-64 flex justify-center items-center"><canvas id="pieChart3"></canvas></div>
+                    <div class="overflow-x-auto max-h-64 overflow-y-auto">
+                        <table class="w-full text-left text-sm border-collapse">
+                            <thead><tr class="border-b text-xs text-gray-500 uppercase bg-gray-50"><th class="p-2">個別項目</th><th class="p-2 text-right">金額</th><th class="p-2 text-right">構成比</th></tr></thead>
+                            <tbody id="pie-table-3" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analytics Tab 2: Trends -->
+        <section id="tab-analytics-trend" class="space-y-6 hidden">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-3">
+                <h3 class="font-bold text-gray-800 text-sm"><i class="fa-solid fa-calendar-range text-indigo-600"></i> 表示期間 (両グラフ共通)</h3>
+                <div class="flex flex-wrap items-end gap-3">
+                    <label class="text-xs text-gray-600">開始日
+                        <input type="date" id="trend-date-from" onchange="onTrendDateRangeChange()" class="block mt-1 border border-gray-300 rounded px-2 py-1.5">
+                    </label>
+                    <label class="text-xs text-gray-600">終了日
+                        <input type="date" id="trend-date-to" onchange="onTrendDateRangeChange()" class="block mt-1 border border-gray-300 rounded px-2 py-1.5">
+                    </label>
+                    <button type="button" onclick="resetTrendDateRange()" class="text-xs text-indigo-600 hover:underline cursor-pointer">全期間</button>
+                </div>
+                <p class="text-xs text-gray-500">未指定の場合は全期間を表示します。横軸は実際の日付間隔に比例します。</p>
+            </div>
+            <!-- Net Asset Trend with Linked Filters -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                <div class="flex flex-col gap-3">
+                    <div class="flex justify-between items-center flex-wrap gap-2">
+                        <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-chart-line text-indigo-600"></i> ① 純資産 (資産 - 負債) 推移</h3>
+                        <select id="trend1-chart-type" onchange="renderTrend1()" class="text-sm bg-white border border-gray-300 rounded px-3 py-1.5 cursor-pointer">
+                            <option value="line">折れ線グラフ</option>
+                            <option value="bar">棒グラフ</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg border text-xs">
+                        <div>
+                            <span class="font-bold text-gray-600 block mb-1">1. 資産と負債</span>
+                            <div id="trend1-filter-type" class="flex gap-3 bg-white p-2 border rounded">
+                                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="資産" checked onchange="onTrend1TypeChange()"> 資産</label>
+                                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="負債" checked onchange="onTrend1TypeChange()"> 負債</label>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="font-bold text-gray-600 block mb-1">2. カテゴリ (連動)</span>
+                            <div id="trend1-filter-cat" class="flex flex-wrap gap-2 max-h-20 overflow-y-auto bg-white p-2 border rounded"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="relative h-80 w-full"><canvas id="trendChart1"></canvas></div>
+            </div>
+
+            <!-- Individual Item Trend with Linked Filters -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                <div class="flex flex-col gap-3">
+                    <div class="flex justify-between items-center flex-wrap gap-2">
+                        <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-chart-line text-indigo-600"></i> ② 個別項目別残高推移</h3>
+                        <select id="trend2-chart-type" onchange="renderTrend2()" class="text-sm bg-white border border-gray-300 rounded px-3 py-1.5 cursor-pointer">
+                            <option value="line">折れ線グラフ</option>
+                            <option value="bar">棒グラフ</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg border text-xs">
+                        <div>
+                            <span class="font-bold text-gray-600 block mb-1">1. 資産と負債</span>
+                            <div id="trend2-filter-type" class="flex gap-3 bg-white p-2 border rounded">
+                                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="資産" checked onchange="onTrend2TypeChange()"> 資産</label>
+                                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="負債" checked onchange="onTrend2TypeChange()"> 負債</label>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="font-bold text-gray-600 block mb-1">2. カテゴリ (連動)</span>
+                            <div id="trend2-filter-cat" class="flex flex-wrap gap-2 max-h-20 overflow-y-auto bg-white p-2 border rounded"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="relative h-80 w-full"><canvas id="trendChart2"></canvas></div>
+            </div>
+        </section>
+
+        <!-- Analytics Tab 3: Monthly Summary & Pivot -->
+        <section id="tab-analytics-monthly" class="space-y-6 hidden">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-calendar-days text-indigo-600"></i> 毎月の収支・ピボット分析</h3>
+                
+                <!-- Hierarchical Filters -->
+                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
+                    <span class="text-xs font-bold text-gray-600 uppercase tracking-wider"><i class="fa-solid fa-filter"></i> 階層連動フィルター (初期全選択)</span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                        <div>
+                            <label class="block font-medium text-gray-600 mb-1">1. 資産と負債</label>
+                            <div id="monthly-filter-type" class="flex flex-wrap gap-2 bg-white p-2 border rounded min-h-[38px]">
+                                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="資産" checked onchange="onMonthlyTypeChange()"> 資産</label>
+                                <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="負債" checked onchange="onMonthlyTypeChange()"> 負債</label>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-medium text-gray-600 mb-1">2. カテゴリ (連動)</label>
+                            <div id="monthly-filter-cat" class="flex flex-wrap gap-2 max-h-24 overflow-y-auto bg-white p-2 border rounded"></div>
+                        </div>
+                        <div>
+                            <label class="block font-medium text-gray-600 mb-1">3. 個別項目 (連動)</label>
+                            <div id="monthly-filter-item" class="flex flex-wrap gap-2 max-h-24 overflow-y-auto bg-white p-2 border rounded"></div>
+                        </div>
+                        <div>
+                            <label class="block font-medium text-gray-600 mb-1">4. 勘定科目</label>
+                            <div id="monthly-filter-account" class="flex flex-wrap gap-2 max-h-24 overflow-y-auto bg-white p-2 border rounded"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Summary Table -->
+                <div class="overflow-x-auto">
+                    <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        表示する月
+                        <select id="monthly-month-select" onchange="onMonthlyMonthChange()" class="bg-white border border-gray-300 rounded px-3 py-1.5">
+                            <option value="">収支データなし</option>
+                        </select>
+                    </label>
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead>
+                            <tr class="border-b text-xs text-gray-500 uppercase bg-gray-50">
+                                <th class="p-3">年月</th>
+                                <th class="p-3 text-right">月間合計収入</th>
+                                <th class="p-3 text-right">月間合計支出</th>
+                                <th class="p-3 text-right">純収支</th>
+                                <th class="p-3">内訳詳細 (仕分けごと改行)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthly-summary-body" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+
+                <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
+                    <h4 id="monthly-comparison-title" class="font-bold text-gray-700 text-sm">選択月の収入・支出比較 (科目別)</h4>
+                    <p class="text-xs text-gray-500">収入・支出の2本を上方向に積み上げ、勘定科目ごとの内訳と合計を同じ目盛りで比較します。</p>
+                    <div id="monthly-comparison-summary" class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm"></div>
+                    <div class="relative w-full" style="min-height: 18rem"><canvas id="monthlyStackedChart"></canvas></div>
+                </div>
+
+                <!-- Monthly Income and Expense Pie Charts -->
+                <div id="monthly-pie-container" class="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h4 id="monthly-pie-title" class="font-bold text-gray-700 text-sm"></h4>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white rounded-lg border p-3 space-y-2">
+                            <h5 class="text-sm font-bold text-blue-700">収入の内訳</h5>
+                            <div class="relative h-64"><canvas id="monthlyIncomePieChart"></canvas></div>
+                        </div>
+                        <div class="bg-white rounded-lg border p-3 space-y-2">
+                            <h5 class="text-sm font-bold text-red-700">支出の内訳</h5>
+                            <div class="relative h-64"><canvas id="monthlyExpensePieChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Tab -->
+        <section id="tab-settings" class="space-y-6 hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Asset Categories -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-piggy-bank text-blue-600"></i> 資産カテゴリ管理</h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-asset-category-input" placeholder="新資産カテゴリ名" class="flex-1 text-sm border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:border-indigo-500">
+                        <button onclick="addAssetCategory()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm cursor-pointer"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <ul id="asset-category-list" class="divide-y divide-gray-100 text-sm max-h-60 overflow-y-auto"></ul>
+                </div>
+
+                <!-- Liability Categories -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-credit-card text-red-600"></i> 負債カテゴリ管理</h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-liability-category-input" placeholder="新負債カテゴリ名" class="flex-1 text-sm border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:border-indigo-500">
+                        <button onclick="addLiabilityCategory()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-sm cursor-pointer"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <ul id="liability-category-list" class="divide-y divide-gray-100 text-sm max-h-60 overflow-y-auto"></ul>
+                </div>
+
+                <!-- Custom Fields -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-list-check text-indigo-600"></i> 独自管理項目 (カテゴリ別)</h3>
+                    <div class="space-y-2">
+                        <select id="custom-field-category" class="w-full text-sm border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer">
+                            <option value="ALL">全カテゴリ共通</option>
+                        </select>
+                        <input type="text" id="custom-field-name" placeholder="項目名" class="w-full text-sm border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:border-indigo-500">
+                        <select id="custom-field-type" class="w-full text-sm border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer">
+                            <option value="text">テキスト (1行)</option>
+                            <option value="textarea">長いテキスト (段落・複数行)</option>
+                            <option value="select">プルダウン (カンマ区切り)</option>
+                            <option value="checkbox">チェックボックス</option>
+                            <option value="date">日付</option>
+                            <option value="number">数値</option>
+                        </select>
+                        <input type="text" id="custom-field-options" placeholder="選択肢 (select用: A,B,C)" class="w-full text-sm border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:border-indigo-500">
+                        <button onclick="addCustomFieldDefine()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 rounded text-sm font-medium cursor-pointer">項目を追加</button>
+                    </div>
+                    <ul id="custom-field-list" class="divide-y divide-gray-100 text-sm max-h-40 overflow-y-auto"></ul>
+                </div>
+
+                <!-- Account Items -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fa-solid fa-receipt text-indigo-600"></i> 勘定科目管理</h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-account-input" placeholder="新勘定科目名" class="flex-1 text-sm border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:border-indigo-500">
+                        <button onclick="addAccountItem()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-sm cursor-pointer"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <ul id="account-list" class="divide-y divide-gray-100 text-sm max-h-60 overflow-y-auto"></ul>
+                </div>
+            </div>
+
+            <!-- Data Reset Section -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-red-100 flex justify-between items-center">
+                <div>
+                    <h4 class="font-bold text-red-600 text-sm">全データ初期化</h4>
+                    <p class="text-xs text-gray-500">すべての資産・負債項目、取引履歴、設定を初期状態にリセットします。</p>
+                </div>
+                <button onclick="resetAllData()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm cursor-pointer">初期状態にする</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Asset Modal -->
+    <div id="asset-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+            <h3 id="asset-modal-title" class="text-lg font-bold text-gray-800">資産・負債項目追加</h3>
+            <input type="hidden" id="edit-asset-id">
+            <div class="space-y-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">種別</label>
+                        <select id="asset-type" onchange="onAssetTypeChange()" class="w-full text-sm border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-indigo-500 cursor-pointer">
+                            <option value="資産">資産</option>
+                            <option value="負債">負債</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">カテゴリ (種別連動)</label>
+                        <select id="asset-category" onchange="onAssetCategoryChange()" class="w-full text-sm border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-indigo-500 cursor-pointer"></select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">名称</label>
+                    <input type="text" id="asset-name" placeholder="例: 〇〇銀行 普通預金 / 住宅ローン" class="w-full text-sm border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div id="initial-balance-container" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">初期残高</label>
+                        <input type="text" id="asset-initial-balance" oninput="formatInputWithComma(this)" placeholder="0" class="w-full text-sm border border-gray-300 rounded-lg p-2 text-right font-bold focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">更新日付</label>
+                        <input type="date" id="asset-initial-date" class="w-full text-sm border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-indigo-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">メモ</label>
+                    <textarea id="asset-memo" rows="2" class="w-full text-sm border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-indigo-500" placeholder="備考情報..."></textarea>
+                </div>
+                <div id="modal-custom-fields-container" class="space-y-3 border-t pt-3"></div>
+            </div>
+            <div class="flex justify-end gap-2 pt-3 border-t">
+                <button onclick="closeAssetModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium cursor-pointer">キャンセル</button>
+                <button onclick="saveAssetItem()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium cursor-pointer">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="history-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl max-w-2xl w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+            <h3 id="history-modal-title" class="text-lg font-bold text-gray-800">取引履歴追加</h3>
+            <input type="hidden" id="edit-history-id">
+            <div class="space-y-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">対象資産・負債項目</label>
+                        <select id="history-asset-id" onchange="onHistoryAssetChange()" class="w-full text-sm border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-indigo-500 cursor-pointer"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">更新日</label>
+                        <input type="date" id="history-date" onchange="onHistoryDateChange()" class="w-full text-sm border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-indigo-500">
+                        <div id="history-date-hint" class="text-[11px] text-indigo-600 mt-1 hidden font-medium"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">更新前残高 (基準)</label>
+                        <input type="text" id="history-prev-balance" readonly class="w-full text-sm bg-gray-100 border border-gray-300 rounded-lg p-2 text-right font-bold">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-medium text-gray-600">更新後残高 (目標)</label>
+                            <button type="button" onclick="calcNewBalanceFromDetails()" class="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer underline flex items-center gap-1" title="内訳明細の合計を基準残高に加減算して更新後残高を自動計算します">
+                                <i class="fa-solid fa-calculator"></i> 明細合計から自動算出
+                            </button>
+                        </div>
+                        <input type="text" id="history-new-balance" oninput="this.dataset.userEdited='true'; formatInputWithComma(this); renderDetailRows()" class="w-full text-sm border border-gray-300 rounded-lg p-2 text-right font-bold focus:outline-none focus:border-indigo-500" placeholder="0">
+                    </div>
+                </div>
+
+                <!-- Multiple Details -->
+                <div class="space-y-2 border-t pt-3">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <label class="text-xs font-bold text-gray-700 uppercase">取引内訳 (複数明細)</label>
+                            <span class="text-[11px] text-gray-400 ml-1">支出(-)・収入(+)を選択して金額入力</span>
+                        </div>
+                        <button onclick="addDetailRow()" class="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1 cursor-pointer"><i class="fa-solid fa-plus"></i> 明細行追加</button>
+                    </div>
+                    <div id="details-rows-container" class="space-y-2 max-h-48 overflow-y-auto p-1"></div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-3 border-t">
+                <button onclick="closeHistoryModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium cursor-pointer">キャンセル</button>
+                <button onclick="saveHistoryItem()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium cursor-pointer">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script -->
+    <script>
+        let appData = {
+            assetCategories: ["預金", "証券", "保険", "現金", "不動産"],
+            liabilityCategories: ["ローン", "借入金", "クレジットカード"],
+            accountItems: ["給与収入", "副業収入", "食費", "光熱費", "通信費", "趣味・娯楽", "雑費", "雑収入", "投資買付"],
+            customFields: [],
+            assets: [],
+            histories: []
+        };
+
+        // 後方互換性および全体参照用プロパティ
+        Object.defineProperty(appData, 'categories', {
+            get() {
+                return [...(this.assetCategories || []), ...(this.liabilityCategories || [])];
+            },
+            set(cats) {
+                if (Array.isArray(cats)) {
+                    const liab = cats.filter(c => c === 'ローン' || c === '借入金' || c === '負債' || c === 'クレジットカード');
+                    const ast = cats.filter(c => !liab.includes(c));
+                    this.liabilityCategories = liab.length > 0 ? liab : ["ローン"];
+                    this.assetCategories = ast.length > 0 ? ast : ["預金", "証券", "現金"];
+                }
+            },
+            configurable: true,
+            enumerable: true
+        });
+
+        let pieChart1 = null, pieChart2 = null, pieChart3 = null;
+        let trendChart1 = null, trendChart2 = null;
+        let monthlyIncomePieChartInstance = null, monthlyExpensePieChartInstance = null;
+        let monthlyStackedChartInstance = null;
+
+        window.onload = function() {
+            loadFromLocalStorage();
+            initSettings();
+            renderAll();
+            switchTab('dashboard');
+        };
+
+        function saveToLocalStorage() {
+            localStorage.setItem('asset_manager_pro_v35_data', JSON.stringify({
+                assetCategories: appData.assetCategories,
+                liabilityCategories: appData.liabilityCategories,
+                accountItems: appData.accountItems,
+                customFields: appData.customFields,
+                assets: appData.assets,
+                histories: appData.histories
+            }));
+        }
+
+        const CHART_PALETTE = [
+            '#4f46e5', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', 
+            '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16',
+            '#0ea5e9', '#a855f7', '#d97706', '#64748b'
+        ];
+        function getPaletteColors(count) {
+            const colors = [];
+            for(let i = 0; i < count; i++) {
+                colors.push(CHART_PALETTE[i % CHART_PALETTE.length]);
+            }
+            return colors;
+        }
+
+        function isDefaultExpense(account) {
+            const expenseDefaults = ["食費", "光熱費", "通信費", "趣味・娯楽", "雑費", "投資買付"];
+            return expenseDefaults.includes(account);
+        }
+
+        function parseAndValidateAppData(parsed) {
+            if (!parsed || typeof parsed !== 'object') return false;
+            if (!parsed.assets && !parsed.categories && !parsed.assetCategories) return false;
+
+            if (!parsed.assetCategories || !parsed.liabilityCategories) {
+                const oldCats = parsed.categories || ["預金", "証券", "保険", "現金", "不動産", "ローン"];
+                parsed.liabilityCategories = oldCats.filter(c => c === 'ローン' || c === '借入金' || c === '負債' || c === 'クレジットカード');
+                if (parsed.liabilityCategories.length === 0) parsed.liabilityCategories = ["ローン"];
+                parsed.assetCategories = oldCats.filter(c => !parsed.liabilityCategories.includes(c));
+                if (parsed.assetCategories.length === 0) parsed.assetCategories = ["預金", "証券", "現金"];
+            }
+            if (!parsed.accountItems) parsed.accountItems = ["給与収入", "副業収入", "食費", "光熱費", "通信費", "趣味・娯楽", "雑費", "雑収入", "投資買付"];
+            if (!parsed.customFields) parsed.customFields = [];
+            if (!parsed.assets) parsed.assets = [];
+            if (!parsed.histories) parsed.histories = [];
+
+            appData.assetCategories = parsed.assetCategories;
+            appData.liabilityCategories = parsed.liabilityCategories;
+            appData.accountItems = parsed.accountItems;
+            appData.customFields = parsed.customFields;
+            appData.assets = parsed.assets;
+            appData.histories = parsed.histories;
+            return true;
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('asset_manager_pro_v35_data') || localStorage.getItem('asset_manager_pro_v34_data');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    parseAndValidateAppData(parsed);
+                } catch(e) { console.error(e); }
+            } else {
+                appData.assets = [];
+                appData.histories = [];
+                saveToLocalStorage();
+            }
+        }
+
+        function resetAllData() {
+            if(confirm("本当にすべてのデータを初期状態にリセットしますか？")) {
+                localStorage.removeItem('asset_manager_pro_v35_data');
+                location.reload();
+            }
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+            const dl = document.createElement('a');
+            dl.setAttribute("href", dataStr);
+            dl.setAttribute("download", `asset_manager_v3.5_${getLocalDateString()}.json`);
+            document.body.appendChild(dl);
+            dl.click();
+            dl.remove();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if(parseAndValidateAppData(parsed)) {
+                        saveToLocalStorage();
+                        initSettings();
+                        renderAll();
+                        alert("データを正常にインポートしました。");
+                    } else { alert("無効なデータ形式です。必要な資産データが見つかりません。"); }
+                } catch(err) { alert("JSONのパースに失敗しました。ファイル内容をご確認ください。"); }
+                finally {
+                    event.target.value = ''; // 次回同じファイルを再選択しても発火するようにリセット
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function switchTab(tabId) {
+            ['dashboard', 'history', 'analytics-pie', 'analytics-trend', 'analytics-monthly', 'settings'].forEach(id => {
+                const el = document.getElementById(`tab-${id}`);
+                if(el) el.classList.add('hidden');
+                const nav = document.getElementById(`nav-${id}`);
+                if(nav) {
+                    nav.classList.remove('border-white', 'text-white');
+                    nav.classList.add('border-transparent', 'text-indigo-200');
+                }
+            });
+            const targetTab = document.getElementById(`tab-${tabId}`);
+            if(targetTab) targetTab.classList.remove('hidden');
+            const targetNav = document.getElementById(`nav-${tabId}`);
+            if(targetNav) {
+                targetNav.classList.add('border-white', 'text-white');
+                targetNav.classList.remove('border-transparent', 'text-indigo-200');
+            }
+
+            if(tabId === 'analytics-pie') renderPieAnalytics();
+            if(tabId === 'analytics-trend') renderTrendAnalytics();
+            if(tabId === 'analytics-monthly') renderMonthlyAnalytics();
+        }
+
+        function formatCurrency(amount, isNegativeOrLiability = false) {
+            const num = Number(amount) || 0;
+            const formatted = Math.abs(num).toLocaleString();
+            if (isNegativeOrLiability || num < 0) {
+                return `<span class="text-red-600 font-semibold">${num < 0 ? '-¥' : '¥'}${formatted}</span>`;
+            } else if (num > 0) {
+                return `<span class="text-blue-600 font-semibold">¥${formatted}</span>`;
+            }
+            return `<span>¥0</span>`;
+        }
+
+        function formatInputWithComma(input) {
+            let val = input.value.replace(/[^0-9-]/g, '');
+            if(val === '' || val === '-') { input.value = val; return; }
+            let num = parseInt(val, 10);
+            if(isNaN(num)) { input.value = ''; return; }
+            input.value = num.toLocaleString();
+        }
+
+        function parseFormattedNumber(str) {
+            if(!str) return 0;
+            return Number(String(str).replace(/,/g, '')) || 0;
+        }
+
+        function getLocalDateString(date = new Date()) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function getLatestBalance(assetId) {
+            const hist = appData.histories.filter(h => h.assetId === assetId);
+            if(hist.length === 0) return { balance: 0, date: "-" };
+            hist.sort((a, b) => {
+                const cmp = new Date(b.date) - new Date(a.date);
+                if(cmp !== 0) return cmp;
+                return b.id.localeCompare(a.id);
+            });
+            return { balance: hist[0].newBalance, date: hist[0].date };
+        }
+
+        function renderAll() {
+            renderDashboardFilters();
+            renderAssetTable();
+            renderHistoryFilters();
+            renderHistoryTable();
+            renderSettings();
+            updateSummaryCards();
+        }
+
+        function updateSummaryCards() {
+            let totalAssets = 0, totalLiabilities = 0;
+            appData.assets.forEach(asset => {
+                const latest = getLatestBalance(asset.id).balance;
+                if(asset.type === "資産") totalAssets += latest;
+                else totalLiabilities += Math.abs(latest);
+            });
+            const net = totalAssets - totalLiabilities;
+            document.getElementById("total-assets").innerText = `¥${totalAssets.toLocaleString()}`;
+            document.getElementById("total-liabilities").innerText = `¥${totalLiabilities.toLocaleString()}`;
+            const netEl = document.getElementById("total-net");
+            netEl.innerText = `¥${net.toLocaleString()}`;
+            netEl.className = `text-2xl font-bold mt-1 ${net < 0 ? 'text-red-600' : 'text-emerald-600'}`;
+        }
+
+        // --- Dashboard & Filters (初期全選択・新規追加項目もチェックON) ---
+        function renderDashboardFilters() {
+            const container = document.getElementById("filter-category-checkboxes");
+            const checkedTypes = Array.from(document.querySelectorAll("#filter-type-checkboxes input:checked")).map(cb => cb.value);
+
+            let availableCats = [];
+            if (checkedTypes.includes("資産")) availableCats.push(...(appData.assetCategories || []));
+            if (checkedTypes.includes("負債")) availableCats.push(...(appData.liabilityCategories || []));
+
+            const prevInputs = Array.from(container.querySelectorAll("input"));
+            const prevCats = prevInputs.map(cb => cb.value);
+            const prevChecked = prevInputs.filter(cb => cb.checked).map(cb => cb.value);
+
+            container.innerHTML = availableCats.map(cat => {
+                let isChecked = true;
+                if (prevCats.length > 0) {
+                    isChecked = prevCats.includes(cat) ? prevChecked.includes(cat) : true;
+                }
+                return `<label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" value="${cat}" ${isChecked ? 'checked' : ''} onchange="renderAssetTable()"> ${cat}</label>`;
+            }).join('');
+        }
+
+        function onDashboardTypeChange() {
+            renderDashboardFilters();
+            renderAssetTable();
+        }
+
+        function resetAssetFilters() {
+            document.getElementById("asset-search").value = "";
+            document.querySelectorAll("#filter-type-checkboxes input").forEach(cb => cb.checked = true);
+            renderDashboardFilters();
+            renderAssetTable();
+        }
+
+        function renderAssetTable() {
+            const search = document.getElementById("asset-search").value.toLowerCase();
+            const selectedTypes = Array.from(document.querySelectorAll("#filter-type-checkboxes input:checked")).map(cb => cb.value);
+            const selectedCats = Array.from(document.querySelectorAll("#filter-category-checkboxes input:checked")).map(cb => cb.value);
+
+            const tbody = document.getElementById("asset-table-body");
+            tbody.innerHTML = "";
+
+            const filtered = appData.assets.filter(a => {
+                let customText = "";
+                if (a.customValues) {
+                    customText = Object.values(a.customValues).join(" ").toLowerCase();
+                }
+                const matchSearch = a.name.toLowerCase().includes(search) || 
+                                    (a.memo && a.memo.toLowerCase().includes(search)) ||
+                                    customText.includes(search);
+                const matchType = selectedTypes.includes(a.type);
+                const matchCat = selectedCats.includes(a.category);
+                return matchSearch && matchType && matchCat;
+            });
+
+            if(filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-400">該当する項目がありません</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(asset => {
+                const latest = getLatestBalance(asset.id);
+                const isLiability = asset.type === '負債';
+
+                // 独自項目のバッジ表示
+                let customFieldsHtml = '';
+                if (asset.customValues && appData.customFields) {
+                    const badges = [];
+                    appData.customFields.forEach(cf => {
+                        if (cf.categoryName === 'ALL' || cf.categoryName === asset.category) {
+                            const v = asset.customValues[cf.id];
+                            if (v !== undefined && v !== '' && v !== false) {
+                                const displayVal = (typeof v === 'boolean') ? (v ? '✓' : '-') : v;
+                                badges.push(`<span class="inline-block bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded text-[11px] mr-1 mt-1 font-normal">${cf.name}: ${displayVal}</span>`);
+                            }
+                        }
+                    });
+                    if (badges.length > 0) {
+                        customFieldsHtml = `<div class="mt-1 flex flex-wrap gap-1">${badges.join('')}</div>`;
+                    }
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 border-b border-gray-100";
+                tr.innerHTML = `
+                    <td class="p-3 font-medium text-gray-800">
+                        ${asset.name}
+                        ${asset.memo ? `<br><span class="text-xs text-gray-400 whitespace-pre-wrap">${asset.memo}</span>` : ''}
+                        ${customFieldsHtml}
+                    </td>
+                    <td class="p-3"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs">${asset.category}</span></td>
+                    <td class="p-3"><span class="${isLiability ? 'text-red-600' : 'text-blue-600'} font-medium text-xs">${asset.type}</span></td>
+                    <td class="p-3 text-right font-bold">${formatCurrency(latest.balance, isLiability)}</td>
+                    <td class="p-3 text-xs text-gray-500">${latest.date}</td>
+                    <td class="p-3 text-center space-x-1">
+                        <button onclick="openHistoryModalForAsset('${asset.id}')" title="取引履歴" class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded cursor-pointer"><i class="fa-solid fa-clock-rotate-left"></i></button>
+                        <button onclick="openAssetModal('${asset.id}')" title="編集" class="p-1.5 text-gray-600 hover:bg-gray-100 rounded cursor-pointer"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteAsset('${asset.id}')" title="削除" class="p-1.5 text-red-600 hover:bg-red-50 rounded cursor-pointer"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openAssetModal(id = null) {
+            document.getElementById("edit-asset-id").value = id || "";
+            document.getElementById("asset-modal-title").innerText = id ? "資産・負債項目編集" : "資産・負債項目追加";
+            document.getElementById("initial-balance-container").style.display = id ? "none" : "grid";
+
+            if(id) {
+                const asset = appData.assets.find(a => a.id === id);
+                if(asset) {
+                    document.getElementById("asset-type").value = asset.type;
+                    updateModalCategoryOptions(asset.type, asset.category);
+                    document.getElementById("asset-name").value = asset.name;
+                    document.getElementById("asset-memo").value = asset.memo || "";
+                }
+            } else {
+                document.getElementById("asset-type").value = "資産";
+                updateModalCategoryOptions("資産");
+                document.getElementById("asset-name").value = "";
+                document.getElementById("asset-initial-balance").value = "";
+                document.getElementById("asset-initial-date").value = getLocalDateString();
+                document.getElementById("asset-memo").value = "";
+            }
+            renderModalCustomFields(id ? appData.assets.find(a => a.id === id)?.customValues : null);
+            document.getElementById("asset-modal").classList.remove("hidden");
+        }
+
+        function updateModalCategoryOptions(type, selectedCategory = null) {
+            const catSelect = document.getElementById("asset-category");
+            const cats = type === "資産" ? (appData.assetCategories || []) : (appData.liabilityCategories || []);
+            catSelect.innerHTML = cats.map(c => `<option value="${c}" ${c === selectedCategory ? 'selected' : ''}>${c}</option>`).join('');
+            if (!selectedCategory && cats.length > 0) {
+                catSelect.value = cats[0];
+            }
+        }
+
+        function onAssetTypeChange() {
+            const type = document.getElementById("asset-type").value;
+            updateModalCategoryOptions(type);
+            renderModalCustomFields();
+        }
+
+        function onAssetCategoryChange() {
+            renderModalCustomFields();
+        }
+
+        function renderModalCustomFields(savedValues = null) {
+            const cat = document.getElementById("asset-category").value;
+            const cfContainer = document.getElementById("modal-custom-fields-container");
+            const relevantFields = appData.customFields.filter(cf => cf.categoryName === 'ALL' || cf.categoryName === cat);
+
+            if(relevantFields.length === 0) {
+                cfContainer.innerHTML = "";
+                return;
+            }
+
+            cfContainer.innerHTML = relevantFields.map(cf => {
+                let inputHtml = '';
+                const val = savedValues ? savedValues[cf.id] : "";
+                if(cf.type === 'text') {
+                    inputHtml = `<input type="text" id="cf_${cf.id}" value="${val || ''}" class="w-full text-sm border border-gray-300 rounded p-1.5 focus:outline-none focus:border-indigo-500">`;
+                } else if(cf.type === 'textarea') {
+                    inputHtml = `<textarea id="cf_${cf.id}" rows="3" class="w-full text-sm border border-gray-300 rounded p-1.5 focus:outline-none focus:border-indigo-500" placeholder="${cf.name}の内容を入力...">${val || ''}</textarea>`;
+                } else if(cf.type === 'select') {
+                    const opts = (cf.options || "").split(',').map(o => o.trim());
+                    inputHtml = `<select id="cf_${cf.id}" class="w-full text-sm border border-gray-300 rounded p-1.5 cursor-pointer">${opts.map(o=>`<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}</select>`;
+                } else if(cf.type === 'checkbox') {
+                    inputHtml = `<input type="checkbox" id="cf_${cf.id}" ${val?'checked':''} class="h-4 w-4 cursor-pointer">`;
+                } else if(cf.type === 'date') {
+                    inputHtml = `<input type="date" id="cf_${cf.id}" value="${val || ''}" class="w-full text-sm border border-gray-300 rounded p-1.5">`;
+                } else if(cf.type === 'number') {
+                    inputHtml = `<input type="number" id="cf_${cf.id}" value="${val || ''}" class="w-full text-sm border border-gray-300 rounded p-1.5">`;
+                }
+                return `<div><label class="block text-xs font-medium text-gray-600 mb-1">${cf.name} (${cf.categoryName==='ALL'?'共通':cf.categoryName})</label>${inputHtml}</div>`;
+            }).join('');
+        }
+
+        function closeAssetModal() { document.getElementById("asset-modal").classList.add("hidden"); }
+
+        function saveAssetItem() {
+            const id = document.getElementById("edit-asset-id").value;
+            const category = document.getElementById("asset-category").value;
+            const name = document.getElementById("asset-name").value.trim();
+            const type = document.getElementById("asset-type").value;
+            const memo = document.getElementById("asset-memo").value.trim();
+            const initialBal = parseFormattedNumber(document.getElementById("asset-initial-balance").value);
+            const initialDate = document.getElementById("asset-initial-date").value || getLocalDateString();
+
+            if(!name) { alert("名称を入力してください。"); return; }
+
+            const customValues = {};
+            appData.customFields.forEach(cf => {
+                if(cf.categoryName === 'ALL' || cf.categoryName === category) {
+                    const el = document.getElementById(`cf_${cf.id}`);
+                    if(el) customValues[cf.id] = cf.type === 'checkbox' ? el.checked : el.value;
+                }
+            });
+
+            if(id) {
+                const asset = appData.assets.find(a => a.id === id);
+                if(asset) { asset.category = category; asset.name = name; asset.type = type; asset.memo = memo; asset.customValues = customValues; }
+            } else {
+                const newId = 'ast_' + Date.now();
+                appData.assets.push({ id: newId, category, name, type, memo, customValues });
+                appData.histories.push({
+                    id: 'hst_' + Date.now(),
+                    assetId: newId,
+                    date: initialDate,
+                    newBalance: initialBal,
+                    details: [{ account: type === '資産' ? '雑収入' : '雑費', content: '初期残高', amount: initialBal }],
+                    diff: initialBal
+                });
+            }
+
+            saveToLocalStorage();
+            closeAssetModal();
+            renderAll();
+        }
+
+        function deleteAsset(id) {
+            if(confirm("この項目および関連する取引履歴を削除しますか？")) {
+                appData.assets = appData.assets.filter(a => a.id !== id);
+                appData.histories = appData.histories.filter(h => h.assetId !== id);
+                saveToLocalStorage();
+                renderAll();
+            }
+        }
+
+        // --- Hierarchical Filtering for History (初期全選択・新規追加項目もチェックON) ---
+        function renderHistoryFilters() {
+            const typeDiv = document.getElementById("hist-filter-type");
+            const checkedTypes = Array.from(typeDiv.querySelectorAll("input:checked")).map(cb => cb.value);
+
+            let availableCats = [];
+            if (checkedTypes.includes("資産")) availableCats.push(...(appData.assetCategories || []));
+            if (checkedTypes.includes("負債")) availableCats.push(...(appData.liabilityCategories || []));
+
+            const catDiv = document.getElementById("hist-filter-cat");
+            const prevCatInputs = Array.from(catDiv.querySelectorAll("input"));
+            const prevCatKeys = prevCatInputs.map(cb => cb.value);
+            const prevCatChecked = prevCatInputs.filter(cb => cb.checked).map(cb => cb.value);
+
+            catDiv.innerHTML = availableCats.map(c => {
+                let isChecked = true;
+                if (prevCatKeys.length > 0) {
+                    isChecked = prevCatKeys.includes(c) ? prevCatChecked.includes(c) : true;
+                }
+                return `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${c}" ${isChecked ? 'checked' : ''} onchange="renderHistoryFilters(); renderHistoryTable();"> ${c}</label>`;
+            }).join('');
+
+            const selectedCats = Array.from(catDiv.querySelectorAll("input:checked")).map(cb => cb.value);
+
+            const itemDiv = document.getElementById("hist-filter-item");
+            const prevItemInputs = Array.from(itemDiv.querySelectorAll("input"));
+            const prevItemKeys = prevItemInputs.map(cb => cb.value);
+            const prevItemChecked = prevItemInputs.filter(cb => cb.checked).map(cb => cb.value);
+
+            const validItems = appData.assets.filter(a => checkedTypes.includes(a.type) && selectedCats.includes(a.category));
+            itemDiv.innerHTML = validItems.map(item => {
+                let isChecked = true;
+                // 新規追加された項目（prevItemKeysに含まれない）は必ずチェックON (要望2)
+                if (prevItemKeys.length > 0) {
+                    isChecked = prevItemKeys.includes(item.id) ? prevItemChecked.includes(item.id) : true;
+                }
+                return `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${item.id}" ${isChecked ? 'checked' : ''} onchange="renderHistoryTable();"> ${item.name}</label>`;
+            }).join('');
+
+            const accDiv = document.getElementById("hist-filter-account");
+            const prevAccInputs = Array.from(accDiv.querySelectorAll("input"));
+            const prevAccKeys = prevAccInputs.map(cb => cb.value);
+            const prevAccChecked = prevAccInputs.filter(cb => cb.checked).map(cb => cb.value);
+
+            accDiv.innerHTML = appData.accountItems.map(ac => {
+                let isChecked = true;
+                if (prevAccKeys.length > 0) {
+                    isChecked = prevAccKeys.includes(ac) ? prevAccChecked.includes(ac) : true;
+                }
+                return `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${ac}" ${isChecked ? 'checked' : ''} onchange="renderHistoryTable();"> ${ac}</label>`;
+            }).join('');
+        }
+
+        function onHistTypeFilterChange() {
+            renderHistoryFilters();
+            renderHistoryTable();
+        }
+
+        function resetHistoryFilters() {
+            document.querySelectorAll("#hist-filter-type input, #hist-filter-cat input, #hist-filter-item input, #hist-filter-account input").forEach(cb => cb.checked = true);
+            document.getElementById("history-search").value = "";
+            renderHistoryTable();
+        }
+
+        function renderHistoryTable() {
+            const search = document.getElementById("history-search").value.toLowerCase();
+            const selectedTypes = Array.from(document.querySelectorAll("#hist-filter-type input:checked")).map(cb => cb.value);
+            const selectedCats = Array.from(document.querySelectorAll("#hist-filter-cat input:checked")).map(cb => cb.value);
+            const selectedItemIds = Array.from(document.querySelectorAll("#hist-filter-item input:checked")).map(cb => cb.value);
+            const selectedAccs = Array.from(document.querySelectorAll("#hist-filter-account input:checked")).map(cb => cb.value);
+
+            const tbody = document.getElementById("history-table-body");
+            tbody.innerHTML = "";
+
+            let rows = [];
+            appData.histories.forEach(h => {
+                const asset = appData.assets.find(a => a.id === h.assetId);
+                if(!asset) return;
+                if(!selectedTypes.includes(asset.type) || !selectedCats.includes(asset.category) || !selectedItemIds.includes(asset.id)) return;
+
+                const detailsList = (h.details && h.details.length > 0) ? h.details : [{ account: '雑収入', content: '明細なし', amount: 0 }];
+                detailsList.forEach(d => {
+                    if(!selectedAccs.includes(d.account)) return;
+                    const matchSearch = d.content.toLowerCase().includes(search) || d.account.toLowerCase().includes(search) || asset.name.toLowerCase().includes(search);
+                    if(matchSearch) {
+                        rows.push({
+                            historyId: h.id,
+                            date: h.date,
+                            category: asset.category,
+                            assetName: asset.name,
+                            assetType: asset.type,
+                            account: d.account,
+                            content: d.content,
+                            amount: d.amount,
+                            newBalance: h.newBalance
+                        });
+                    }
+                });
+            });
+
+            rows.sort((a, b) => new Date(b.date) - new Date(a.date) || b.historyId.localeCompare(a.historyId));
+
+            if(rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-gray-400">取引履歴がありません</td></tr>`;
+                return;
+            }
+
+            rows.forEach(item => {
+                const isLiability = item.assetType === '負債';
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 border-b border-gray-100";
+                tr.innerHTML = `
+                    <td class="p-3 text-xs text-gray-600">${item.date}</td>
+                    <td class="p-3"><span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs">${item.category}</span></td>
+                    <td class="p-3 font-medium text-gray-800">${item.assetName}</td>
+                    <td class="p-3 text-xs text-indigo-700 font-medium">${item.account}</td>
+                    <td class="p-3 text-xs text-gray-700">${item.content} (${formatCurrency(item.amount)})</td>
+                    <td class="p-3 text-right font-bold">${formatCurrency(item.newBalance, isLiability)}</td>
+                    <td class="p-3 text-center space-x-1">
+                        <button onclick="openHistoryModal('${item.historyId}')" title="編集" class="p-1.5 text-gray-600 hover:bg-gray-100 rounded cursor-pointer"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteHistory('${item.historyId}')" title="削除" class="p-1.5 text-red-600 hover:bg-red-50 rounded cursor-pointer"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openHistoryModalForAsset(assetId) {
+            switchTab('history');
+            setTimeout(() => {
+                document.querySelectorAll("#hist-filter-type input").forEach(cb => cb.checked = true);
+                renderHistoryFilters();
+                document.querySelectorAll("#hist-filter-item input").forEach(cb => {
+                    cb.checked = (cb.value === assetId);
+                });
+                renderHistoryTable();
+            }, 50);
+        }
+
+        // --- History Add/Edit ---
+        let currentDetailsList = [];
+
+        function openHistoryModal(id = null) {
+            document.getElementById("edit-history-id").value = id || "";
+            document.getElementById("history-modal-title").innerText = id ? "取引履歴編集" : "取引履歴追加";
+            document.getElementById("history-new-balance").dataset.userEdited = "false";
+
+            const assetSelect = document.getElementById("history-asset-id");
+            assetSelect.innerHTML = appData.assets.map(a => `<option value="${a.id}">${a.name} (${a.category})</option>`).join('');
+
+            const dateInput = document.getElementById("history-date");
+            const hintEl = document.getElementById("history-date-hint");
+
+            if(id) {
+                const h = appData.histories.find(item => item.id === id);
+                if(h) {
+                    assetSelect.value = h.assetId;
+                    assetSelect.disabled = true; // 編集時は不整合防止のため対象資産を固定
+                    dateInput.value = h.date;
+                    document.getElementById("history-new-balance").value = h.newBalance.toLocaleString();
+                    currentDetailsList = JSON.parse(JSON.stringify(h.details || []));
+
+                    // 同一対象資産の全履歴を日付昇順で取得（要望3）
+                    let histList = appData.histories.filter(item => item.assetId === h.assetId);
+                    histList.sort((a, b) => new Date(a.date) - new Date(b.date) || a.id.localeCompare(b.id));
+
+                    const myIdx = histList.findIndex(item => item.id === id);
+                    const prevHist = myIdx > 0 ? histList[myIdx - 1] : null;
+                    const nextHist = myIdx < histList.length - 1 ? histList[myIdx + 1] : null;
+
+                    if (prevHist) {
+                        dateInput.min = prevHist.date;
+                    } else {
+                        dateInput.removeAttribute("min");
+                    }
+
+                    if (nextHist) {
+                        dateInput.max = nextHist.date;
+                    } else {
+                        dateInput.removeAttribute("max");
+                    }
+
+                    if (prevHist || nextHist) {
+                        const minText = prevHist ? prevHist.date : "制限なし";
+                        const maxText = nextHist ? nextHist.date : "制限なし";
+                        hintEl.innerText = `選択可能期間: ${minText} 〜 ${maxText}（前後の取引順序を跨ぐ変更はできません）`;
+                        hintEl.classList.remove("hidden");
+                    } else {
+                        hintEl.classList.add("hidden");
+                    }
+                }
+            } else {
+                assetSelect.disabled = false;
+                if(appData.assets.length > 0) assetSelect.value = appData.assets[0].id;
+                dateInput.removeAttribute("min");
+                dateInput.removeAttribute("max");
+                dateInput.value = getLocalDateString();
+                document.getElementById("history-new-balance").value = "";
+                currentDetailsList = [];
+                if (hintEl) hintEl.classList.add("hidden");
+            }
+
+            onHistoryAssetChange();
+            document.getElementById("history-modal").classList.remove("hidden");
+        }
+
+        function closeHistoryModal() {
+            document.getElementById("history-asset-id").disabled = false;
+            document.getElementById("history-modal").classList.add("hidden");
+        }
+
+        function onHistoryAssetChange() {
+            updatePrevBalanceAndValidateDate();
+            renderDetailRows();
+        }
+
+        function onHistoryDateChange() {
+            updatePrevBalanceAndValidateDate();
+        }
+
+        // 順序逆転防止および直近前残高の算出
+        function updatePrevBalanceAndValidateDate() {
+            const assetId = document.getElementById("history-asset-id").value;
+            const editId = document.getElementById("edit-history-id").value;
+            const currentDateStr = document.getElementById("history-date").value;
+
+            let histList = appData.histories.filter(h => h.assetId === assetId && h.id !== editId);
+            histList.sort((a, b) => new Date(a.date) - new Date(b.date) || a.id.localeCompare(b.id));
+
+            let prevBal = 0;
+            if(histList.length > 0) {
+                let validOlder = histList.filter(h => new Date(h.date) <= new Date(currentDateStr));
+                if(validOlder.length > 0) {
+                    prevBal = validOlder[validOlder.length - 1].newBalance;
+                } else {
+                    prevBal = 0; // 最古より前の日付の場合は0基準
+                }
+            }
+
+            document.getElementById("history-prev-balance").value = prevBal.toLocaleString();
+            
+            // 新規追加時の更新後残高初期設定
+            const newBalInput = document.getElementById("history-new-balance");
+            if(!editId && newBalInput.dataset.userEdited !== "true") {
+                newBalInput.value = prevBal.toLocaleString();
+            }
+        }
+
+        function renderDetailRows() {
+            const container = document.getElementById("details-rows-container");
+            container.innerHTML = "";
+
+            const summary = document.createElement('div');
+            summary.id = "details-summary-container";
+            container.appendChild(summary);
+            renderDetailSummary();
+
+            if(currentDetailsList.length === 0) return;
+
+            currentDetailsList.forEach((detail, idx) => {
+                const isNeg = detail.sign ? detail.sign === 'expense' : detail.amount < 0;
+                const absAmount = Math.abs(detail.amount);
+                const div = document.createElement('div');
+                div.className = "flex flex-wrap md:flex-nowrap gap-2 items-center bg-gray-50 p-2 rounded border";
+                div.innerHTML = `
+                    <select onchange="updateDetail(${idx}, 'account', this.value); renderDetailRows();" class="text-xs border rounded p-1 bg-white cursor-pointer">
+                        ${appData.accountItems.map(ac => `<option value="${ac}" ${ac === detail.account ? 'selected' : ''}>${ac}</option>`).join('')}
+                    </select>
+                    <input type="text" value="${detail.content}" placeholder="取引内容" oninput="updateDetail(${idx}, 'content', this.value)" class="text-xs border rounded p-1 flex-1 min-w-0">
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button type="button" onclick="toggleDetailSign(${idx})"
+                            class="text-[11px] font-bold px-2 py-1 rounded border cursor-pointer ${isNeg ? 'bg-red-100 text-red-700 border-red-300' : 'bg-blue-100 text-blue-700 border-blue-300'}">
+                            ${isNeg ? '支出(−)' : '収入(+)'}
+                        </button>
+                        <input type="text" value="${absAmount.toLocaleString()}" placeholder="金額" oninput="formatInputWithComma(this); updateDetailAbs(${idx}, parseFormattedNumber(this.value)); renderDetailSummary();" class="text-xs border rounded p-1 text-right font-bold w-24">
+                    </div>
+                    <button onclick="removeDetailRow(${idx})" class="text-red-500 hover:text-red-700 p-1 cursor-pointer"><i class="fa-solid fa-trash text-xs"></i></button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function renderDetailSummary() {
+            const summary = document.getElementById("details-summary-container");
+            if(!summary) return;
+
+            // 現在の更新前残高と更新後残高の差分を計算して表示
+            const prevBal = parseFormattedNumber(document.getElementById("history-prev-balance").value);
+            const newBal = parseFormattedNumber(document.getElementById("history-new-balance").value);
+            const targetDiff = newBal - prevBal;
+            const detailsSum = currentDetailsList.reduce((s, d) => s + (Number(d.amount) || 0), 0);
+            const remaining = targetDiff - detailsSum;
+            const remainColor = Math.abs(remaining) < 0.01 ? 'text-green-600' : 'text-orange-500';
+
+            if(currentDetailsList.length === 0) {
+                summary.innerHTML = `<p class="text-xs text-gray-400 p-2 text-center">明細行はありません。「明細行追加」ボタンから必要な内訳を追加してください。<br><span class="text-orange-500 font-medium">保存時に残額 ${remaining.toLocaleString()}円 が自動調整（雑費/雑収入）として登録されます。</span></p>`;
+                return;
+            }
+
+            summary.innerHTML = `<div class="flex justify-end gap-4 text-xs px-1 pb-1 text-gray-500">
+                <span>目標差分: <b>${targetDiff.toLocaleString()}円</b></span>
+                <span>明細合計: <b>${detailsSum.toLocaleString()}円</b></span>
+                <span class="${remainColor} font-semibold">未説明残額: ${remaining.toLocaleString()}円 ${Math.abs(remaining) < 0.01 ? '✓' : '⇒ 保存時に自動調整'}</span>
+            </div>`;
+        }
+
+        function toggleDetailSign(idx) {
+            const detail = currentDetailsList[idx];
+            const isExpense = detail.sign ? detail.sign === 'expense' : detail.amount < 0;
+            detail.sign = isExpense ? 'income' : 'expense';
+            detail.amount = (detail.sign === 'expense' ? -1 : 1) * Math.abs(Number(detail.amount) || 0);
+            renderDetailRows();
+        }
+
+        function updateDetailAbs(idx, absVal) {
+            const detail = currentDetailsList[idx];
+            const sign = (detail.sign ? detail.sign === 'expense' : detail.amount < 0) ? -1 : 1;
+            detail.amount = sign * absVal;
+        }
+
+        function addDetailRow() {
+            // デフォルト科目が支出系なら自動的にマイナス、収入系ならプラスにする
+            const defaultAccount = appData.accountItems[0] || "雑収入";
+            const isExpense = isDefaultExpense(defaultAccount);
+            currentDetailsList.push({ account: defaultAccount, content: "", amount: 0, sign: isExpense ? 'expense' : 'income' });
+            renderDetailRows();
+        }
+
+        // 明細合計から更新後残高を自動算出するボタン用
+        function calcNewBalanceFromDetails() {
+            const prevBal = parseFormattedNumber(document.getElementById("history-prev-balance").value);
+            const detailsSum = currentDetailsList.reduce((s, d) => s + (Number(d.amount) || 0), 0);
+            const newBal = prevBal + detailsSum;
+            document.getElementById("history-new-balance").value = newBal.toLocaleString();
+            renderDetailRows();
+        }
+
+        function removeDetailRow(idx) {
+            currentDetailsList.splice(idx, 1);
+            renderDetailRows();
+        }
+
+        function updateDetail(idx, field, val) {
+            currentDetailsList[idx][field] = val;
+        }
+
+        // --- 自動打ち消し処理 (要望1) ---
+        function applyAutoAdjustmentToNextHistory(assetId, targetDate, currentHistId = null) {
+            const asset = appData.assets.find(a => a.id === assetId);
+            if (!asset) return;
+
+            let histList = appData.histories.filter(h => h.assetId === assetId);
+            histList.sort((a, b) => new Date(a.date) - new Date(b.date) || a.id.localeCompare(b.id));
+
+            let nextHist = null;
+            if (currentHistId) {
+                const idx = histList.findIndex(h => h.id === currentHistId);
+                if (idx !== -1 && idx < histList.length - 1) {
+                    nextHist = histList[idx + 1];
+                }
+            } else {
+                nextHist = histList.find(h => new Date(h.date) >= new Date(targetDate));
+            }
+
+            if (!nextHist) return; // 直後の処理が存在しない（最新だった）場合は何もしない
+
+            // nextHist の直前の履歴を探す
+            const nextIdx = histList.findIndex(h => h.id === nextHist.id);
+            const prevHist = nextIdx > 0 ? histList[nextIdx - 1] : null;
+            const prevBalance = prevHist ? prevHist.newBalance : 0;
+            const currentNewBalance = nextHist.newBalance; // 更新後残高は維持する！
+
+            // 1. 既に雑収入や雑費が入っている場合は一旦削除する
+            let nonMiscDetails = (nextHist.details || []).filter(d => d.account !== '雑収入' && d.account !== '雑費');
+
+            // 2. 「雑収入・雑費以外の勘定項目」の金額合計
+            const otherDetailsSum = nonMiscDetails.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+
+            // 3. 更新後金額が変わらないようにする調整額を計算
+            const targetDiff = currentNewBalance - prevBalance;
+            const adjustment = targetDiff - otherDetailsSum;
+
+            let finalDetails = [...nonMiscDetails];
+            if (Math.abs(adjustment) > 0.001) {
+                let adjAccount;
+                if (asset.type === '資産') {
+                    adjAccount = adjustment >= 0 ? '雑収入' : '雑費';
+                } else {
+                    adjAccount = adjustment >= 0 ? '雑費' : '雑収入';
+                }
+                finalDetails.push({
+                    account: adjAccount,
+                    content: '自動打ち消し調整',
+                    amount: adjustment
+                });
+            }
+
+            nextHist.details = finalDetails;
+            nextHist.diff = targetDiff;
+        }
+
+        function saveHistoryItem() {
+            const id = document.getElementById("edit-history-id").value;
+            const assetId = document.getElementById("history-asset-id").value;
+            const date = document.getElementById("history-date").value;
+            const newBalance = parseFormattedNumber(document.getElementById("history-new-balance").value);
+
+            if(!date || isNaN(newBalance)) { alert("有効な日付と更新後残高を入力してください。"); return; }
+
+            // 過去履歴更新時の日付範囲バリデーション（要望3）
+            const dateInput = document.getElementById("history-date");
+            if (dateInput.min && date < dateInput.min) {
+                alert(`更新日付は「1個前の更新日（${dateInput.min}）」より以前には設定できません。`);
+                return;
+            }
+            if (dateInput.max && date > dateInput.max) {
+                alert(`更新日付は「1個後の更新日（${dateInput.max}）」以降には設定できません。`);
+                return;
+            }
+
+            const prevBal = parseFormattedNumber(document.getElementById("history-prev-balance").value);
+            const targetDiff = newBalance - prevBal;
+            const detailsSum = currentDetailsList.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+            const adjustment = targetDiff - detailsSum;
+
+            let finalDetails = JSON.parse(JSON.stringify(currentDetailsList));
+            if(Math.abs(adjustment) > 0.01) {
+                const asset = appData.assets.find(a => a.id === assetId);
+                const adjAccount = adjustment >= 0 ? (asset?.type === '資産' ? '雑収入' : '雑費') : (asset?.type === '資産' ? '雑費' : '雑収入');
+                finalDetails.push({ account: adjAccount, content: '自動調整残高差分', amount: adjustment });
+            }
+
+            if(id) {
+                const h = appData.histories.find(item => item.id === id);
+                if(h) {
+                    h.assetId = assetId;
+                    h.date = date;
+                    h.newBalance = newBalance;
+                    h.details = finalDetails;
+                    h.diff = targetDiff;
+                    // 編集時も直後の履歴の更新後残高を維持するための自動打ち消し処理を実行
+                    applyAutoAdjustmentToNextHistory(assetId, date, id);
+                }
+            } else {
+                const newHistId = 'hst_' + Date.now();
+                appData.histories.push({ id: newHistId, assetId, date, newBalance, details: finalDetails, diff: targetDiff });
+                // 新規取引追加時：直後の履歴の更新後残高が変わらないよう自動打ち消しを実行（要望1）
+                applyAutoAdjustmentToNextHistory(assetId, date, newHistId);
+            }
+
+            saveToLocalStorage();
+            closeHistoryModal();
+            renderAll();
+        }
+
+        function deleteHistory(id) {
+            const targetHist = appData.histories.find(h => h.id === id);
+            if(!targetHist) return;
+
+            if(confirm("この取引履歴を削除しますか？")) {
+                const assetId = targetHist.assetId;
+                const targetDate = targetHist.date;
+
+                appData.histories = appData.histories.filter(h => h.id !== id);
+
+                // 削除後：直後の履歴の更新後残高が変わらないよう自動打ち消しを実行（要望1）
+                applyAutoAdjustmentToNextHistory(assetId, targetDate, null);
+
+                saveToLocalStorage();
+                renderAll();
+            }
+        }
+
+        // --- Analytics Tab 1: Pie Charts ---
+        function renderPieAnalytics() {
+            renderPie1();
+            renderPie2();
+            renderPie3Filters();
+            renderPie3();
+        }
+
+        function renderPie1() {
+            let assetSum = 0, liabSum = 0;
+            appData.assets.forEach(a => {
+                const bal = getLatestBalance(a.id).balance;
+                if(a.type === '資産') assetSum += Math.max(0, bal);
+                else liabSum += Math.abs(bal);
+            });
+            const ctx = document.getElementById("pieChart1").getContext("2d");
+            if(pieChart1) pieChart1.destroy();
+            pieChart1 = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: ['資産', '負債'], datasets: [{ data: [assetSum, liabSum], backgroundColor: ['#3b82f6', '#ef4444'] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+            const total = assetSum + liabSum;
+            document.getElementById("pie-table-1").innerHTML = `
+                <tr><td class="p-2 font-medium text-blue-600">資産</td><td class="p-2 text-right font-bold">${formatCurrency(assetSum)}</td><td class="p-2 text-right text-gray-500">${total>0?((assetSum/total)*100).toFixed(1):0}%</td></tr>
+                <tr><td class="p-2 font-medium text-red-600">負債</td><td class="p-2 text-right font-bold">${formatCurrency(liabSum)}</td><td class="p-2 text-right text-gray-500">${total>0?((liabSum/total)*100).toFixed(1):0}%</td></tr>
+            `;
+        }
+
+        function renderPie2() {
+            const checkedTypes = Array.from(document.querySelectorAll("#tab-analytics-pie input[onchange*='renderPie2']:checked")).map(cb => cb.value);
+            const map = {};
+            appData.assets.forEach(a => {
+                if(!checkedTypes.includes(a.type)) return;
+                const bal = Math.abs(getLatestBalance(a.id).balance);
+                map[a.category] = (map[a.category] || 0) + bal;
+            });
+            const labels = Object.keys(map), values = Object.values(map), total = values.reduce((a,b)=>a+b,0);
+            const ctx = document.getElementById("pieChart2").getContext("2d");
+            if(pieChart2) pieChart2.destroy();
+            pieChart2 = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels, datasets: [{ data: values, backgroundColor: getPaletteColors(labels.length) }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+            document.getElementById("pie-table-2").innerHTML = labels.map((l, i) => `
+                <tr><td class="p-2 font-medium">${l}</td><td class="p-2 text-right font-bold">${formatCurrency(values[i])}</td><td class="p-2 text-right text-gray-500">${total>0?((values[i]/total)*100).toFixed(1):0}%</td></tr>
+            `).join('');
+        }
+
+        function renderPie3Filters() {
+            const typeDiv = document.getElementById("pie3-filter-type");
+            const checkedTypes = Array.from(typeDiv.querySelectorAll("input:checked")).map(cb => cb.value);
+
+            let availableCats = [];
+            if (checkedTypes.includes("資産")) availableCats.push(...(appData.assetCategories || []));
+            if (checkedTypes.includes("負債")) availableCats.push(...(appData.liabilityCategories || []));
+
+            const catDiv = document.getElementById("pie3-filter-cat");
+            const prevInputs = Array.from(catDiv.querySelectorAll("input"));
+            const prevKeys = prevInputs.map(cb => cb.value);
+            const prevChecked = prevInputs.filter(cb => cb.checked).map(cb => cb.value);
+
+            catDiv.innerHTML = availableCats.map(c => {
+                let isChecked = true;
+                if (prevKeys.length > 0) {
+                    isChecked = prevKeys.includes(c) ? prevChecked.includes(c) : true;
+                }
+                return `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${c}" ${isChecked ? 'checked' : ''} onchange="renderPie3()"> ${c}</label>`;
+            }).join('');
+        }
+
+        function onPie3TypeChange() {
+            renderPie3Filters();
+            renderPie3();
+        }
+
+        function renderPie3() {
+            const checkedTypes = Array.from(document.querySelectorAll("#pie3-filter-type input:checked")).map(cb => cb.value);
+            const checkedCats = Array.from(document.querySelectorAll("#pie3-filter-cat input:checked")).map(cb => cb.value);
+            const map = {};
+            appData.assets.forEach(a => {
+                if(checkedTypes.includes(a.type) && checkedCats.includes(a.category)) {
+                    map[a.name] = Math.abs(getLatestBalance(a.id).balance);
+                }
+            });
+            const labels = Object.keys(map), values = Object.values(map), total = values.reduce((a,b)=>a+b,0);
+            const ctx = document.getElementById("pieChart3").getContext("2d");
+            if(pieChart3) pieChart3.destroy();
+            pieChart3 = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels, datasets: [{ data: values, backgroundColor: getPaletteColors(labels.length) }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+            document.getElementById("pie-table-3").innerHTML = labels.map((l, i) => `
+                <tr><td class="p-2 font-medium">${l}</td><td class="p-2 text-right font-bold">${formatCurrency(values[i])}</td><td class="p-2 text-right text-gray-500">${total>0?((values[i]/total)*100).toFixed(1):0}%</td></tr>
+            `).join('');
+        }
+
+        // --- Analytics Tab 2: Trends ---
+        function renderTrendAnalytics() {
+            updateTrendDateRangeLimits();
+            renderTrend1Filters();
+            renderTrend1();
+            renderTrend2Filters();
+            renderTrend2();
+        }
+
+        function getTrendDateRange() {
+            const dates = Array.from(new Set(appData.histories.map(h => h.date).filter(Boolean))).sort();
+            return {
+                dates,
+                from: document.getElementById("trend-date-from").value || dates[0] || "",
+                to: document.getElementById("trend-date-to").value || dates[dates.length - 1] || ""
+            };
+        }
+
+        function updateTrendDateRangeLimits() {
+            const dates = Array.from(new Set(appData.histories.map(h => h.date).filter(Boolean))).sort();
+            const fromInput = document.getElementById("trend-date-from");
+            const toInput = document.getElementById("trend-date-to");
+            fromInput.min = toInput.min = dates[0] || "";
+            fromInput.max = toInput.max = dates[dates.length - 1] || "";
+            if(fromInput.value && (fromInput.value < fromInput.min || fromInput.value > fromInput.max)) fromInput.value = "";
+            if(toInput.value && (toInput.value < toInput.min || toInput.value > toInput.max)) toInput.value = "";
+        }
+
+        function onTrendDateRangeChange() {
+            const fromInput = document.getElementById("trend-date-from");
+            const toInput = document.getElementById("trend-date-to");
+            if(fromInput.value && toInput.value && fromInput.value > toInput.value) {
+                toInput.value = fromInput.value;
+            }
+            renderTrend1();
+            renderTrend2();
+        }
+
+        function resetTrendDateRange() {
+            document.getElementById("trend-date-from").value = "";
+            document.getElementById("trend-date-to").value = "";
+            onTrendDateRangeChange();
+        }
+
+        function getTrendTimeline() {
+            const { dates, from, to } = getTrendDateRange();
+            if(!dates.length || !from || !to || from > to) return [];
+            return Array.from(new Set([from, ...dates.filter(date => date >= from && date <= to), to])).sort();
+        }
+
+        function toLocalDateTimestamp(date) {
+            const [year, month, day] = date.split('-').map(Number);
+            return new Date(year, month - 1, day).getTime();
+        }
+
+        function formatTrendDate(timestamp) {
+            const date = new Date(timestamp);
+            return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function formatChartCurrency(amount) {
+            const value = Number(amount) || 0;
+            return `${value < 0 ? '-' : ''}¥${Math.abs(value).toLocaleString()}`;
+        }
+
+        function getBalanceAtDate(assetId, date) {
+            const history = appData.histories
+                .filter(item => item.assetId === assetId && item.date && item.date <= date)
+                .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+            return history.length ? history[0].newBalance : 0;
+        }
+
+        function renderTrend1Filters() {
+            const typeDiv = document.getElementById("trend1-filter-type");
+            const checkedTypes = Array.from(typeDiv.querySelectorAll("input:checked")).map(cb => cb.value);
+
+            let availableCats = [];
+            if (checkedTypes.includes("資産")) availableCats.push(...(appData.assetCategories || []));
+            if (checkedTypes.includes("負債")) availableCats.push(...(appData.liabilityCategories || []));
+
+            const catDiv = document.getElementById("trend1-filter-cat");
+            const prevInputs = Array.from(catDiv.querySelectorAll("input"));
+            const prevKeys = prevInputs.map(cb => cb.value);
+            const prevChecked = prevInputs.filter(cb => cb.checked).map(cb => cb.value);
+
+            catDiv.innerHTML = availableCats.map(c => {
+                let isChecked = true;
+                if (prevKeys.length > 0) {
+                    isChecked = prevKeys.includes(c) ? prevChecked.includes(c) : true;
+                }
+                return `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${c}" ${isChecked ? 'checked' : ''} onchange="renderTrend1()"> ${c}</label>`;
+            }).join('');
+        }
+
+        function onTrend1TypeChange() {
+            renderTrend1Filters();
+            renderTrend1();
+        }
+
+        function renderTrend1() {
+            const checkedTypes = Array.from(document.querySelectorAll("#trend1-filter-type input:checked")).map(cb => cb.value);
+            const checkedCats = Array.from(document.querySelectorAll("#trend1-filter-cat input:checked")).map(cb => cb.value);
+            const chartType = document.getElementById("trend1-chart-type").value;
+
+            const dates = getTrendTimeline();
+
+            const targetAssets = appData.assets.filter(a => checkedTypes.includes(a.type) && checkedCats.includes(a.category));
+            const netData = dates.map(d => {
+                let sum = 0;
+                targetAssets.forEach(a => {
+                    const balance = getBalanceAtDate(a.id, d);
+                    if(a.type === '資産') sum += balance; else sum -= balance;
+                });
+                return sum;
+            });
+
+            // 赤字圏のときは赤色（#ef4444）にする設定
+            const pointColors = netData.map(v => v < 0 ? '#ef4444' : '#4f46e5');
+            const barColors = netData.map(v => v < 0 ? '#ef4444' : '#4f46e5');
+
+            const ctx = document.getElementById("trendChart1").getContext("2d");
+            if(trendChart1) trendChart1.destroy();
+            trendChart1 = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    datasets: [{
+                        label: '純資産',
+                        data: dates.map((date, idx) => ({ x: toLocalDateTimestamp(date), y: netData[idx] })),
+                        borderColor: '#4f46e5',
+                        backgroundColor: chartType === 'bar' ? barColors : '#4f46e5',
+                        pointBackgroundColor: pointColors,
+                        pointBorderColor: pointColors,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
+                        barThickness: 8,
+                        segment: chartType === 'line' ? {
+                            borderColor: ctx => (ctx.p0.parsed.y < 0 || ctx.p1.parsed.y < 0) ? '#ef4444' : '#4f46e5'
+                        } : undefined,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                title: items => items.length ? formatTrendDate(items[0].parsed.x) : '',
+                                label: item => `純資産: ${formatChartCurrency(item.parsed.y)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: { display: true, text: '日付' },
+                            ticks: { maxTicksLimit: 8, callback: value => formatTrendDate(value) }
+                        },
+                        y: {
+                            title: { display: true, text: '純資産 (円)' },
+                            ticks: { callback: value => formatChartCurrency(value) }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTrend2Filters() {
+            const typeDiv = document.getElementById("trend2-filter-type");
+            const checkedTypes = Array.from(typeDiv.querySelectorAll("input:checked")).map(cb => cb.value);
+
+            let availableCats = [];
+            if (checkedTypes.includes("資産")) availableCats.push(...(appData.assetCategories || []));
+            if (checkedTypes.includes("負債")) availableCats.push(...(appData.liabilityCategories || []));
+
+            const catDiv = document.getElementById("trend2-filter-cat");
+            const prevInputs = Array.from(catDiv.querySelectorAll("input"));
+            const prevKeys = prevInputs.map(cb => cb.value);
+            const prevChecked = prevInputs.filter(cb => cb.checked).map(cb => cb.value);
+
+            catDiv.innerHTML = availableCats.map(c => {
+                let isChecked = true;
+                if (prevKeys.length > 0) {
+                    isChecked = prevKeys.includes(c) ? prevChecked.includes(c) : true;
+                }
+                return `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${c}" ${isChecked ? 'checked' : ''} onchange="renderTrend2()"> ${c}</label>`;
+            }).join('');
+        }
+
+        function onTrend2TypeChange() {
+            renderTrend2Filters();
+            renderTrend2();
+        }
+
+        function renderTrend2() {
+            const checkedTypes = Array.from(document.querySelectorAll("#trend2-filter-type input:checked")).map(cb => cb.value);
+            const checkedCats = Array.from(document.querySelectorAll("#trend2-filter-cat input:checked")).map(cb => cb.value);
+            const chartType = document.getElementById("trend2-chart-type").value;
+
+            const dates = getTrendTimeline();
+
+            const targetAssets = appData.assets.filter(a => checkedTypes.includes(a.type) && checkedCats.includes(a.category));
+            const datasets = targetAssets.map((a, idx) => {
+                const color = getPaletteColors(idx + 1)[idx];
+                const data = dates.map(date => ({ x: toLocalDateTimestamp(date), y: getBalanceAtDate(a.id, date) }));
+                return {
+                    label: a.name,
+                    data,
+                    borderColor: color,
+                    backgroundColor: color,
+                    tension: 0.1,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    maxBarThickness: 8
+                };
+            });
+
+            const ctx = document.getElementById("trendChart2").getContext("2d");
+            if(trendChart2) trendChart2.destroy();
+            trendChart2 = new Chart(ctx, {
+                type: chartType,
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                title: items => items.length ? formatTrendDate(items[0].parsed.x) : '',
+                                label: item => `${item.dataset.label}: ${formatChartCurrency(item.parsed.y)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            title: { display: true, text: '日付' },
+                            ticks: { maxTicksLimit: 8, callback: value => formatTrendDate(value) }
+                        },
+                        y: {
+                            title: { display: true, text: '残高 (円)' },
+                            ticks: { callback: value => formatChartCurrency(value) }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Analytics Tab 3: Monthly Summary & Pivot (フィルター連動リアルタイム更新) ---
+        let currentSelectedMonthlyYM = null;
+
+        function renderMonthlyAnalytics() {
+            renderMonthlyFilters();
+            renderMonthlyTable();
+        }
+
+        function renderMonthlyFilters() {
+            const typeDiv = document.getElementById("monthly-filter-type");
+            const checkedTypes = Array.from(typeDiv.querySelectorAll("input:checked")).map(cb => cb.value);
+
+            let availableCats = [];
+            if (checkedTypes.includes("資産")) availableCats.push(...(appData.assetCategories || []));
+            if (checkedTypes.includes("負債")) availableCats.push(...(appData.liabilityCategories || []));
+
+            const catDiv = document.getElementById("monthly-filter-cat");
+            const prevCatInputs = Array.from(catDiv.querySelectorAll("input"));
+            const prevCatKeys = prevCatInputs.map(cb => cb.value);
+            const prevCatChecked = prevCatInputs.filter(cb => cb.checked).map(cb => cb.value);
+
+            catDiv.innerHTML = availableCats.map(c => {
+                let isChecked = true;
+                if (prevCatKeys.length > 0) {
+                    isChecked = prevCatKeys.includes(c) ? prevCatChecked.includes(c) : true;
+                }
+                return `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${c}" ${isChecked ? 'checked' : ''} onchange="renderMonthlyFilters(); renderMonthlyTable();"> ${c}</label>`;
+            }).join('');
+
+            const selectedCats = Array.from(catDiv.querySelectorAll("input:checked")).map(cb => cb.value);
+
+            const itemDiv = document.getElementById("monthly-filter-item");
+            const prevItemInputs = Array.from(itemDiv.querySelectorAll("input"));
+            const prevItemKeys = prevItemInputs.map(cb => cb.value);
+            const prevItemChecked = prevItemInputs.filter(cb => cb.checked).map(cb => cb.value);
+
+            const validItems = appData.assets.filter(a => checkedTypes.includes(a.type) && selectedCats.includes(a.category));
+            itemDiv.innerHTML = validItems.map(item => {
+                let isChecked = true;
+                if (prevItemKeys.length > 0) {
+                    isChecked = prevItemKeys.includes(item.id) ? prevItemChecked.includes(item.id) : true;
+                }
+                return `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${item.id}" ${isChecked ? 'checked' : ''} onchange="renderMonthlyTable();"> ${item.name}</label>`;
+            }).join('');
+
+            const accDiv = document.getElementById("monthly-filter-account");
+            const prevAccInputs = Array.from(accDiv.querySelectorAll("input"));
+            const prevAccKeys = prevAccInputs.map(cb => cb.value);
+            const prevAccChecked = prevAccInputs.filter(cb => cb.checked).map(cb => cb.value);
+
+            accDiv.innerHTML = appData.accountItems.map(ac => {
+                let isChecked = true;
+                if (prevAccKeys.length > 0) {
+                    isChecked = prevAccKeys.includes(ac) ? prevAccChecked.includes(ac) : true;
+                }
+                return `<label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" value="${ac}" ${isChecked ? 'checked' : ''} onchange="renderMonthlyTable();"> ${ac}</label>`;
+            }).join('');
+        }
+
+        function onMonthlyTypeChange() {
+            renderMonthlyFilters();
+            renderMonthlyTable();
+        }
+
+        function onMonthlyMonthChange() {
+            currentSelectedMonthlyYM = document.getElementById("monthly-month-select").value || null;
+            renderMonthlyTable();
+        }
+
+        function renderMonthlyTable() {
+            const selectedTypes = Array.from(document.querySelectorAll("#monthly-filter-type input:checked")).map(cb => cb.value);
+            const selectedCats = Array.from(document.querySelectorAll("#monthly-filter-cat input:checked")).map(cb => cb.value);
+            const selectedItemIds = Array.from(document.querySelectorAll("#monthly-filter-item input:checked")).map(cb => cb.value);
+            const selectedAccs = Array.from(document.querySelectorAll("#monthly-filter-account input:checked")).map(cb => cb.value);
+
+            const monthlyMap = Object.create(null);
+
+            appData.histories.forEach(h => {
+                const asset = appData.assets.find(a => a.id === h.assetId);
+                if(!asset) return;
+                if(!selectedTypes.includes(asset.type) || !selectedCats.includes(asset.category) || !selectedItemIds.includes(asset.id)) return;
+                if(!h.date) return;
+                const ym = h.date.slice(0, 7);
+
+                (h.details || []).forEach(d => {
+                    if(!selectedAccs.includes(d.account)) return;
+                    // 初期残高は月次収支に含めない（純粋な家計収支として見るため）
+                    if(d.content === '初期残高') return;
+
+                    if(!monthlyMap[ym]) monthlyMap[ym] = { income: 0, expense: 0, details: [], incomeByAccount: Object.create(null), expenseByAccount: Object.create(null) };
+                    const { incomeAmount, expenseAmount } = getMonthlyIncomeExpense(d.amount, asset.type);
+
+                    monthlyMap[ym].income += incomeAmount;
+                    monthlyMap[ym].expense += expenseAmount;
+                    if(incomeAmount > 0) monthlyMap[ym].incomeByAccount[d.account] = (monthlyMap[ym].incomeByAccount[d.account] || 0) + incomeAmount;
+                    if(expenseAmount > 0) monthlyMap[ym].expenseByAccount[d.account] = (monthlyMap[ym].expenseByAccount[d.account] || 0) + expenseAmount;
+                    monthlyMap[ym].details.push({ ...d, _incomeAmount: incomeAmount, _expenseAmount: expenseAmount });
+                });
+            });
+
+            const tbody = document.getElementById("monthly-summary-body");
+            tbody.innerHTML = "";
+
+            const sortedYms = Object.keys(monthlyMap).sort().reverse();
+            const monthSelect = document.getElementById("monthly-month-select");
+            if(!currentSelectedMonthlyYM || !monthlyMap[currentSelectedMonthlyYM]) currentSelectedMonthlyYM = sortedYms[0] || null;
+            monthSelect.innerHTML = sortedYms.length
+                ? sortedYms.map(ym => `<option value="${ym}" ${ym === currentSelectedMonthlyYM ? 'selected' : ''}>${ym}</option>`).join('')
+                : '<option value="">収支データなし</option>';
+            monthSelect.disabled = sortedYms.length === 0;
+            if(sortedYms.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-400">収支データがありません</td></tr>`;
+                document.getElementById("monthly-pie-title").innerText = "収入・支出内訳 (収支データがありません)";
+                renderMonthlyStackedChart(null, null);
+                showMonthlyPie("");
+                return;
+            }
+
+            const ym = currentSelectedMonthlyYM;
+            renderMonthlyStackedChart(ym, monthlyMap[ym]);
+            if(ym) {
+                const m = monthlyMap[ym];
+                const net = m.income - m.expense;
+                // 内訳表示: 収入・支出それぞれを色分けして表示
+                const detailHtml = m.details.map(d => {
+                    const isInc = d._incomeAmount > 0;
+                    const isExp = d._expenseAmount > 0;
+                    const tag = isInc ? `<span class="text-blue-600">収入+${d._incomeAmount.toLocaleString()}円</span>` 
+                               : isExp ? `<span class="text-red-600">支出-${d._expenseAmount.toLocaleString()}円</span>` : '';
+                    return `${d.account} | ${d.content}: ${tag}`;
+                }).join('<br>');
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 border-b border-gray-100";
+                tr.innerHTML = `
+                    <td class="p-3 font-medium text-gray-800">${ym}</td>
+                    <td class="p-3 text-right text-blue-600 font-semibold">${formatCurrency(m.income)}</td>
+                    <td class="p-3 text-right text-red-600 font-semibold">${formatCurrency(m.expense)}</td>
+                    <td class="p-3 text-right font-bold">${formatCurrency(net)}${net >= 0 ? ' <span class="text-[10px] text-blue-600">黒字</span>' : ' <span class="text-[10px] text-red-600">赤字</span>'}</td>
+                    <td class="p-3 text-xs text-gray-700 leading-relaxed">${detailHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+
+            if(currentSelectedMonthlyYM) {
+                showMonthlyPie(currentSelectedMonthlyYM);
+            }
+        }
+
+        function getMonthlyIncomeExpense(amount, assetType) {
+            const value = Number(amount) || 0;
+            if(assetType === '資産') {
+                return { incomeAmount: Math.max(value, 0), expenseAmount: Math.max(-value, 0) };
+            }
+            return { incomeAmount: Math.max(-value, 0), expenseAmount: Math.max(value, 0) };
+        }
+
+        function renderMonthlyStackedChart(ym, monthData) {
+            const title = document.getElementById("monthly-comparison-title");
+            const summary = document.getElementById("monthly-comparison-summary");
+            title.innerText = ym ? `${ym} の収入・支出比較 (科目別)` : "選択月の収入・支出比較 (科目別)";
+
+            const incomeMap = monthData?.incomeByAccount || {};
+            const expenseMap = monthData?.expenseByAccount || {};
+            const accounts = Array.from(new Set([...Object.keys(incomeMap), ...Object.keys(expenseMap)]));
+            const totalIncome = monthData?.income || 0;
+            const totalExpense = monthData?.expense || 0;
+            const net = totalIncome - totalExpense;
+            const largestExpense = Object.entries(expenseMap).sort((a, b) => b[1] - a[1])[0];
+            const expenseShare = totalExpense > 0 && largestExpense ? (largestExpense[1] / totalExpense * 100).toFixed(1) : "0.0";
+            summary.innerHTML = `
+                <div class="bg-white rounded border p-2"><span class="text-xs text-gray-500 block">収入合計</span><b class="text-blue-700">${totalIncome.toLocaleString()}円</b></div>
+                <div class="bg-white rounded border p-2"><span class="text-xs text-gray-500 block">支出合計 / 収支</span><b class="text-red-700">${totalExpense.toLocaleString()}円</b> <span class="${net >= 0 ? 'text-blue-700' : 'text-red-700'}">(${net >= 0 ? '+' : '−'}${Math.abs(net).toLocaleString()}円)</span></div>
+                <div class="bg-white rounded border p-2"><span class="text-xs text-gray-500 block">最大の支出科目</span><b>${largestExpense ? `${largestExpense[0]} (${largestExpense[1].toLocaleString()}円 / ${expenseShare}%)` : '—'}</b></div>
+            `;
+
+            const ctx = document.getElementById("monthlyStackedChart").getContext("2d");
+            if(monthlyStackedChartInstance) monthlyStackedChartInstance.destroy();
+            const colors = getPaletteColors(accounts.length);
+            monthlyStackedChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['収入', '支出'],
+                    datasets: accounts.map((account, idx) => ({
+                        label: account,
+                        data: [incomeMap[account] || 0, expenseMap[account] || 0],
+                        backgroundColor: colors[idx],
+                        stack: 'income-expense'
+                    }))
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                title: items => items.length ? `${items[0].label}の内訳` : '',
+                                label: context => `${context.dataset.label}: ${context.parsed.y.toLocaleString()}円`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { stacked: true },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            title: { display: true, text: '金額 (円)' },
+                            ticks: { callback: value => formatChartCurrency(value) }
+                        }
+                    }
+                }
+            });
+        }
+
+        function showMonthlyPie(ym) {
+            currentSelectedMonthlyYM = ym || null;
+            document.getElementById("monthly-pie-title").innerText = ym
+                ? `${ym} の収入・支出内訳 (フィルター連動)`
+                : "収入・支出内訳 (収支データがありません)";
+
+            const selectedTypes = Array.from(document.querySelectorAll("#monthly-filter-type input:checked")).map(cb => cb.value);
+            const selectedCats = Array.from(document.querySelectorAll("#monthly-filter-cat input:checked")).map(cb => cb.value);
+            const selectedItemIds = Array.from(document.querySelectorAll("#monthly-filter-item input:checked")).map(cb => cb.value);
+            const selectedAccs = Array.from(document.querySelectorAll("#monthly-filter-account input:checked")).map(cb => cb.value);
+
+            const incomeMap = Object.create(null);
+            const expenseMap = Object.create(null);
+            appData.histories.forEach(h => {
+                const asset = appData.assets.find(a => a.id === h.assetId);
+                if(!asset) return;
+                if(!selectedTypes.includes(asset.type) || !selectedCats.includes(asset.category) || !selectedItemIds.includes(asset.id)) return;
+                if(!ym || !h.date || !h.date.startsWith(ym)) return;
+
+                (h.details || []).forEach(d => {
+                    if(!selectedAccs.includes(d.account) || d.content === '初期残高') return;
+                    const { incomeAmount, expenseAmount } = getMonthlyIncomeExpense(d.amount, asset.type);
+                    if(incomeAmount > 0) incomeMap[d.account] = (incomeMap[d.account] || 0) + incomeAmount;
+                    if(expenseAmount > 0) expenseMap[d.account] = (expenseMap[d.account] || 0) + expenseAmount;
+                });
+            });
+
+            const renderPie = (canvasId, totals, instance) => {
+                const labels = Object.keys(totals);
+                const ctx = document.getElementById(canvasId).getContext("2d");
+                if(instance) instance.destroy();
+                return new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { labels, datasets: [{ data: Object.values(totals), backgroundColor: getPaletteColors(labels.length) }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+                });
+            };
+            monthlyIncomePieChartInstance = renderPie("monthlyIncomePieChart", incomeMap, monthlyIncomePieChartInstance);
+            monthlyExpensePieChartInstance = renderPie("monthlyExpensePieChart", expenseMap, monthlyExpensePieChartInstance);
+        }
+
+        // --- Settings (資産・負債カテゴリ分離管理, 長いテキスト対応) ---
+        function initSettings() {
+            renderSettings();
+            const catSelect = document.getElementById("custom-field-category");
+            let optionsHtml = `<option value="ALL">全カテゴリ共通</option>`;
+            if (appData.assetCategories && appData.assetCategories.length > 0) {
+                optionsHtml += `<optgroup label="資産カテゴリ">` + appData.assetCategories.map(c => `<option value="${c}">${c}</option>`).join('') + `</optgroup>`;
+            }
+            if (appData.liabilityCategories && appData.liabilityCategories.length > 0) {
+                optionsHtml += `<optgroup label="負債カテゴリ">` + appData.liabilityCategories.map(c => `<option value="${c}">${c}</option>`).join('') + `</optgroup>`;
+            }
+            catSelect.innerHTML = optionsHtml;
+        }
+
+        function renderSettings() {
+            document.getElementById("asset-category-list").innerHTML = (appData.assetCategories || []).map((c, i) => `
+                <li class="py-2 flex justify-between items-center"><span class="font-medium text-gray-700">${c}</span><button onclick="deleteAssetCategory(${i})" class="text-red-500 hover:text-red-700 text-xs cursor-pointer"><i class="fa-solid fa-trash"></i></button></li>
+            `).join('');
+
+            document.getElementById("liability-category-list").innerHTML = (appData.liabilityCategories || []).map((c, i) => `
+                <li class="py-2 flex justify-between items-center"><span class="font-medium text-gray-700">${c}</span><button onclick="deleteLiabilityCategory(${i})" class="text-red-500 hover:text-red-700 text-xs cursor-pointer"><i class="fa-solid fa-trash"></i></button></li>
+            `).join('');
+
+            document.getElementById("account-list").innerHTML = (appData.accountItems || []).map((ac, i) => `
+                <li class="py-2 flex justify-between items-center"><span class="font-medium text-gray-700">${ac}</span><button onclick="deleteAccountItem(${i})" class="text-red-500 hover:text-red-700 text-xs cursor-pointer"><i class="fa-solid fa-trash"></i></button></li>
+            `).join('');
+
+            const typeLabels = {
+                text: 'テキスト (1行)',
+                textarea: '長いテキスト (段落)',
+                select: 'プルダウン',
+                checkbox: 'チェックボックス',
+                date: '日付',
+                number: '数値'
+            };
+
+            document.getElementById("custom-field-list").innerHTML = (appData.customFields || []).map((cf, i) => `
+                <li class="py-2 flex justify-between items-center"><div><span class="font-medium text-gray-800">${cf.name}</span><span class="text-xs text-gray-400 ml-1">(${cf.categoryName==='ALL'?'共通':cf.categoryName} / ${typeLabels[cf.type] || cf.type})</span></div><button onclick="deleteCustomField(${i})" class="text-red-500 hover:text-red-700 text-xs cursor-pointer"><i class="fa-solid fa-trash"></i></button></li>
+            `).join('');
+        }
+
+        function addAssetCategory() {
+            const input = document.getElementById("new-asset-category-input");
+            const val = input.value.trim();
+            if(val && !appData.assetCategories.includes(val)) {
+                appData.assetCategories.push(val);
+                input.value = "";
+                saveToLocalStorage();
+                initSettings();
+                renderAll();
+            }
+        }
+
+        function deleteAssetCategory(i) {
+            const cat = appData.assetCategories[i];
+            const usedBy = appData.assets.filter(a => a.category === cat && a.type === '資産').map(a => a.name);
+            if(usedBy.length > 0) {
+                alert(`カテゴリ「${cat}」は以下の資産項目で使用中のため削除できません:\n・${usedBy.join('\n・')}`);
+                return;
+            }
+            if(confirm(`資産カテゴリ「${cat}」を削除しますか？`)) {
+                appData.assetCategories.splice(i, 1);
+                saveToLocalStorage();
+                initSettings();
+                renderAll();
+            }
+        }
+
+        function addLiabilityCategory() {
+            const input = document.getElementById("new-liability-category-input");
+            const val = input.value.trim();
+            if(val && !appData.liabilityCategories.includes(val)) {
+                appData.liabilityCategories.push(val);
+                input.value = "";
+                saveToLocalStorage();
+                initSettings();
+                renderAll();
+            }
+        }
+
+        function deleteLiabilityCategory(i) {
+            const cat = appData.liabilityCategories[i];
+            const usedBy = appData.assets.filter(a => a.category === cat && a.type === '負債').map(a => a.name);
+            if(usedBy.length > 0) {
+                alert(`カテゴリ「${cat}」は以下の負債項目で使用中のため削除できません:\n・${usedBy.join('\n・')}`);
+                return;
+            }
+            if(confirm(`負債カテゴリ「${cat}」を削除しますか？`)) {
+                appData.liabilityCategories.splice(i, 1);
+                saveToLocalStorage();
+                initSettings();
+                renderAll();
+            }
+        }
+
+        function addAccountItem() {
+            const input = document.getElementById("new-account-input");
+            const val = input.value.trim();
+            if(val && !appData.accountItems.includes(val)) { appData.accountItems.push(val); input.value=""; saveToLocalStorage(); renderAll(); }
+        }
+
+        function deleteAccountItem(i) {
+            const acc = appData.accountItems[i];
+            // 勘定科目が取引履歴で使用中かチェック
+            const usedInHistories = appData.histories.some(h => h.details && h.details.some(d => d.account === acc));
+            if(usedInHistories) {
+                alert(`勘定科目「${acc}」は既存の取引履歴で使用中のため削除できません。\n（削除すると該当履歴が一覧に表示されなくなります）`);
+                return;
+            }
+            if(confirm(`勘定科目「${acc}」を削除しますか？`)) {
+                appData.accountItems.splice(i,1);
+                saveToLocalStorage();
+                renderAll();
+            }
+        }
+
+        function addCustomFieldDefine() {
+            const categoryName = document.getElementById("custom-field-category").value;
+            const name = document.getElementById("custom-field-name").value.trim();
+            const type = document.getElementById("custom-field-type").value;
+            const options = document.getElementById("custom-field-options").value.trim();
+            if(!name) { alert("項目名を入力してください。"); return; }
+            appData.customFields.push({ id: 'cf_def_' + Date.now(), categoryName, name, type, options });
+            document.getElementById("custom-field-name").value="";
+            document.getElementById("custom-field-options").value="";
+            saveToLocalStorage();
+            renderSettings();
+        }
+
+        function deleteCustomField(i) {
+            if(confirm("独自項目を削除しますか？")) {
+                appData.customFields.splice(i,1);
+                saveToLocalStorage();
+                renderSettings();
+            }
+        }
+    </script>
+</body>
+</html>
