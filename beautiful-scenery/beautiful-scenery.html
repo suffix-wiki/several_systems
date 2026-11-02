@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visual Sanctuary 12.0 - ヒーリング・ビジュアルギャラリー</title>
+  <style>
+    :root {
+      --bg-color: #0b0d17;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --accent-color: #7b2cbf;
+      --accent-light: #9d4edd;
+      --text-main: #f8f9fa;
+      --text-sub: #adb5bd;
+      --border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* ヘッダー */
+    header {
+      background: rgba(11, 13, 23, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, #e0aaff, #c77dff, #7b2cbf);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .controls-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 4px 12px;
+      transition: all 0.3s;
+    }
+
+    .search-box:focus-within {
+      border-color: var(--accent-light);
+      box-shadow: 0 0 10px rgba(157, 78, 221, 0.3);
+    }
+
+    .search-box input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 0.85rem;
+      width: 140px;
+      padding: 4px;
+    }
+
+    .search-box button {
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    button.btn-icon {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    button[hidden] {
+      display: none;
+    }
+
+    button.btn-icon:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: var(--accent-light);
+    }
+
+    /* ナビゲーション（カテゴリタブ） */
+    nav.category-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 10px 20px;
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      scrollbar-width: none;
+    }
+
+    nav.category-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-sub);
+      padding: 6px 16px;
+      border-radius: 16px;
+      white-space: nowrap;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.25s;
+    }
+
+    .tab-btn.active, .tab-btn:hover {
+      background: linear-gradient(135deg, var(--accent-color), var(--accent-light));
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 2px 10px rgba(123, 44, 191, 0.4);
+    }
+
+    /* メインコンテンツ（3×3 グリッド） */
+    main {
+      flex: 1;
+      padding: 16px 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      width: 100%;
+    }
+
+    .grid-message {
+      grid-column: 1 / -1;
+      text-align: center;
+      color: var(--text-sub);
+      padding: 48px 16px;
+      line-height: 1.7;
+    }
+
+    .load-more {
+      grid-column: 1 / -1;
+      justify-self: center;
+      margin: 8px 0 16px;
+    }
+
+    @media (max-width: 850px) {
+      .grid-container {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 550px) {
+      .grid-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      position: relative;
+      background: var(--card-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      aspect-ratio: 16 / 10;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 15px rgba(157, 78, 221, 0.3);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .card img, .card canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: opacity 0.3s ease;
+    }
+
+    .card img {
+      animation: image-arrive 1.2s ease both;
+    }
+
+    @keyframes image-arrive {
+      from { opacity: 0; transform: scale(1.025); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .card img { animation: none; }
+    }
+
+    .card .card-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      display: flex;
+      justify-content: flex-end;
+      align-items: flex-end;
+      padding: 12px;
+      gap: 8px;
+    }
+
+    .card:hover .card-overlay {
+      opacity: 1;
+    }
+
+    .card-btn {
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .card-btn:hover {
+      background: var(--accent-light);
+    }
+
+    .card-source {
+      position: absolute;
+      left: 10px;
+      bottom: 10px;
+      background: rgba(0, 0, 0, 0.62);
+      border-radius: 12px;
+      padding: 3px 8px;
+      color: #fff;
+      font-size: 0.72rem;
+      pointer-events: none;
+    }
+
+    /* サウンドバー & タイマーコントロール */
+    .bottom-bar {
+      background: rgba(11, 13, 23, 0.9);
+      border-top: 1px solid var(--border-color);
+      padding: 10px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      bottom: 0;
+      z-index: 90;
+    }
+
+    .sound-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .volume-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--text-sub);
+    }
+
+    .volume-box input[type="range"] {
+      width: 80px;
+      accent-color: var(--accent-light);
+      cursor: pointer;
+    }
+
+    select.custom-select {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 16px;
+      outline: none;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    select.custom-select option {
+      background: #151828;
+      color: #fff;
+    }
+
+    /* モーダル */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.92);
+      backdrop-filter: blur(15px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-content {
+      position: relative;
+      max-width: 90vw;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .modal.pseudo-fullscreen .modal-content,
+    .modal:fullscreen .modal-content {
+      width: 100vw;
+      height: 100vh;
+      max-width: none;
+      max-height: none;
+      justify-content: center;
+      padding: 48px 16px 16px;
+    }
+
+    .modal-media-container {
+      width: 100%;
+      max-height: 80vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+    }
+
+    .modal-media-container img, .modal-media-container canvas {
+      max-width: 100%;
+      max-height: 80vh;
+      object-fit: contain;
+    }
+
+    .modal.pseudo-fullscreen .modal-media-container,
+    .modal:fullscreen .modal-media-container {
+      flex: 1;
+      min-height: 0;
+      max-height: none;
+      width: 100%;
+      background: #000;
+    }
+
+    .modal.pseudo-fullscreen .modal-media-container img,
+    .modal.pseudo-fullscreen .modal-media-container canvas,
+    .modal:fullscreen .modal-media-container img,
+    .modal:fullscreen .modal-media-container canvas {
+      max-height: 100%;
+    }
+
+    .modal-actions {
+      margin-top: 15px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .slideshow-controls, .feedback-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slideshow-controls input[type="number"] {
+      width: 76px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      color: var(--text-main);
+      padding: 6px 8px;
+    }
+
+    .modal-status {
+      min-height: 1.4em;
+      color: var(--text-sub);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    .close-modal {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 1.8rem;
+      cursor: pointer;
+    }
+
+    /* カテゴリ管理モーダル */
+    .manage-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 1050;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .manage-modal.active {
+      display: flex;
+    }
+
+    .manage-box {
+      background: #16192b;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      width: 90%;
+      max-width: 480px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .manage-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    .manage-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      max-height: 300px;
+      padding-right: 4px;
+    }
+
+    .manage-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .manage-item-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .add-cat-form {
+      display: flex;
+      gap: 8px;
+    }
+
+    .add-cat-form input {
+      flex: 1;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #fff;
+      outline: none;
+    }
+
+    .spinner {
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border-left-color: var(--accent-light);
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ヘッダー -->
+  <header>
+    <div class="logo">
+      <span>✨</span> Visual Sanctuary
+    </div>
+    
+    <div class="controls-top">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="見たいテーマを検索..." />
+        <button id="searchBtn">🔍</button>
+      </div>
+      
+      <button class="btn-icon" id="manageCatBtn">⚙️ カテゴリ編集</button>
+      <button class="btn-icon" id="refreshBtn">🔄 一括更新</button>
+    </div>
+  </header>
+
+  <!-- カテゴリタブ -->
+  <nav class="category-bar" id="categoryBar">
+    <!-- JSで動的生成 -->
+  </nav>
+
+  <!-- 3×3 メイン表示エリア -->
+  <main>
+    <div class="grid-container" id="gridContainer">
+      <!-- 9つのカードがJSで生成されます -->
+    </div>
+  </main>
+
+  <!-- サウンド＆タイマー制御バー -->
+  <div class="bottom-bar">
+    <div class="sound-controls">
+      <button class="btn-icon" id="audioToggleBtn">🔊 サウンド: OFF</button>
+      <select class="custom-select" id="soundPresetSelect">
+        <option value="ocean">🌊 凪の波音</option>
+        <option value="rain">🌧️ 恵みの雨</option>
+        <option value="space">🌌 宇宙ドローン</option>
+        <option value="fire">🔥 揺らめく焚き火</option>
+        <option value="wind">🍃 高原のそよ風</option>
+        <option value="deep_ocean">🐬 深海アンビエント</option>
+        <option value="stream">🏞️ 清流のせせらぎ</option>
+        <option value="bowl">🥣 クリスタルボウル</option>
+        <option value="crystal_rain">💎 水晶のような雨音</option>
+        <option value="zen">🔔 間をおいて響く瞑想ベル</option>
+      </select>
+      
+      <div class="volume-box">
+        <span>🔈</span>
+        <input type="range" id="volumeSlider" min="0" max="100" step="1" value="35" aria-label="サウンド音量">
+        <output id="volumeValue" for="volumeSlider">35%</output>
+        <span>🔊</span>
+      </div>
+    </div>
+
+    <div class="sound-controls">
+      <span style="font-size:0.85rem; color:var(--text-sub);">自動切り替え:</span>
+      <select class="custom-select" id="timerSelect">
+        <option value="0">OFF（手動のみ）</option>
+        <option value="15">15秒</option>
+        <option value="30">30秒</option>
+        <option value="60" selected>1分</option>
+        <option value="custom">カスタム</option>
+      </select>
+      <label id="customIntervalLabel" hidden><input type="number" id="customIntervalInput" min="5" max="3600" value="90" style="width:72px"> 秒</label>
+    </div>
+  </div>
+
+  <!-- 拡大・全画面表示モーダル -->
+  <div class="modal" id="mediaModal">
+    <div class="modal-content">
+      <button class="close-modal" id="closeModalBtn">&times;</button>
+      <div class="modal-media-container" id="modalMediaContainer"></div>
+      <div class="modal-actions">
+        <div class="slideshow-controls">
+          <button class="btn-icon" id="previousImageBtn" aria-label="前の画像">◀ 前へ</button>
+          <button class="btn-icon" id="nextImageBtn" aria-label="次の画像">次へ ▶</button>
+          <select class="custom-select" id="modalTimerSelect" aria-label="全画面の画像切り替え">
+            <option value="0">切り替え OFF</option>
+            <option value="15">15秒</option>
+            <option value="30">30秒</option>
+            <option value="60" selected>1分</option>
+            <option value="custom">カスタム</option>
+          </select>
+          <label id="modalCustomIntervalLabel" hidden><input type="number" id="modalCustomIntervalInput" min="5" max="3600" value="90" style="width:72px"> 秒</label>
+        </div>
+        <button class="btn-icon" id="downloadBtn">📥 画像を保存</button>
+        <button class="btn-icon" id="fullscreenBtn">⛶ 全画面表示</button>
+        <div class="feedback-controls">
+          <button class="btn-icon" id="favoriteImageBtn">♡ お気に入り</button>
+        </div>
+      </div>
+      <p class="modal-status" id="modalStatus" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <!-- カテゴリ管理モーダル -->
+  <div class="manage-modal" id="manageModal">
+    <div class="manage-box">
+      <div class="manage-header">
+        <span>⚙️ カテゴリの編集・並び替え</span>
+        <button class="close-modal" style="position:static; font-size:1.4rem;" id="closeManageBtn">&times;</button>
+      </div>
+      <div class="manage-list" id="manageList">
+        <!-- JSで動的生成 -->
+      </div>
+      <div class="add-cat-form">
+        <input type="text" id="newCatInput" placeholder="新しいカテゴリ名..." />
+        <button class="btn-icon" id="addCatBtn" style="background:var(--accent-color);">追加</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CATEGORY_PHOTOS = {
+      space: [
+        '1446776811953-b23d57bd21aa', '1462331940025-496dfbfc7564', '1464802686167-b939a6910659',
+        '1451187580459-43490279c0fa', '1534796636912-3b95b3ab5986', '1502134249126-9f3755a50d78',
+        '1519681393784-d120267933ba', '1519608487953-e999c86e7455', '1506703719100-a0f3a48c0f86'
+      ],
+      nature: [
+        '1448375240586-882707db888b', '1441974231531-c6227db76b6e', '1470252649378-9c29740c9fa8',
+        '1511497584788-876760111969', '1470770841072-f978cf4d019e', '1500530855697-b586d89ba3ee',
+        '1472396961693-142e6e269027', '1501854140801-50d01698950b', '1500534623283-312aade485b7'
+      ],
+      water: [
+        '1500375592092-40eb2168fd21', '1518837695005-2083093ee35b', '1519046904884-53103b34b206',
+        '1506953823976-52e1fdc0149a', '1514214246283-d427a95c5d2f', '1507525428034-b723cf961d3e',
+        '1498623116890-37e912163d5d', '1439405326854-014607f694d7', '1476673160081-cf065607f449'
+      ],
+      architecture: [
+        '1511818966892-d7d671e672a2', '1518005020951-eccb494ad742', '1487958449943-2429e8be8625',
+        '1486718448742-163732cd1544', '1600607687939-ce8a6c25118c', '1600210492486-724fe5c67fb0',
+        '1518709268805-4e9042af9f23', '1486406146926-c627a92ad1ab', '1497366754035-f200968a6e72'
+      ]
+    };
+
+    const DEFAULT_CATEGORIES = [
+      { id: 'space', name: '宇宙・夜空' },
+      { id: 'nature', name: '新緑・自然' },
+      { id: 'water', name: '水・海' },
+      { id: 'fantasy', name: '幻想風景・夢景色' },
+      { id: 'neon', name: 'ネオン・アート' },
+      { id: 'screensaver', name: '幾何学・Canvas' },
+      { id: 'nightscape', name: '夜景' },
+      { id: 'architecture', name: '美しい建物' },
+      { id: 'favorites', name: '♡ お気に入り' }
+    ];
+
+    let categories = JSON.parse(localStorage.getItem('vs_categories')) || DEFAULT_CATEGORIES;
+    if (!categories.some(category => category.id === 'favorites')) {
+      categories.push({ id: 'favorites', name: '♡ お気に入り' });
+    }
+    let currentCategory = categories[0];
+    let autoRotateInterval = null;
+    let activeModalItem = null;
+    let activeModalIndex = 0;
+    let currentVisualItems = [];
+    let searchOverride = null;
+    let favoritePhotos = JSON.parse(localStorage.getItem('vs_favorite_photos') || '[]');
+    let rejectedPhotoUrls = JSON.parse(localStorage.getItem('vs_rejected_photos') || '[]');
+    let learnedPreferences = JSON.parse(localStorage.getItem('vs_image_preferences') || '{}');
+    let activeTopicQuery = '';
+    let activeSearchTerm = '';
+    let activeSearchPage = 1;
+    let hasMoreSearchResults = false;
+    const audioTimers = [];
+
+    /* ===================================================
+       2. Web Audio API サウンドエンジン
+       =================================================== */
+    let audioCtx = null;
+    let isAudioPlaying = false;
+    let audioGainNode = null;
+    let audioSourceNodes = [];
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioGainNode = audioCtx.createGain();
+        const vol = parseFloat(document.getElementById('volumeSlider').value) / 100;
+        audioGainNode.gain.value = vol * 3.5;
+        const limiter = audioCtx.createDynamicsCompressor();
+        limiter.threshold.value = -8;
+        limiter.knee.value = 6;
+        limiter.ratio.value = 8;
+        limiter.attack.value = 0.01;
+        limiter.release.value = 0.2;
+        audioGainNode.connect(limiter);
+        limiter.connect(audioCtx.destination);
+      }
+    }
+
+    function setVolume(val) {
+      if (audioGainNode && audioCtx) {
+        audioGainNode.gain.setTargetAtTime((parseFloat(val) / 100) * 3.5, audioCtx.currentTime, 0.04);
+      }
+    }
+
+    function stopSound() {
+      audioTimers.forEach(timer => {
+        clearInterval(timer);
+        clearTimeout(timer);
+      });
+      audioTimers.length = 0;
+      audioSourceNodes.forEach(node => {
+        try { node.stop(); node.disconnect(); } catch(e){}
+      });
+      audioSourceNodes = [];
+    }
+
+    function startSound(type) {
+      initAudio();
+      stopSound();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      const bufferSize = audioCtx.sampleRate * 4;
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const noise = noiseBuffer.getChannelData(0);
+      let lastOut = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        lastOut = (lastOut + 0.025 * (Math.random() * 2 - 1)) / 1.025;
+        noise[i] = lastOut * 3.2;
+      }
+
+      function addNoise(filterType, frequency, level, modulation = 0) {
+        const source = audioCtx.createBufferSource();
+        source.buffer = noiseBuffer;
+        source.loop = true;
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = filterType;
+        filter.frequency.value = frequency;
+        const voice = audioCtx.createGain();
+        voice.gain.value = level;
+        source.connect(filter);
+        filter.connect(voice);
+        voice.connect(audioGainNode);
+        source.start();
+        audioSourceNodes.push(source);
+        if (modulation) {
+          const lfo = audioCtx.createOscillator();
+          const depth = audioCtx.createGain();
+          lfo.frequency.value = modulation;
+          depth.gain.value = level * 0.75;
+          lfo.connect(depth);
+          depth.connect(voice.gain);
+          lfo.start();
+          audioSourceNodes.push(lfo);
+        }
+      }
+
+      function addDrone(frequencies, level = 0.035) {
+        frequencies.forEach((frequency, index) => {
+          const osc = audioCtx.createOscillator();
+          const voice = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = frequency;
+          voice.gain.value = level / (index + 1);
+          osc.connect(voice);
+          voice.connect(audioGainNode);
+          osc.start();
+          audioSourceNodes.push(osc);
+        });
+      }
+
+      function playBell(frequency = 528) {
+        [1, 2.01, 3.9].forEach((partial, index) => {
+          const osc = audioCtx.createOscillator();
+          const envelope = audioCtx.createGain();
+          const now = audioCtx.currentTime;
+          osc.type = 'sine';
+          osc.frequency.value = frequency * partial;
+          envelope.gain.setValueAtTime(0.0001, now);
+          envelope.gain.exponentialRampToValueAtTime(0.055 / (index + 1), now + 0.035);
+          envelope.gain.exponentialRampToValueAtTime(0.0001, now + 5.5);
+          osc.connect(envelope);
+          envelope.connect(audioGainNode);
+          osc.onended = () => {
+            envelope.disconnect();
+            audioSourceNodes = audioSourceNodes.filter(node => node !== osc);
+          };
+          osc.start(now);
+          osc.stop(now + 5.6);
+          audioSourceNodes.push(osc);
+        });
+      }
+
+      switch (type) {
+        case 'ocean':
+          addNoise('lowpass', 420, 0.24, 0.075);
+          break;
+        case 'rain':
+          addNoise('lowpass', 1800, 0.13);
+          break;
+        case 'wind':
+          addNoise('lowpass', 650, 0.17, 0.045);
+          break;
+        case 'fire': {
+          const crackle = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const samples = crackle.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) samples[i] = (Math.random() * 2 - 1) * 0.018;
+          for (let i = 0; i < 18; i++) {
+            const start = Math.floor(Math.random() * (bufferSize - 1800));
+            const length = 200 + Math.floor(Math.random() * 1600);
+            const strength = 0.25 + Math.random() * 0.7;
+            for (let j = 0; j < length; j++) {
+              samples[start + j] += (Math.random() * 2 - 1) * strength * Math.exp(-j / (length / 5));
+            }
+          }
+          const source = audioCtx.createBufferSource();
+          const filter = audioCtx.createBiquadFilter();
+          const voice = audioCtx.createGain();
+          source.buffer = crackle;
+          source.loop = true;
+          filter.type = 'lowpass';
+          filter.frequency.value = 1400;
+          voice.gain.value = 0.18;
+          source.connect(filter);
+          filter.connect(voice);
+          voice.connect(audioGainNode);
+          source.start();
+          audioSourceNodes.push(source);
+          break;
+        }
+        case 'deep_ocean':
+          addNoise('lowpass', 190, 0.22, 0.035);
+          addDrone([55, 82.4], 0.018);
+          break;
+        case 'stream':
+          addNoise('bandpass', 1050, 0.15);
+          break;
+        case 'crystal_rain':
+          addNoise('highpass', 3200, 0.055);
+          playBell(880);
+          audioTimers.push(setInterval(() => playBell(700 + Math.random() * 500), 2400));
+          break;
+        case 'space':
+          addDrone([110, 164.81, 220, 277.18], 0.035);
+          break;
+        case 'bowl':
+          playBell(174);
+          audioTimers.push(setInterval(() => playBell(174 * (0.98 + Math.random() * 0.04)), 11000));
+          break;
+        case 'zen':
+          playBell(432);
+          audioTimers.push(setInterval(() => playBell(432 + Math.random() * 96), 8500));
+          break;
+      }
+    }
+
+    /* ===================================================
+       3. 幾何学スクリーンセーバー (HTML5 Canvas)
+       =================================================== */
+    function createGeometricCanvas(patternIndex) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 400;
+      canvas.height = 250;
+      const ctx = canvas.getContext('2d');
+      let frame = Math.floor(Math.random() * 1000);
+      const patternType = patternIndex % 8;
+
+      function draw() {
+        if (!canvas.isConnected) return;
+        frame++;
+        
+        ctx.fillStyle = 'rgba(11, 13, 23, 0.15)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        switch(patternType) {
+          case 0:
+            for (let i = 0; i < 25; i++) {
+              let angle = (frame * 0.02) + (i * Math.PI / 12);
+              let dist = ((frame * 2.5 + i * 18) % 160);
+              let x = cx + Math.cos(angle) * dist;
+              let y = cy + Math.sin(angle) * dist;
+              let size = (dist / 160) * 4.5;
+
+              ctx.beginPath();
+              ctx.arc(x, y, size, 0, Math.PI * 2);
+              ctx.fillStyle = `hsl(${(frame * 1.5 + i * 20) % 360}, 85%, 70%)`;
+              ctx.fill();
+            }
+            break;
+
+          case 1:
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(frame * 0.01);
+            for (let i = 0; i < 6; i++) {
+              ctx.rotate(Math.PI / 3);
+              ctx.beginPath();
+              ctx.arc(35, 0, 30 + Math.sin(frame * 0.04) * 12, 0, Math.PI * 2);
+              ctx.strokeStyle = `hsl(${(frame * 2 + i * 45) % 360}, 90%, 65%)`;
+              ctx.lineWidth = 1.5;
+              ctx.stroke();
+            }
+            ctx.restore();
+            break;
+
+          case 2:
+            ctx.beginPath();
+            for (let x = 0; x < canvas.width; x += 8) {
+              let y = cy + Math.sin((x + frame * 4) * 0.02) * 35 + Math.cos((x - frame * 2) * 0.015) * 20;
+              ctx.fillStyle = `hsl(${(x + frame * 2) % 360}, 80%, 65%)`;
+              ctx.fillRect(x, y, 3.5, 3.5);
+            }
+            break;
+
+          case 3:
+            for (let x = 0; x < canvas.width; x += 20) {
+              for (let y = 0; y < canvas.height; y += 20) {
+                let v = Math.sin(x * 0.02 + frame * 0.03) + Math.sin(y * 0.02 + frame * 0.03);
+                ctx.fillStyle = `hsl(${(v * 90 + frame) % 360}, 75%, 60%)`;
+                ctx.fillRect(x, y, 18, 18);
+              }
+            }
+            break;
+
+          case 4:
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(-frame * 0.015);
+            for (let i = 0; i < 8; i++) {
+              ctx.rotate(Math.PI / 4);
+              ctx.fillStyle = `hsl(${(frame * 3 + i * 30) % 360}, 80%, 65%)`;
+              ctx.fillRect(20 + Math.sin(frame * 0.05) * 15, -5, 40, 10);
+            }
+            ctx.restore();
+            break;
+
+          case 5:
+            for (let i = 0; i < 15; i++) {
+              let px = (Math.sin(i * 99 + frame * 0.05) * 0.5 + 0.5) * canvas.width;
+              let py = (Math.cos(i * 33 + frame * 0.05) * 0.5 + 0.5) * canvas.height;
+              ctx.strokeStyle = `hsl(${(frame * 2 + i * 25) % 360}, 90%, 70%)`;
+              ctx.strokeRect(px, py, 20, 20);
+            }
+            break;
+
+          case 6:
+            for (let i = 0; i < 7; i++) {
+              let x1 = cx + Math.sin(frame * 0.02 + i) * 100;
+              let y1 = cy + Math.cos(frame * 0.03 + i) * 70;
+              let x2 = cx + Math.sin(frame * 0.02 + i + 1) * 100;
+              let y2 = cy + Math.cos(frame * 0.03 + i + 1) * 70;
+              ctx.beginPath();
+              ctx.moveTo(x1, y1);
+              ctx.lineTo(x2, y2);
+              ctx.strokeStyle = `hsl(${(frame + i * 40) % 360}, 80%, 60%)`;
+              ctx.lineWidth = 2;
+              ctx.stroke();
+            }
+            break;
+
+          case 7:
+            ctx.save();
+            ctx.translate(cx, cy);
+            for (let i = 0; i < 40; i++) {
+              let r = i * 3;
+              let a = i * 0.2 + frame * 0.03;
+              let x = Math.cos(a) * r;
+              let y = Math.sin(a) * r;
+              ctx.fillStyle = `hsl(${(frame * 2 + i * 8) % 360}, 85%, 65%)`;
+              ctx.fillRect(x, y, 4, 4);
+            }
+            ctx.restore();
+            break;
+        }
+
+        requestAnimationFrame(draw);
+      }
+      requestAnimationFrame(draw);
+      return canvas;
+    }
+
+    const SEARCH_ALIASES = {
+      space: ['宇宙', '星空', '星', '銀河', '天の川', '惑星', 'オーロラ', 'space', 'galaxy', 'cosmos', 'stars'],
+      nature: ['自然', '森', '森林', '新緑', '木漏れ日', 'nature', 'forest', 'woodland', 'trees'],
+      water: ['水', '海', '波', '滝', '川', '湖', 'water', 'ocean', 'sea', 'river', 'waterfall'],
+      fantasy: ['幻想', '夢', '魔法', 'fantasy', 'dream', 'magical'],
+      neon: ['ネオン', 'サイバー', '近未来', 'neon', 'cyberpunk'],
+      nightscape: ['夜景', '夜の街', 'nightscape', 'night city', 'skyline'],
+      architecture: ['建築', '建物', '寺', '神社', '城', '大聖堂', 'architecture', 'building', 'castle', 'temple']
+    };
+    const CATEGORY_SEARCH_TERMS = {
+      space: 'galaxy stars space photography',
+      nature: 'forest landscape nature photography',
+      water: 'ocean sea landscape photography',
+      fantasy: 'fantasy landscape',
+      neon: 'neon lights city at night',
+      nightscape: 'city skyline at night',
+      architecture: 'architecture building photography'
+    };
+    const SEARCH_TRANSLATIONS = {
+      'オーロラ': 'aurora borealis',
+      '紅葉': 'autumn leaves',
+      '桜': 'cherry blossom',
+      '美少女': 'woman portrait photography',
+      '美人': 'woman portrait photography',
+      '女性': 'woman portrait photography',
+      '女の子': 'girl portrait photography',
+      'ポートレート': 'portrait photography',
+      '花': 'wildflowers',
+      '草原': 'meadow',
+      '夕焼け': 'sunset',
+      '朝焼け': 'sunrise',
+      '雪': 'snow landscape',
+      '山': 'mountain landscape',
+      '砂漠': 'desert',
+      '滝': 'waterfall',
+      '川': 'river',
+      '湖': 'lake',
+      '雲': 'cloudscape',
+      '灯台': 'lighthouse',
+      '氷河': 'glacier'
+    };
+
+    function translateSearchQuery(query) {
+      let translated = query;
+      Object.entries(SEARCH_TRANSLATIONS).forEach(([japanese, english]) => {
+        translated = translated.split(japanese).join(english);
+      });
+      return translated.replace(/[ぁ-んァ-ン一-龯ー]+/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+
+    function getSearchTermForLabel(label) {
+      const query = label.replace(/^🔍\s*/, '').trim();
+      const translated = translateSearchQuery(query);
+      if (translated && translated !== query) return translated;
+      const matchedId = Object.keys(SEARCH_ALIASES).find(id =>
+        SEARCH_ALIASES[id].some(keyword => query.toLowerCase().includes(keyword.toLowerCase()))
+      );
+      return CATEGORY_SEARCH_TERMS[matchedId] || translated || query;
+    }
+    activeTopicQuery = getSearchTermForLabel(currentCategory.name);
+
+    /* ===================================================
+       4. マルチソース検索エンジン ＆ お気に入り学習の統合
+       =================================================== */
+    const searchPhotoCache = new Map();
+    let visualLoadToken = 0;
+    let visiblePhotoCount = 0;
+
+    const PREFERENCE_STOP_WORDS = new Set([
+      'photo', 'photography', 'image', 'images', 'picture', 'portrait', 'beautiful', 'file',
+      'the', 'and', 'with', 'from', 'this', 'that', 'more', 'view', 'like', 'default'
+    ]);
+
+    function extractPreferenceTerms(text) {
+      return [...new Set(text.toLowerCase()
+        .replace(/\.[a-z0-9]{2,5}\b/g, ' ')
+        .replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff]+/g, ' ')
+        .split(/\s+/)
+        .filter(term => term.length > 2 && !PREFERENCE_STOP_WORDS.has(term)))].slice(0, 10);
+    }
+
+    function getPreferenceProfile(topic = activeTopicQuery) {
+      if (!learnedPreferences[topic]) {
+        learnedPreferences[topic] = { preferredTerms: [], preferredSources: [], dislikedUrls: [] };
+      }
+      const profile = learnedPreferences[topic];
+      profile.preferredTerms ||= [];
+      profile.preferredSources ||= [];
+      profile.dislikedUrls ||= [];
+      return profile;
+    }
+
+    function savePreferenceProfile() {
+      localStorage.setItem('vs_image_preferences', JSON.stringify(learnedPreferences));
+    }
+
+    function addPreferenceTerms(target, terms) {
+      terms.forEach(term => {
+        if (!target.includes(term)) target.push(term);
+      });
+      if (target.length > 30) target.splice(0, target.length - 30);
+    }
+
+    // お気に入りと同じ傾向の画像を優先的に上位にランク付け
+    function rankSearchPhotos(photos) {
+      const profile = getPreferenceProfile();
+      const preferredSources = new Set(profile.preferredSources);
+      return [...photos].sort((a, b) => {
+        function score(photo) {
+          const title = photo.title.toLowerCase();
+          const terms = extractPreferenceTerms(title);
+          let value = terms.filter(term => profile.preferredTerms.includes(term)).length * 5;
+          if (preferredSources.has(photo.source)) value += 3;
+          return value + Math.random();
+        }
+        return score(b) - score(a);
+      });
+    }
+
+    function renderCategories() {
+      categoryBar.innerHTML = '';
+      categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = `tab-btn ${cat.id === currentCategory.id ? 'active' : ''}`;
+        btn.textContent = cat.name;
+        btn.addEventListener('click', () => {
+          currentCategory = cat;
+          searchOverride = null;
+          activeTopicQuery = getSearchTermForLabel(cat.name);
+          renderCategories();
+          loadGridVisuals();
+        });
+        categoryBar.appendChild(btn);
+      });
+      localStorage.setItem('vs_categories', JSON.stringify(categories));
+    }
+
+    function showGridMessage(message) {
+      gridContainer.innerHTML = '';
+      const notice = document.createElement('p');
+      notice.className = 'grid-message';
+      notice.setAttribute('role', 'status');
+      notice.textContent = message;
+      gridContainer.appendChild(notice);
+    }
+
+    function renderImageItems(items, append = false) {
+      if (!append) {
+        currentVisualItems = items;
+        visiblePhotoCount = 0;
+        gridContainer.innerHTML = '';
+      } else {
+        gridContainer.querySelector('.load-more')?.remove();
+      }
+      const displayItems = items.slice(visiblePhotoCount, visiblePhotoCount + 9);
+      displayItems.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.title = item.title;
+
+        const img = document.createElement('img');
+        img.src = item.url;
+        img.alt = item.title;
+        img.loading = 'eager';
+        card.appendChild(img);
+
+        const overlay = document.createElement('div');
+        overlay.className = 'card-overlay';
+        const expandBtn = document.createElement('button');
+        expandBtn.className = 'card-btn';
+        expandBtn.innerHTML = '🔍';
+        expandBtn.onclick = (e) => {
+          e.stopPropagation();
+          openModal(item, currentVisualItems.indexOf(item));
+        };
+        overlay.appendChild(expandBtn);
+        const favoriteBtn = document.createElement('button');
+        favoriteBtn.className = 'card-btn';
+        favoriteBtn.textContent = isFavorite(item) ? '♥' : '♡';
+        favoriteBtn.setAttribute('aria-label', isFavorite(item) ? 'お気に入りを解除' : 'お気に入りに追加');
+        favoriteBtn.onclick = (e) => {
+          e.stopPropagation();
+          toggleFavorite(item);
+          favoriteBtn.textContent = isFavorite(item) ? '♥' : '♡';
+          favoriteBtn.setAttribute('aria-label', isFavorite(item) ? 'お気に入りを解除' : 'お気に入りに追加');
+          if (currentCategory.id === 'favorites' && !isFavorite(item)) {
+            if (!favoritePhotos.length) closeModal();
+            loadGridVisuals();
+          }
+        };
+        overlay.appendChild(favoriteBtn);
+        card.appendChild(overlay);
+        const source = document.createElement('span');
+        source.className = 'card-source';
+        source.textContent = item.source || 'Openverse';
+        card.appendChild(source);
+
+        card.onclick = () => openModal(item, currentVisualItems.indexOf(item));
+        gridContainer.appendChild(card);
+      });
+      visiblePhotoCount += displayItems.length;
+      if (visiblePhotoCount < items.length) {
+        const moreButton = document.createElement('button');
+        moreButton.className = 'btn-icon load-more';
+        moreButton.textContent = `もっと画像を表示 (${visiblePhotoCount}/${items.length})`;
+        moreButton.addEventListener('click', () => renderImageItems(currentVisualItems, true));
+        gridContainer.appendChild(moreButton);
+      } else if (hasMoreSearchResults) {
+        const moreButton = document.createElement('button');
+        moreButton.className = 'btn-icon load-more';
+        moreButton.textContent = 'さらに画像を検索';
+        moreButton.addEventListener('click', loadMoreSearchVisuals);
+        gridContainer.appendChild(moreButton);
+      }
+      if (mediaModal.classList.contains('active') && !append) showModalItem(0);
+    }
+
+    async function loadMoreSearchVisuals(event) {
+      const button = event.currentTarget;
+      if (visiblePhotoCount < currentVisualItems.length) {
+        renderImageItems(currentVisualItems, true);
+        return;
+      }
+      if (!hasMoreSearchResults || !activeSearchTerm) return;
+      button.disabled = true;
+      button.textContent = 'さらに画像を検索しています...';
+      try {
+        const result = await searchImageSources(activeSearchTerm, activeSearchPage + 1);
+        activeSearchPage++;
+        hasMoreSearchResults = result.hasMore;
+        const profile = getPreferenceProfile();
+        const existingUrls = new Set(currentVisualItems.map(item => item.url));
+        const newPhotos = result.items.filter(item =>
+          !existingUrls.has(item.url) &&
+          !rejectedPhotoUrls.includes(item.url) &&
+          !profile.dislikedUrls.includes(item.url)
+        );
+        const previousVisibleCount = visiblePhotoCount;
+        currentVisualItems = rankSearchPhotos([...currentVisualItems, ...newPhotos]);
+        visiblePhotoCount = previousVisibleCount;
+        renderImageItems(currentVisualItems, true);
+      } catch (error) {
+        console.error('追加画像の取得に失敗しました:', error);
+        button.disabled = false;
+        button.textContent = '再試行: さらに画像を検索';
+      }
+    }
+
+    function isFavorite(item) {
+      return favoritePhotos.some(photo => photo.url === item.url);
+    }
+
+    // お気に入り登録時に自動で傾向や出典元を学習
+    function toggleFavorite(item) {
+      const adding = !isFavorite(item);
+      favoritePhotos = adding
+        ? [...favoritePhotos, {
+          type: 'image',
+          url: item.url,
+          title: item.title,
+          source: item.source,
+          landingUrl: item.landingUrl,
+          license: item.license
+        }]
+        : favoritePhotos.filter(photo => photo.url !== item.url);
+      
+      localStorage.setItem('vs_favorite_photos', JSON.stringify(favoritePhotos));
+      
+      if (adding && activeTopicQuery && item.type === 'image') {
+        const profile = getPreferenceProfile();
+        const terms = extractPreferenceTerms(item.title);
+        addPreferenceTerms(profile.preferredTerms, terms);
+        if (item.source && !profile.preferredSources.includes(item.source)) {
+          profile.preferredSources.push(item.source);
+        }
+        savePreferenceProfile();
+      }
+      updateFavoriteButton();
+    }
+
+    async function fetchSearchProvider(url, timeoutMs = 8000) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw new Error(`画像検索に失敗しました (${response.status})`);
+        return await response.json();
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    async function searchOpenverse(searchTerm, page) {
+      const params = new URLSearchParams({
+        q: searchTerm,
+        page_size: '50',
+        page: String(page),
+        mature: 'false'
+      });
+      const data = await fetchSearchProvider(`https://api.openverse.org/v1/images/?${params}`);
+      return {
+        items: (data.results || []).flatMap(image => {
+          const url = image.thumbnail || image.url;
+          return url ? [{
+            type: 'image',
+            url,
+            title: image.title || image.creator || 'Untitled image',
+            source: `Openverse · ${image.source || 'photo'}`,
+            landingUrl: image.foreign_landing_url || image.url,
+            license: image.license_url || ''
+          }] : [];
+        }),
+        hasMore: page * 50 < (data.result_count || 0)
+      };
+    }
+
+    async function searchCommons(searchTerm, page) {
+      const params = new URLSearchParams({
+        action: 'query',
+        generator: 'search',
+        gsrsearch: `filetype:bitmap ${searchTerm}`,
+        gsrnamespace: '6',
+        gsrlimit: '50',
+        gsroffset: String((page - 1) * 50),
+        prop: 'imageinfo',
+        iiprop: 'url',
+        iiurlwidth: '1400',
+        format: 'json',
+        origin: '*'
+      });
+      const data = await fetchSearchProvider(`https://commons.wikimedia.org/w/api.php?${params}`);
+      return {
+        items: Object.values(data.query?.pages || {}).flatMap(file => {
+          const info = file.imageinfo?.[0];
+          const url = info?.thumburl || info?.url;
+          return url ? [{
+            type: 'image',
+            url,
+            title: file.title.replace(/^File:/, ''),
+            source: 'Wikimedia Commons',
+            landingUrl: `https://commons.wikimedia.org/wiki/${encodeURIComponent(file.title.replace(/ /g, '_'))}`,
+            license: info?.descriptionurl || ''
+          }] : [];
+        }),
+        hasMore: Boolean(data.continue)
+      };
+    }
+
+    async function searchImageSources(searchTerm, page) {
+      const cacheKey = `${searchTerm}::${page}`;
+      if (searchPhotoCache.has(cacheKey)) return searchPhotoCache.get(cacheKey);
+      const results = await Promise.allSettled([
+        searchOpenverse(searchTerm, page),
+        searchCommons(searchTerm, page)
+      ]);
+      const fulfilled = results.filter(result => result.status === 'fulfilled').map(result => result.value);
+      if (!fulfilled.length) throw new Error('すべての画像検索サービスに接続できませんでした。');
+      const uniqueItems = new Map();
+      fulfilled.flatMap(result => result.items).forEach(item => {
+        if (!uniqueItems.has(item.url)) uniqueItems.set(item.url, item);
+      });
+      const response = {
+        items: [...uniqueItems.values()],
+        hasMore: fulfilled.some(result => result.hasMore)
+      };
+      searchPhotoCache.set(cacheKey, response);
+      return response;
+    }
+
+    async function loadSearchVisuals(cat, requestToken) {
+      const query = (searchOverride || cat.name.replace(/^🔍\s*/, '')).trim();
+      const translatedQuery = translateSearchQuery(query);
+      const matchedId = Object.keys(SEARCH_ALIASES).find(id =>
+        SEARCH_ALIASES[id].some(keyword => query.toLowerCase().includes(keyword.toLowerCase()))
+      );
+      const baseSearchTerm = searchOverride || CATEGORY_SEARCH_TERMS[cat.id] || CATEGORY_SEARCH_TERMS[matchedId] || translatedQuery || query;
+      const profile = getPreferenceProfile();
+      const profileTerms = profile.preferredTerms.slice(0, 5);
+      const searchTerm = [baseSearchTerm, ...profileTerms].filter(Boolean).join(' ');
+      activeSearchTerm = searchTerm;
+      activeSearchPage = 1;
+      hasMoreSearchResults = false;
+      showGridMessage(`「${query}」の画像を豊富なデータベースから探しています...`);
+      try {
+        const result = await searchImageSources(searchTerm, activeSearchPage);
+        let photos = result.items;
+        if (!photos.length) {
+          const fallbackResult = await searchCommons(searchTerm, 1);
+          photos = fallbackResult.items;
+        }
+
+        if (requestToken !== visualLoadToken) return;
+        const curatedPhotos = (CATEGORY_PHOTOS[cat.id] || []).map(photoId => ({
+          type: 'image',
+          url: `https://images.unsplash.com/photo-${photoId}?auto=format&fit=crop&w=1400&q=85`,
+          title: cat.name,
+          source: 'Unsplash'
+        }));
+        const photosWithCurated = [...photos, ...curatedPhotos].filter((photo, index, list) =>
+          list.findIndex(candidate => candidate.url === photo.url) === index
+        );
+        const filteredPhotos = photosWithCurated.filter(photo =>
+          !rejectedPhotoUrls.includes(photo.url) &&
+          !profile.dislikedUrls.includes(photo.url)
+        );
+        if (!filteredPhotos.length) {
+          showGridMessage(`「${query}」に一致する画像が見つかりませんでした。別の言葉で検索してください。`);
+          return;
+        }
+        const ranked = rankSearchPhotos(filteredPhotos);
+        hasMoreSearchResults = result.hasMore;
+        renderImageItems(ranked);
+      } catch (error) {
+        if (requestToken !== visualLoadToken) return;
+        console.error('画像検索に失敗しました:', error);
+        showGridMessage('画像検索に接続できませんでした。ネット接続を確認してもう一度お試しください。');
+      }
+    }
+
+    function loadGridVisuals() {
+      const requestToken = ++visualLoadToken;
+      gridContainer.innerHTML = '';
+
+      if (currentCategory.id === 'favorites') {
+        currentVisualItems = favoritePhotos;
+        if (favoritePhotos.length) renderImageItems(favoritePhotos);
+        else showGridMessage('画像の♡ボタンから、お気に入りを追加できます。');
+      } else if (currentCategory.id === 'screensaver') {
+        currentVisualItems = [];
+        const randomOffset = Math.floor(Math.random() * 8);
+        for (let i = 0; i < 9; i++) {
+          const item = { type: 'canvas', index: i + randomOffset, title: '幾何学・Canvas' };
+          currentVisualItems.push(item);
+          const card = document.createElement('div');
+          card.className = 'card';
+          const cvs = createGeometricCanvas(item.index);
+          card.appendChild(cvs);
+
+          const overlay = document.createElement('div');
+          overlay.className = 'card-overlay';
+          const expandBtn = document.createElement('button');
+          expandBtn.className = 'card-btn';
+          expandBtn.innerHTML = '🔍';
+          expandBtn.onclick = (e) => { e.stopPropagation(); openModal(item, i); };
+          overlay.appendChild(expandBtn);
+          card.appendChild(overlay);
+
+          card.onclick = () => openModal(item, i);
+          gridContainer.appendChild(card);
+        }
+      } else if (searchOverride) {
+        loadSearchVisuals({ ...currentCategory, name: `🔍 ${searchOverride}` }, requestToken);
+      } else loadSearchVisuals(currentCategory, requestToken);
+    }
+
+    /* ===================================================
+       5. モーダル機能 ＆ 改善された全画面処理
+       =================================================== */
+    const mediaModal = document.getElementById('mediaModal');
+    const modalMediaContainer = document.getElementById('modalMediaContainer');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const modalStatus = document.getElementById('modalStatus');
+    const favoriteImageBtn = document.getElementById('favoriteImageBtn');
+
+    function updateFavoriteButton() {
+      if (!activeModalItem || activeModalItem.type !== 'image') {
+        favoriteImageBtn.hidden = true;
+        return;
+      }
+      favoriteImageBtn.hidden = false;
+      favoriteImageBtn.textContent = isFavorite(activeModalItem) ? '♥ お気に入り済み' : '♡ お気に入り';
+      modalStatus.textContent = activeModalItem.source ? `出典: ${activeModalItem.source} · ${activeModalItem.title}` : activeModalItem.title;
+    }
+
+    function showModalItem(index) {
+      if (!currentVisualItems.length) return;
+      activeModalIndex = (index + currentVisualItems.length) % currentVisualItems.length;
+      activeModalItem = currentVisualItems[activeModalIndex];
+      modalMediaContainer.innerHTML = '';
+      modalStatus.textContent = '';
+
+      if (activeModalItem.type === 'canvas') {
+        const cvs = createGeometricCanvas(activeModalItem.index);
+        cvs.style.width = '100%';
+        cvs.style.height = 'auto';
+        modalMediaContainer.appendChild(cvs);
+      } else {
+        const img = document.createElement('img');
+        img.src = activeModalItem.url;
+        img.alt = activeModalItem.title;
+        modalMediaContainer.appendChild(img);
+      }
+      updateFavoriteButton();
+    }
+
+    function openModal(item, index = 0) {
+      if (!currentVisualItems.includes(item)) currentVisualItems = [item];
+      showModalItem(Math.max(0, index));
+      mediaModal.classList.add('active');
+    }
+
+    function closeModal() {
+      if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+      mediaModal.classList.remove('active', 'pseudo-fullscreen');
+      fullscreenBtn.textContent = '⛶ 全画面表示';
+    }
+
+    closeModalBtn.addEventListener('click', closeModal);
+    mediaModal.addEventListener('click', (e) => {
+      if (e.target === mediaModal) closeModal();
+    });
+
+    function downloadBlob(blob, filename) {
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    }
+
+    downloadBtn.addEventListener('click', async () => {
+      if (!activeModalItem) return;
+      downloadBtn.disabled = true;
+      modalStatus.textContent = '画像を準備しています...';
+      try {
+        const filename = `sanctuary_${Date.now()}`;
+        if (activeModalItem.type === 'canvas') {
+          const canvas = modalMediaContainer.querySelector('canvas');
+          if (!canvas) throw new Error('保存する画像が見つかりません。');
+          const blob = await new Promise((resolve, reject) => {
+            canvas.toBlob(result => result ? resolve(result) : reject(new Error('画像を作成できませんでした。')), 'image/png');
+          });
+          downloadBlob(blob, `${filename}.png`);
+        } else {
+          const response = await fetch(activeModalItem.url, { mode: 'cors' });
+          if (!response.ok) throw new Error(`画像を取得できませんでした (${response.status})`);
+          const blob = await response.blob();
+          const extension = blob.type.split('/')[1]?.split(';')[0] || 'jpg';
+          downloadBlob(blob, `${filename}.${extension}`);
+        }
+        modalStatus.textContent = '画像をダウンロードしました。';
+      } catch (error) {
+        console.error('画像の保存に失敗しました:', error);
+        modalStatus.textContent = '画像を保存できませんでした。';
+      } finally {
+        downloadBtn.disabled = false;
+      }
+    });
+
+    // 改善された全画面表示処理（ネイティブ＆CSSフォールバックの二重対応）
+    fullscreenBtn.addEventListener('click', async () => {
+      const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement || mediaModal.classList.contains('pseudo-fullscreen');
+      if (isFullscreen) {
+        if (document.fullscreenElement && document.exitFullscreen) await document.exitFullscreen().catch(() => {});
+        else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+        mediaModal.classList.remove('pseudo-fullscreen');
+        fullscreenBtn.textContent = '⛶ 全画面表示';
+        return;
+      }
+      try {
+        if (mediaModal.requestFullscreen) {
+          await mediaModal.requestFullscreen();
+        } else if (mediaModal.webkitRequestFullscreen) {
+          mediaModal.webkitRequestFullscreen();
+        } else {
+          throw new Error('API未対応');
+        }
+        fullscreenBtn.textContent = '⛶ 全画面を終了';
+      } catch (error) {
+        // ネイティブ全画面が制限されている環境ではCSS全画面に自動フォールバック
+        mediaModal.classList.add('pseudo-fullscreen');
+        fullscreenBtn.textContent = '⛶ 全画面を終了';
+      }
+    });
+
+    function updateFullscreenButton() {
+      const active = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+      if (!active && !mediaModal.classList.contains('pseudo-fullscreen')) fullscreenBtn.textContent = '⛶ 全画面表示';
+    }
+    document.addEventListener('fullscreenchange', updateFullscreenButton);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+
+    document.getElementById('previousImageBtn').addEventListener('click', () => showModalItem(activeModalIndex - 1));
+    document.getElementById('nextImageBtn').addEventListener('click', () => showModalItem(activeModalIndex + 1));
+    document.addEventListener('keydown', event => {
+      if (!mediaModal.classList.contains('active')) return;
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
+      if (event.key === 'ArrowLeft') showModalItem(activeModalIndex - 1);
+      if (event.key === 'ArrowRight') showModalItem(activeModalIndex + 1);
+      if (event.key === 'Escape' && mediaModal.classList.contains('pseudo-fullscreen')) {
+        mediaModal.classList.remove('pseudo-fullscreen');
+        fullscreenBtn.textContent = '⛶ 全画面表示';
+      }
+    });
+
+    favoriteImageBtn.addEventListener('click', () => {
+      if (!activeModalItem) return;
+      toggleFavorite(activeModalItem);
+      if (currentCategory.id === 'favorites' && !isFavorite(activeModalItem)) {
+        if (!favoritePhotos.length) closeModal();
+        loadGridVisuals();
+      }
+    });
+
+    /* ===================================================
+       6. カテゴリ管理・検索・自動切替
+       =================================================== */
+    const manageModal = document.getElementById('manageModal');
+    const manageCatBtn = document.getElementById('manageCatBtn');
+    const closeManageBtn = document.getElementById('closeManageBtn');
+    const manageList = document.getElementById('manageList');
+    const addCatBtn = document.getElementById('addCatBtn');
+    const newCatInput = document.getElementById('newCatInput');
+
+    manageCatBtn.addEventListener('click', () => {
+      renderManageList();
+      manageModal.classList.add('active');
+    });
+
+    closeManageBtn.addEventListener('click', () => manageModal.classList.remove('active'));
+
+    function renderManageList() {
+      manageList.innerHTML = '';
+      categories.forEach((cat, idx) => {
+        const item = document.createElement('div');
+        item.className = 'manage-item';
+        item.innerHTML = `
+          <span>${cat.name}</span>
+          <div class="manage-item-btns">
+            <button class="btn-icon" onclick="moveCategory(${idx}, -1)">▲</button>
+            <button class="btn-icon" onclick="moveCategory(${idx}, 1)">▼</button>
+            <button class="btn-icon" style="color:#ff6b6b;" onclick="deleteCategory(${idx})">🗑️</button>
+          </div>
+        `;
+        manageList.appendChild(item);
+      });
+    }
+
+    window.moveCategory = function(index, direction) {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= categories.length) return;
+      const temp = categories[index];
+      categories[index] = categories[targetIndex];
+      categories[targetIndex] = temp;
+      renderManageList();
+      renderCategories();
+    };
+
+    window.deleteCategory = function(index) {
+      if (categories[index]?.id === 'favorites') {
+        alert('お気に入りカテゴリは削除できません。');
+        return;
+      }
+      if (categories.length <= 1) {
+        alert('カテゴリは最低1つ必要です。');
+        return;
+      }
+      categories.splice(index, 1);
+      if (!categories.includes(currentCategory)) {
+        currentCategory = categories[0];
+      }
+      renderManageList();
+      renderCategories();
+      loadGridVisuals();
+    };
+
+    addCatBtn.addEventListener('click', () => {
+      const name = newCatInput.value.trim();
+      if (!name) return;
+      const newCat = { id: 'custom_' + Date.now(), name: name };
+      categories.push(newCat);
+      newCatInput.value = '';
+      currentCategory = newCat;
+      activeTopicQuery = getSearchTermForLabel(newCat.name);
+      renderManageList();
+      renderCategories();
+      loadGridVisuals();
+    });
+
+    document.getElementById('searchBtn').addEventListener('click', handleSearch);
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleSearch();
+    });
+
+    function handleSearch() {
+      const query = document.getElementById('searchInput').value.trim();
+      if (!query) return;
+      searchOverride = null;
+      activeTopicQuery = getSearchTermForLabel(query);
+      const searchName = `🔍 ${query}`;
+      const searchCat = categories.find(category => category.name === searchName) ||
+        (currentCategory.id.startsWith('search_') ? currentCategory : { id: 'search_' + Date.now(), name: searchName });
+      searchCat.name = searchName;
+      if (!categories.includes(searchCat)) categories.unshift(searchCat);
+      currentCategory = searchCat;
+      renderCategories();
+      loadGridVisuals();
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', loadGridVisuals);
+
+    const timerSelect = document.getElementById('timerSelect');
+    const modalTimerSelect = document.getElementById('modalTimerSelect');
+    const customIntervalInput = document.getElementById('customIntervalInput');
+    const modalCustomIntervalInput = document.getElementById('modalCustomIntervalInput');
+    const customIntervalLabel = document.getElementById('customIntervalLabel');
+    const modalCustomIntervalLabel = document.getElementById('modalCustomIntervalLabel');
+
+    function syncTimerControls(sourceSelect, sourceInput) {
+      const targetSelect = sourceSelect === timerSelect ? modalTimerSelect : timerSelect;
+      const targetInput = sourceInput === customIntervalInput ? modalCustomIntervalInput : customIntervalInput;
+      targetSelect.value = sourceSelect.value;
+      targetInput.value = sourceInput.value;
+      customIntervalLabel.hidden = timerSelect.value !== 'custom';
+      modalCustomIntervalLabel.hidden = modalTimerSelect.value !== 'custom';
+    }
+
+    function getSelectedInterval() {
+      if (timerSelect.value === '0') return 0;
+      if (timerSelect.value !== 'custom') return Number(timerSelect.value) * 1000;
+      const seconds = Math.max(5, Math.min(3600, Number(customIntervalInput.value) || 90));
+      customIntervalInput.value = String(seconds);
+      modalCustomIntervalInput.value = String(seconds);
+      return seconds * 1000;
+    }
+
+    function configureAutoRotate() {
+      if (autoRotateInterval) clearInterval(autoRotateInterval);
+      const interval = getSelectedInterval();
+      if (interval > 0) {
+        autoRotateInterval = setInterval(() => {
+          if (mediaModal.classList.contains('active')) showModalItem(activeModalIndex + 1);
+          else loadGridVisuals();
+        }, interval);
+      }
+    }
+    [timerSelect, modalTimerSelect].forEach(select => {
+      select.addEventListener('change', () => {
+        syncTimerControls(select, select === timerSelect ? customIntervalInput : modalCustomIntervalInput);
+        configureAutoRotate();
+      });
+    });
+    [[customIntervalInput, timerSelect], [modalCustomIntervalInput, modalTimerSelect]].forEach(([input, select]) => {
+      input.addEventListener('change', () => {
+        syncTimerControls(select, input);
+        configureAutoRotate();
+      });
+    });
+
+    const audioToggleBtn = document.getElementById('audioToggleBtn');
+    const soundPresetSelect = document.getElementById('soundPresetSelect');
+    const volumeSlider = document.getElementById('volumeSlider');
+
+    audioToggleBtn.addEventListener('click', () => {
+      isAudioPlaying = !isAudioPlaying;
+      if (isAudioPlaying) {
+        audioToggleBtn.textContent = '🔊 サウンド: ON';
+        audioToggleBtn.style.background = 'var(--accent-color)';
+        startSound(soundPresetSelect.value);
+      } else {
+        audioToggleBtn.textContent = '🔈 サウンド: OFF';
+        audioToggleBtn.style.background = 'rgba(255,255,255,0.08)';
+        stopSound();
+      }
+    });
+
+    soundPresetSelect.addEventListener('change', () => {
+      if (isAudioPlaying) startSound(soundPresetSelect.value);
+    });
+
+    volumeSlider.addEventListener('input', (e) => {
+      setVolume(e.target.value);
+      document.getElementById('volumeValue').value = `${e.target.value}%`;
+    });
+
+    renderCategories();
+    loadGridVisuals();
+    configureAutoRotate();
+  </script>
+</body>
+</html>
