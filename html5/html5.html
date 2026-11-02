@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HTML5 Ultimate FX & Web API Cheatsheet</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js CDN for WebGL 3D -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #030712; color: #f8fafc; }
+        .pattern-view { display: none; }
+        .pattern-view.active { display: block; }
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px rgba(236,72,153,0.5)); }
+            50% { transform: scale(1.05); filter: drop-shadow(0 0 25px rgba(168,85,247,0.8)); }
+        }
+        .animate-pulse-glow { animation: pulseGlow 3s infinite ease-in-out; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-pink-500 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <button id="back-btn" onclick="goHome()" class="hidden items-center justify-center w-8 h-8 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+                <i class="fa-solid fa-arrow-left text-xs"></i>
+            </button>
+            <h1 class="text-xs sm:text-sm font-bold tracking-wider bg-gradient-to-r from-pink-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent">
+                HTML5 Ultimate Lab
+            </h1>
+        </div>
+        <button onclick="goHome()" class="text-[11px] font-medium text-slate-400 hover:text-white transition flex items-center gap-1 bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700/50">
+            <i class="fa-solid fa-house"></i> トップ
+        </button>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-md w-full mx-auto p-4 pb-16">
+
+        <!-- ==================== HOME VIEW ==================== -->
+        <div id="view-home" class="pattern-view active space-y-5">
+            <div class="bg-gradient-to-br from-slate-900 to-slate-900/60 p-5 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-pink-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="absolute -left-10 -top-10 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                
+                <h2 class="text-base font-extrabold text-white mb-2">HTML5・Web API 演出全網羅</h2>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    スマホブラウザで実装できるグラフィック、3D、サウンド、デバイスセンサー、各種Web APIの完全チートシート。アプリアイデアの検証や表現の引き出しにお使いください。
+                </p>
+            </div>
+
+            <div class="space-y-3">
+                <!-- Group 1: Graphics & FX -->
+                <div class="bg-slate-900/70 border border-slate-800/80 rounded-xl p-3.5 shadow-sm">
+                    <h3 class="text-xs font-bold text-pink-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-palette"></i> 1. 画像・CSS・SVG表現
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="showPattern('img-filter')" class="p-2.5 bg-slate-800/60 hover:bg-slate-800 active:scale-95 transition rounded-lg border border-slate-700/50 text-left">
+                            <span class="block text-xs font-bold text-white">CSSフィルター & マスク</span>
+                            <span class="text-[10px] text-slate-400">色調補正・クリップパス</span>
+                        </button>
+                        <button onclick="showPattern('anim-svg')" class="p-2.5 bg-slate-800/60 hover:bg-slate-800 active:scale-95 transition rounded-lg border border-slate-700/50 text-left">
+                            <span class="block text-xs font-bold text-white">SVG線画アニメーション</span>
+                            <span class="text-[10px] text-slate-400">パスの自動描画演出</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Group 2: Canvas & WebGL 3D -->
+                <div class="bg-slate-900/70 border border-slate-800/80 rounded-xl p-3.5 shadow-sm">
+                    <h3 class="text-xs font-bold text-violet-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-cube"></i> 2. Canvas & WebGL (3D)
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="showPattern('canvas-particles')" class="p-2.5 bg-slate-800/60 hover:bg-slate-800 active:scale-95 transition rounded-lg border border-slate-700/50 text-left">
+                            <span class="block text-xs font-bold text-white">Canvas 2D 花火物理</span>
+                            <span class="text-[10px] text-slate-400">パーティクル・スクラッチ</span>
+                        </button>
+                        <button onclick="showPattern('webgl-three')" class="p-2.5 bg-slate-800/60 hover:bg-slate-800 active:scale-95 transition rounded-lg border border-slate-700/50 text-left">
+                            <span class="block text-xs font-bold text-white">WebGL / Three.js 3D</span>
+                            <span class="text-[10px] text-slate-400">3Dオブジェクト・ライティング</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Group 3: Multimedia & Audio -->
+                <div class="bg-slate-900/70 border border-slate-800/80 rounded-xl p-3.5 shadow-sm">
+                    <h3 class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-headphones"></i> 3. サウンド & マルチメディア
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="showPattern('audio-synth')" class="p-2.5 bg-slate-800/60 hover:bg-slate-800 active:scale-95 transition rounded-lg border border-slate-700/50 text-left">
+                            <span class="block text-xs font-bold text-white">Web Audio API 合成</span>
+                            <span class="text-[10px] text-slate-400">ファイル不要のリアルタイムSE</span>
+                        </button>
+                        <button onclick="showPattern('video-capture')" class="p-2.5 bg-slate-800/60 hover:bg-slate-800 active:scale-95 transition rounded-lg border border-slate-700/50 text-left">
+                            <span class="block text-xs font-bold text-white">ビデオ & フレームキャプチャ</span>
+                            <span class="text-[10px] text-slate-400">動画処理と静止画切り出し</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Group 4: Device APIs & Sensors -->
+                <div class="bg-slate-900/70 border border-slate-800/80 rounded-xl p-3.5 shadow-sm">
+                    <h3 class="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-mobile-screen-button"></i> 4. デバイス・Web API連携
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="showPattern('device-sensors')" class="p-2.5 bg-slate-800/60 hover:bg-slate-800 active:scale-95 transition rounded-lg border border-slate-700/50 text-left">
+                            <span class="block text-xs font-bold text-white">加速度・傾きセンサー</span>
+                            <span class="text-[10px] text-slate-400">スマホチルト・パララックス</span>
+                        </button>
+                        <button onclick="showPattern('web-apis')" class="p-2.5 bg-slate-800/60 hover:bg-slate-800 active:scale-95 transition rounded-lg border border-slate-700/50 text-left">
+                            <span class="block text-xs font-bold text-white">音声認識・位置・共有</span>
+                            <span class="text-[10px] text-slate-400">Speech / Geolocation / Share</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 1. CSS FILTER & CLIP-PATH ==================== -->
+        <div id="view-img-filter" class="pattern-view space-y-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+                <h2 class="text-sm font-bold text-pink-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles"></i> CSSフィルター & クリップパス</h2>
+                <p class="text-xs text-slate-400 mb-4">画像の色調補正や幾何学的マスキング。</p>
+                
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center justify-center min-h-[180px]">
+                    <div id="clip-box" class="w-40 h-40 transition-all duration-300 shadow-xl" style="clip-path: circle(50% at 50% 50%);">
+                        <img id="target-img" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop&q=80" class="w-full h-full object-cover" alt="Sample">
+                    </div>
+                </div>
+
+                <div class="mt-4 space-y-3">
+                    <div>
+                        <label class="text-[11px] text-slate-300 flex justify-between mb-1"><span>明るさ</span><span id="val-brightness">100%</span></label>
+                        <input type="range" min="0" max="200" value="100" class="w-full accent-pink-500" oninput="updateFilter('brightness', this.value)">
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-slate-300 flex justify-between mb-1"><span>色相回転</span><span id="val-hue">0deg</span></label>
+                        <input type="range" min="0" max="360" value="0" class="w-full accent-pink-500" oninput="updateFilter('hue-rotate', this.value + 'deg')">
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 pt-2">
+                        <button onclick="setClipPath('circle(50% at 50% 50%)')" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-xs rounded-lg border border-slate-700">円形</button>
+                        <button onclick="setClipPath('polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)')" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-xs rounded-lg border border-slate-700">星形</button>
+                        <button onclick="setClipPath('polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%)')" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-xs rounded-lg border border-slate-700">台形</button>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400">
+                <strong class="text-pink-400 block mb-1">💡 アプリアイデア活用法:</strong>
+                写真加工アプリ、スタンプマスク切り抜き、UIの動的テーマカラー変更などに応用可能。
+            </div>
+        </div>
+
+        <!-- ==================== 2. SVG ANIMATION ==================== -->
+        <div id="view-anim-svg" class="pattern-view space-y-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+                <h2 class="text-sm font-bold text-pink-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-pen-nib"></i> SVG線画アニメーション</h2>
+                <p class="text-xs text-slate-400 mb-4">`stroke-dasharray` によるパスの自動描画。</p>
+                
+                <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 flex flex-col items-center justify-center min-h-[200px]">
+                    <svg class="w-36 h-36" viewBox="0 0 100 100">
+                        <path id="svg-heart" d="M50 88.9L16.7 55.6C7.2 46.1 7.2 30.9 16.7 21.4s25.2-9.5 34.7 0l-1.4 1.4 1.4-1.4c9.5-9.5 24.7-9.5 34.2 0s9.5 25.2 0 34.7L50 88.9z" 
+                              fill="none" stroke="#ec4899" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"
+                              style="stroke-dasharray: 200; stroke-dashoffset: 200; transition: stroke-dashoffset 2s ease-in-out;" />
+                    </svg>
+                </div>
+
+                <button onclick="playSvgAnim()" class="w-full mt-4 py-2.5 bg-pink-600 hover:bg-pink-500 active:scale-95 transition text-xs font-bold rounded-xl text-white shadow-md">
+                    線画アニメーションを再生
+                </button>
+            </div>
+            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400">
+                <strong class="text-pink-400 block mb-1">💡 アプリアイデア活用法:</strong>
+                ロゴのオープニング演出、お絵描きアプリの軌跡再生、チュートリアルのステップガイド。
+            </div>
+        </div>
+
+        <!-- ==================== 3. CANVAS PARTICLES & SCRATCH ==================== -->
+        <div id="view-canvas-particles" class="pattern-view space-y-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+                <h2 class="text-sm font-bold text-violet-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-fireworks"></i> Canvas 2D パーティクル & 花火</h2>
+                <p class="text-xs text-slate-400 mb-4">高速描画ループによるインタラクティブ物理演算。</p>
+                
+                <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden relative touch-none">
+                    <canvas id="particle-canvas" class="w-full h-56 block cursor-pointer"></canvas>
+                    <div class="absolute bottom-2 left-2 pointer-events-none bg-slate-900/80 px-2.5 py-1 rounded-md border border-slate-800 text-[10px] text-violet-300">
+                        画面をタップして花火を打ち上げ
+                    </div>
+                </div>
+
+                <button onclick="triggerFireworks()" class="w-full mt-4 py-2.5 bg-violet-600 hover:bg-violet-500 active:scale-95 transition text-xs font-bold rounded-xl text-white shadow-md">
+                    連続花火エフェクト
+                </button>
+            </div>
+            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400">
+                <strong class="text-violet-400 block mb-1">💡 アプリアイデア活用法:</strong>
+                ゲームの爆発エフェクト、クイズ正解時の紙吹雪、タスク完了のお祝い演出。
+            </div>
+        </div>
+
+        <!-- ==================== 4. WEBGL / THREE.JS 3D ==================== -->
+        <div id="view-webgl-three" class="pattern-view space-y-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+                <h2 class="text-sm font-bold text-violet-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-cube"></i> WebGL / Three.js 3D表現</h2>
+                <p class="text-xs text-slate-400 mb-4">ブラウザ単体でリッチな3Dグラフィックを描画。</p>
+                
+                <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden relative h-64 touch-none">
+                    <div id="three-container" class="w-full h-full"></div>
+                    <div class="absolute bottom-2 left-2 pointer-events-none bg-slate-900/80 px-2.5 py-1 rounded-md border border-slate-800 text-[10px] text-violet-300">
+                        ドラッグ/スワイプで回転
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                    <button onclick="switchThreeShape('box')" class="py-2 bg-slate-800 hover:bg-slate-700 text-xs rounded-lg border border-slate-700">立方体</button>
+                    <button onclick="switchThreeShape('torus')" class="py-2 bg-slate-800 hover:bg-slate-700 text-xs rounded-lg border border-slate-700">ドーナツ型</button>
+                </div>
+            </div>
+            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400">
+                <strong class="text-violet-400 block mb-1">💡 アプリアイデア活用法:</strong>
+                3Dプロダクトビューアー、メタバース風アバタープレビュー、3Dサイコロ・ルーレット。
+            </div>
+        </div>
+
+        <!-- ==================== 5. WEB AUDIO API ==================== -->
+        <div id="view-audio-synth" class="pattern-view space-y-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+                <h2 class="text-sm font-bold text-emerald-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-wave-square"></i> Web Audio API (効果音合成)</h2>
+                <p class="text-xs text-slate-400 mb-4">外部の音声ファイルなしでブラウザがリアルタイムに音を生成。</p>
+                
+                <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 flex flex-col items-center justify-center min-h-[180px] space-y-3">
+                    <div class="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xl">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </div>
+                    <p class="text-[11px] text-slate-400 text-center">オシレーター波形合成によるSE生成</p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 mt-4">
+                    <button onclick="playBleepSound()" class="py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition text-xs font-bold rounded-xl text-slate-950 shadow-md">決定音</button>
+                    <button onclick="playLaserSound()" class="py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition text-xs font-bold rounded-xl text-slate-950 shadow-md">レーザー</button>
+                    <button onclick="playCoinSound()" class="py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition text-xs font-bold rounded-xl text-slate-950 shadow-md">コイン</button>
+                </div>
+            </div>
+            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400">
+                <strong class="text-emerald-400 block mb-1">💡 アプリアイデア活用法:</strong>
+                軽量Webゲームの効果音、タイマーアプリのアラーム、ボタンスイッチのフィードバック音。
+            </div>
+        </div>
+
+        <!-- ==================== 6. VIDEO & CAPTURE ==================== -->
+        <div id="view-video-capture" class="pattern-view space-y-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+                <h2 class="text-sm font-bold text-emerald-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-video"></i> ビデオ再生 & フレームキャプチャ</h2>
+                <p class="text-xs text-slate-400 mb-4">HTML5ビデオの制御と、Canvasへの静止画切り出し。</p>
+                
+                <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden relative">
+                    <video id="demo-video" class="w-full h-44 object-cover" autoplay loop muted playsinline crossorigin="anonymous" src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-screens-and-numbers-31920-large.mp4"></video>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                    <button onclick="toggleVideoPlay()" class="py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 transition text-xs font-medium rounded-xl border border-slate-700">再生 / 停止</button>
+                    <button onclick="captureVideoFrame()" class="py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition text-xs font-bold rounded-xl text-slate-950 shadow-md">静止画キャプチャ</button>
+                </div>
+                <div id="capture-preview-box" class="hidden mt-3 p-3 bg-slate-950 rounded-xl border border-slate-800 text-center">
+                    <p class="text-[10px] text-slate-400 mb-2">キャプチャプレビュー:</p>
+                    <img id="captured-img" class="mx-auto max-h-28 rounded border border-slate-700" alt="Captured">
+                </div>
+            </div>
+            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400">
+                <strong class="text-emerald-400 block mb-1">💡 アプリアイデア活用法:</strong>
+                動画からのサムネイル抽出ツール、簡易写真撮影・ARエフェクト合成アプリ。
+            </div>
+        </div>
+
+        <!-- ==================== 7. DEVICE SENSORS ==================== -->
+        <div id="view-device-sensors" class="pattern-view space-y-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+                <h2 class="text-sm font-bold text-cyan-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-compass"></i> 加速度・傾きセンサー</h2>
+                <p class="text-xs text-slate-400 mb-4">スマホの物理的傾きを検知し、3Dカードを傾ける。</p>
+                
+                <div class="bg-slate-950 p-6 rounded-xl border border-slate-800 flex flex-col items-center justify-center min-h-[200px]">
+                    <div id="tilt-card" class="w-36 h-36 bg-gradient-to-tr from-cyan-600 to-blue-600 rounded-2xl shadow-2xl flex flex-col items-center justify-center p-4 text-center transition-transform duration-75 ease-out border border-cyan-400/30">
+                        <i class="fa-solid fa-mobile-screen-button text-3xl text-white mb-2"></i>
+                        <span id="motion-coords" class="text-[10px] text-cyan-200">X: 0, Y: 0</span>
+                    </div>
+                </div>
+
+                <button onclick="requestMotionPermission()" class="w-full mt-4 py-3 bg-cyan-600 hover:bg-cyan-500 active:scale-95 transition text-xs font-bold rounded-xl text-slate-950 shadow-lg">
+                    センサー権限を許可して体験
+                </button>
+            </div>
+            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400">
+                <strong class="text-cyan-400 block mb-1">💡 アプリアイデア活用法:</strong>
+                スマホを傾けて操作する迷路ゲーム、立体感のあるパララックス UI、コンパスアプリ。
+            </div>
+        </div>
+
+        <!-- ==================== 8. WEB APIS (SPEECH, GEO, SHARE, VIBE) ==================== -->
+        <div id="view-web-apis" class="pattern-view space-y-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+                <h2 class="text-sm font-bold text-cyan-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-network-wired"></i> 各種 Web API 統合デモ</h2>
+                <p class="text-xs text-slate-400 mb-4">音声認識、位置情報、バイブレーション、Web Share API。</p>
+                
+                <div class="space-y-3">
+                    <!-- Speech Recognition -->
+                    <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-white"><i class="fa-solid fa-microphone text-cyan-400 mr-1.5"></i>音声認識 (Speech Recognition)</span>
+                            <button onclick="startSpeechRec()" class="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 text-[10px] font-bold rounded-lg text-slate-950">音声入力</button>
+                        </div>
+                        <p id="speech-result" class="text-xs text-slate-400 italic">「マイクボタンを押して話してください...」</p>
+                    </div>
+
+                    <!-- Geolocation -->
+                    <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-white"><i class="fa-solid fa-location-dot text-cyan-400 mr-1.5"></i>位置情報 (Geolocation)</span>
+                            <button onclick="getLocation()" class="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 text-[10px] font-bold rounded-lg text-slate-950">取得</button>
+                        </div>
+                        <p id="geo-result" class="text-xs text-slate-400">未取得</p>
+                    </div>
+
+                    <!-- Vibration & Share -->
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button onclick="triggerVibration()" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-medium rounded-xl border border-slate-700 flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-mobile text-cyan-400"></i> バイブレーション
+                        </button>
+                        <button onclick="triggerShare()" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-medium rounded-xl border border-slate-700 flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-share-nodes text-cyan-400"></i> Web共有API
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400">
+                <strong class="text-cyan-400 block mb-1">💡 アプリアイデア活用法:</strong>
+                音声操作メモアプリ、チェックイン機能付きマップアプリ、SNSシェア機能付きジェネレーター。
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Script Application Logic -->
+    <script>
+        // Navigation Handler
+        function showPattern(id) {
+            document.querySelectorAll('.pattern-view').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-' + id).classList.add('active');
+            document.getElementById('back-btn').style.display = 'flex';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            if(id === 'canvas-particles') initParticleCanvas();
+            if(id === 'webgl-three') initThreeScene();
+        }
+
+        function goHome() {
+            document.querySelectorAll('.pattern-view').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-home').classList.add('active');
+            document.getElementById('back-btn').style.display = 'none';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 1. CSS Filter & Clip-Path
+        function updateFilter(type, value) {
+            if(type === 'brightness') {
+                document.getElementById('val-brightness').innerText = value + '%';
+                document.getElementById('target-img').style.filter = `brightness(${value}%) hue-rotate(${document.getElementById('val-hue').innerText})`;
+            }
+            if(type === 'hue-rotate') {
+                document.getElementById('val-hue').innerText = value;
+                document.getElementById('target-img').style.filter = `brightness(${document.getElementById('val-brightness').innerText}) hue-rotate(${value})`;
+            }
+        }
+        function setClipPath(path) {
+            document.getElementById('clip-box').style.clipPath = path;
+        }
+
+        // 2. SVG Animation
+        function playSvgAnim() {
+            const path = document.getElementById('svg-heart');
+            path.style.strokeDashoffset = '200';
+            setTimeout(() => { path.style.strokeDashoffset = '0'; }, 50);
+        }
+
+        // 3. Canvas Particles
+        let particles = [];
+        function initParticleCanvas() {
+            const canvas = document.getElementById('particle-canvas');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = 224;
+            
+            function addParticles(x, y) {
+                for(let i=0; i<25; i++) {
+                    particles.push({
+                        x: x, y: y,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 0.5) * 8,
+                        alpha: 1,
+                        color: `hsl(${Math.random() * 360}, 100%, 60%)`,
+                        size: Math.random() * 4 + 2
+                    });
+                }
+            }
+            canvas.onclick = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                addParticles(e.clientX - rect.left, e.clientY - rect.top);
+            };
+
+            if(!window.particleRunning) {
+                window.particleRunning = true;
+                function loop() {
+                    ctx.fillStyle = 'rgba(3, 7, 18, 0.2)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    particles.forEach((p, index) => {
+                        p.x += p.vx; p.y += p.vy;
+                        p.alpha -= 0.02;
+                        if(p.alpha <= 0) { particles.splice(index, 1); return; }
+                        ctx.save();
+                        ctx.globalAlpha = p.alpha;
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+                        ctx.restore();
+                    });
+                    requestAnimationFrame(loop);
+                }
+                loop();
+            }
+        }
+        function triggerFireworks() {
+            const canvas = document.getElementById('particle-canvas');
+            if(!canvas) return;
+            for(let f=0; f<3; f++) {
+                let cx = Math.random() * (canvas.width - 40) + 20, cy = Math.random() * 80 + 40;
+                for(let i=0; i<30; i++) {
+                    particles.push({
+                        x: cx, y: cy,
+                        vx: (Math.random() - 0.5) * 10,
+                        vy: (Math.random() - 0.5) * 10,
+                        alpha: 1,
+                        color: `hsl(${Math.random() * 360}, 100%, 70%)`,
+                        size: Math.random() * 4 + 2
+                    });
+                }
+            }
+        }
+
+        // 4. WebGL / Three.js 3D
+        let threeScene, threeCamera, threeRenderer, threeMesh;
+        function initThreeScene() {
+            const container = document.getElementById('three-container');
+            if(!container || threeRenderer) return;
+            
+            threeScene = new THREE.Scene();
+            threeCamera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+            threeCamera.position.z = 3.5;
+
+            threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            threeRenderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(threeRenderer.domElement);
+
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(5, 5, 5).normalize();
+            threeScene.add(light);
+            threeScene.add(new THREE.AmbientLight(0x404040));
+
+            const geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+            const material = new THREE.MeshStandardMaterial({ color: 0x8b5cf6, roughness: 0.3, metalness: 0.8 });
+            threeMesh = new THREE.Mesh(geometry, material);
+            threeScene.add(threeMesh);
+
+            // Touch / Mouse rotation control
+            let isDragging = false, prevX = 0, prevY = 0;
+            container.onmousedown = (e) => { isDragging = true; prevX = e.clientX; prevY = e.clientY; };
+            container.onmousemove = (e) => {
+                if(!isDragging) return;
+                threeMesh.rotation.y += (e.clientX - prevX) * 0.01;
+                threeMesh.rotation.x += (e.clientY - prevY) * 0.01;
+                prevX = e.clientX; prevY = e.clientY;
+            };
+            container.onmouseup = () => isDragging = false;
+            container.ontouchstart = (e) => { isDragging = true; prevX = e.touches[0].clientX; prevY = e.touches[0].clientY; };
+            container.ontouchmove = (e) => {
+                if(!isDragging) return;
+                threeMesh.rotation.y += (e.touches[0].clientX - prevX) * 0.01;
+                threeMesh.rotation.x += (e.touches[0].clientY - prevY) * 0.01;
+                prevX = e.touches[0].clientX; prevY = e.touches[0].clientY;
+            };
+            container.ontouchend = () => isDragging = false;
+
+            function animate() {
+                requestAnimationFrame(animate);
+                if(!isDragging) {
+                    threeMesh.rotation.x += 0.005;
+                    threeMesh.rotation.y += 0.008;
+                }
+                threeRenderer.render(threeScene, threeCamera);
+            }
+            animate();
+        }
+
+        function switchThreeShape(type) {
+            if(!threeScene) return;
+            threeScene.remove(threeMesh);
+            let geom = type === 'box' ? new THREE.BoxGeometry(1.5, 1.5, 1.5) : new THREE.TorusGeometry(1, 0.4, 16, 100);
+            let mat = new THREE.MeshStandardMaterial({ color: type === 'box' ? 0x8b5cf6 : 0xec4899, roughness: 0.3, metalness: 0.8 });
+            threeMesh = new THREE.Mesh(geom, mat);
+            threeScene.add(threeMesh);
+        }
+
+        // 5. Web Audio API
+        let audioCtx = null;
+        function getAudioContext() {
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            return audioCtx;
+        }
+        function playBleepSound() {
+            const ctx = getAudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(); osc.stop(ctx.currentTime + 0.15);
+        }
+        function playLaserSound() {
+            const ctx = getAudioContext();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(); osc.stop(ctx.currentTime + 0.3);
+        }
+        function playCoinSound() {
+            const ctx = getAudioContext();
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(987.77, now);
+            osc.frequency.setValueAtTime(1318.51, now + 0.08);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(now); osc.stop(now + 0.3);
+        }
+
+        // 6. Video & Capture
+        function toggleVideoPlay() {
+            const v = document.getElementById('demo-video');
+            if(v.paused) v.play(); else v.pause();
+        }
+        function captureVideoFrame() {
+            const v = document.getElementById('demo-video');
+            const canvas = document.createElement('canvas');
+            canvas.width = v.videoWidth || 320; canvas.height = v.videoHeight || 180;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+            document.getElementById('captured-img').src = canvas.toDataURL('image/png');
+            document.getElementById('capture-preview-box').classList.remove('hidden');
+        }
+
+        // 7. Device Sensors
+        function requestMotionPermission() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission().then(response => {
+                    if (response === 'granted') window.addEventListener('deviceorientation', handleOrientation);
+                }).catch(console.error);
+            } else {
+                window.addEventListener('deviceorientation', handleOrientation);
+                alert("センサーを有効化しました。スマホを傾けてみてください。");
+            }
+        }
+        function handleOrientation(e) {
+            const x = Math.round(e.gamma || 0);
+            const y = Math.round(e.beta || 0);
+            document.getElementById('motion-coords').innerText = `X: ${x}, Y: ${y}`;
+            const card = document.getElementById('tilt-card');
+            if(card) {
+                card.style.transform = `perspective(500px) rotateX(${-y/2}deg) rotateY(${x/2}deg)`;
+            }
+        }
+
+        // 8. Web APIs (Speech, Geolocation, Vibration, Share)
+        function startSpeechRec() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if(!SpeechRecognition) {
+                document.getElementById('speech-result').innerText = "お使いのブラウザは音声認識未対応です。";
+                return;
+            }
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'ja-JP';
+            document.getElementById('speech-result').innerText = "お話ください...";
+            recognition.onresult = (e) => {
+                const text = e.results[0][0].transcript;
+                document.getElementById('speech-result').innerText = `認識結果: 「${text}」`;
+            };
+            recognition.onerror = () => { document.getElementById('speech-result').innerText = "音声認識エラー"; };
+            recognition.start();
+        }
+
+        function getLocation() {
+            if(!navigator.geolocation) {
+                document.getElementById('geo-result').innerText = "位置情報未対応";
+                return;
+            }
+            document.getElementById('geo-result').innerText = "位置情報を取得中...";
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    document.getElementById('geo-result').innerText = `緯度: ${pos.coords.latitude.toFixed(4)}, 経度: ${pos.coords.longitude.toFixed(4)}`;
+                },
+                () => { document.getElementById('geo-result').innerText = "位置情報の取得に失敗しました。"; }
+            );
+        }
+
+        function triggerVibration() {
+            if(navigator.vibrate) navigator.vibrate([200, 100, 200]);
+            else alert("バイブレーション非対応のデバイスです。");
+        }
+
+        function triggerShare() {
+            if(navigator.share) {
+                navigator.share({ title: 'HTML5 Ultimate Lab', text: 'HTML5で実装できる演出とAPIのチートシート', url: window.location.href }).catch(() => {});
+            } else {
+                alert("Web共有API非対応ブラウザです。");
+            }
+        }
+    </script>
+</body>
+</html>
