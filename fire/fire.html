@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIRE シミュレーター Pro</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom CSS for font and layout fine-tuning -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+        }
+        /* Custom thin scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+    <!-- Header Navbar -->
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-emerald-500 p-2 rounded-xl text-slate-900 font-bold shadow-md shadow-emerald-500/20">
+                    <i data-lucide="flame" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black tracking-tight flex items-center gap-2">
+                        FIRE Simulator <span class="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-full font-bold border border-emerald-500/30">Pro</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-400">資産形成 & 早期リタイア統合シミュレーター</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <button onclick="saveSettings()" title="ブラウザに設定を保存" class="flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl text-xs sm:text-sm transition font-medium border border-slate-700">
+                    <i data-lucide="save" class="w-4 h-4 text-emerald-400"></i>
+                    <span class="hidden sm:inline">設定保存</span>
+                </button>
+                <button onclick="loadSettings()" title="保存した設定を復元" class="flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl text-xs sm:text-sm transition font-medium border border-slate-700">
+                    <i data-lucide="folder-open" class="w-4 h-4 text-blue-400"></i>
+                    <span class="hidden sm:inline">設定読み込み</span>
+                </button>
+                <button onclick="resetDefaults()" title="初期値に戻す" class="flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl text-xs sm:text-sm transition font-medium border border-slate-700">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4 text-slate-400"></i>
+                    <span class="hidden sm:inline">初期化</span>
+                </button>
+                <button onclick="downloadCurrentHTML()" title="HTMLファイルとしてダウンロード" class="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm transition font-semibold shadow-md">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">HTML保存</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+        <!-- Left Column: Input Form Sections (5 Cols) -->
+        <div id="leftInputContainer" class="lg:col-span-5 space-y-6">
+
+            <!-- 1. 個人・年齢設定 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80">
+                <div class="flex items-center space-x-2 border-b border-slate-100 pb-3 mb-4">
+                    <i data-lucide="user" class="w-5 h-5 text-indigo-600"></i>
+                    <h2 class="font-bold text-slate-800 text-base">1. 個人・年齢設定</h2>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">現在の年齢</label>
+                        <div class="relative">
+                            <input type="number" id="currentAge" value="35" min="18" max="90" onchange="runSimulation()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <span class="absolute right-3 top-2 text-xs text-slate-400 font-medium">歳</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">リタイア予定年齢</label>
+                        <div class="relative">
+                            <input type="number" id="retireAge" value="50" min="20" max="90" onchange="runSimulation()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <span class="absolute right-3 top-2 text-xs text-slate-400 font-medium">歳</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">年金受給開始年齢</label>
+                        <div class="relative">
+                            <input type="number" id="pensionAge" value="65" min="60" max="75" onchange="runSimulation()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <span class="absolute right-3 top-2 text-xs text-slate-400 font-medium">歳</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">シミュレーション終了</label>
+                        <div class="relative">
+                            <input type="number" id="maxAge" value="90" min="60" max="110" onchange="runSimulation()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <span class="absolute right-3 top-2 text-xs text-slate-400 font-medium">歳</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2〜5. 収入・資産 と 投資・防衛の配分設定 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 space-y-5">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="arrow-right-left" class="w-5 h-5 text-emerald-600"></i>
+                        <h2 class="font-bold text-slate-800 text-base">2. 収入・資産と投資の対応配分</h2>
+                    </div>
+                    <span class="text-[11px] text-slate-400 font-medium">原資対比</span>
+                </div>
+
+                <!-- 2. リタイア前の毎月収入と投資 -->
+                <div class="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/60 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            2. リタイア前：毎月の手取りと積立投資
+                        </span>
+                        <span class="text-[10px] bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">毎月</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-slate-500 mb-1">毎月手取り収入</label>
+                            <div class="relative">
+                                <input type="number" id="preRetireMonthlyIncome" value="38" step="0.5" oninput="updateAllocationUI(); runSimulation();" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                <span class="absolute right-2 top-1.5 text-[11px] text-slate-400">万円</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-blue-600 mb-1">毎月積立投資額</label>
+                            <div class="relative">
+                                <input type="number" id="monthlyInvestment" value="12" step="0.5" oninput="updateAllocationUI(); runSimulation();" class="w-full bg-white border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-blue-600 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <span class="absolute right-2 top-1.5 text-[11px] text-slate-400">万円</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-medium">
+                            <span>積立投資率: <b id="preIncomeInvestRatio" class="text-blue-600">31.6%</b></span>
+                            <span>手元留保/生活費へ: <b id="preIncomeRemain" class="text-slate-700">26.0万円</b></span>
+                        </div>
+                        <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden flex">
+                            <div id="preIncomeInvestBar" class="bg-blue-500 h-full" style="width: 31.6%"></div>
+                            <div id="preIncomeRemainBar" class="bg-slate-300 h-full" style="width: 68.4%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 現在資産の配分 -->
+                <div class="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/60 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            3. 現在資産の配分
+                        </span>
+                        <span class="text-[10px] bg-emerald-100 text-emerald-700 font-semibold px-2 py-0.5 rounded-full">現在ストック</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-slate-500 mb-1">保有資産 合計</label>
+                            <div class="relative">
+                                <input type="number" id="currentTotalAssetsInput" value="1500" step="10" oninput="updateAllocationUI(); runSimulation();" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                <span class="absolute right-2 top-1.5 text-[11px] text-slate-400">万円</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-blue-600 mb-1">うち投資・運用資金</label>
+                            <div class="relative">
+                                <input type="number" id="currentInvested" value="1200" step="10" oninput="updateAllocationUI(); runSimulation();" class="w-full bg-white border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-blue-600 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <span class="absolute right-2 top-1.5 text-[11px] text-slate-400">万円</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-medium">
+                            <span>現金(生活防衛資金): <b id="currentCashRemain" class="text-emerald-700">300万円</b></span>
+                            <span>運用比率: <b id="currentInvestRatio" class="text-blue-600">80.0%</b></span>
+                        </div>
+                        <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden flex">
+                            <div id="currentInvestBar" class="bg-blue-500 h-full" style="width: 80%"></div>
+                            <div id="currentCashBar" class="bg-emerald-500 h-full" style="width: 20%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. リタイア時 退職金の配分 -->
+                <div class="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/60 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                            4. リタイア時：退職金の配分
+                        </span>
+                        <span class="text-[10px] bg-amber-100 text-amber-700 font-semibold px-2 py-0.5 rounded-full">一時金</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-slate-500 mb-1">想定退職金総額</label>
+                            <div class="relative">
+                                <input type="number" id="retirementLumpSum" value="1500" step="10" oninput="updateAllocationUI(); runSimulation();" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                <span class="absolute right-2 top-1.5 text-[11px] text-slate-400">万円</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-blue-600 mb-1">運用へ回す額</label>
+                            <div class="relative">
+                                <input type="number" id="retirementInvestAmount" value="1000" step="10" oninput="updateAllocationUI(); runSimulation();" class="w-full bg-white border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-blue-600 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <span class="absolute right-2 top-1.5 text-[11px] text-slate-400">万円</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-medium">
+                            <span>現金留保分(生活防衛資金): <b id="retirementCashRemain" class="text-emerald-600">500万円</b></span>
+                            <span>運用回し率: <b id="retirementInvestRatio" class="text-blue-600">66.7%</b></span>
+                        </div>
+                        <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden flex">
+                            <div id="retirementInvestBar" class="bg-blue-500 h-full" style="width: 66.7%"></div>
+                            <div id="retirementCashBar" class="bg-emerald-500 h-full" style="width: 33.3%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. リタイア後 毎月収入と継続投資 -->
+                <div class="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200/60 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                            5. リタイア後：毎月収入と継続投資
+                        </span>
+                        <span class="text-[10px] bg-indigo-100 text-indigo-700 font-semibold px-2 py-0.5 rounded-full">リタイア後毎月</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-medium text-slate-500 mb-0.5">年金見込 (満受給時)</label>
+                            <input type="number" id="postRetirePension" value="14" step="0.5" oninput="updateAllocationUI(); runSimulation();" class="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs font-semibold">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-medium text-slate-500 mb-0.5">副業収入</label>
+                            <input type="number" id="postRetireSideIncome" value="5" step="0.5" oninput="updateAllocationUI(); runSimulation();" class="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs font-semibold">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-medium text-slate-500 mb-0.5">不動産収入</label>
+                            <input type="number" id="postRetireRealEstate" value="0" step="0.5" oninput="updateAllocationUI(); runSimulation();" class="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs font-semibold">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-medium text-slate-500 mb-0.5">その他収入</label>
+                            <input type="number" id="postRetireOtherIncome" value="0" step="0.5" oninput="updateAllocationUI(); runSimulation();" class="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs font-semibold">
+                        </div>
+                    </div>
+
+                    <!-- Computed Total (Readonly UI Matching other inputs) -->
+                    <div class="grid grid-cols-2 gap-3 pt-1">
+                        <div>
+                            <label class="block text-[10px] font-medium text-slate-500 mb-0.5 flex items-center gap-1">
+                                <i data-lucide="lock" class="w-3 h-3 text-slate-400"></i> 毎月収入合計 (自動計算)
+                            </label>
+                            <div class="relative">
+                                <input type="text" id="postIncomeTotalInput" readonly value="19.0" class="w-full bg-slate-100 border border-slate-300 rounded px-2 py-1 text-xs font-semibold text-slate-600 cursor-not-allowed">
+                                <span class="absolute right-2 top-1 text-[10px] text-slate-400">万円</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-medium text-blue-600 mb-0.5">リタイア後 毎月投資額</label>
+                            <div class="relative">
+                                <input type="number" id="postRetireMonthlyInvestment" value="0" step="0.5" oninput="updateAllocationUI(); runSimulation();" class="w-full bg-white border border-blue-300 rounded px-2 py-1 text-xs font-bold text-blue-600">
+                                <span class="absolute right-2 top-1 text-[10px] text-slate-400">万円</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 年利設定 -->
+                <div class="pt-2 border-t border-slate-100">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                            <i data-lucide="trending-up" class="w-4 h-4 text-blue-600"></i>
+                            平均想定運用リターン（年利）
+                        </label>
+                        <span id="returnRateVal" class="text-xs font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">5.0%</span>
+                    </div>
+                    <input type="range" id="returnRate" min="0" max="12" step="0.1" value="5.0" oninput="document.getElementById('returnRateVal').innerText = parseFloat(this.value).toFixed(1) + '%'; runSimulation();" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                </div>
+            </div>
+
+            <!-- 6. 毎月の生活費設定 -->
+            <div id="expenseCardContainer" class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="shopping-bag" class="w-5 h-5 text-rose-600"></i>
+                        <h2 class="font-bold text-slate-800 text-base">6. 毎月の生活費設定</h2>
+                    </div>
+                    <button onclick="openExpenseModal()" class="flex items-center space-x-1 text-xs bg-rose-50 text-rose-600 hover:bg-rose-100 px-2.5 py-1.5 rounded-xl border border-rose-200 transition font-bold">
+                        <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+                        <span>生活費算出ウィザード</span>
+                    </button>
+                </div>
+
+                <!-- Total Display -->
+                <div class="bg-rose-50/80 border border-rose-100 rounded-xl p-3.5 mb-4 flex items-center justify-between">
+                    <span class="text-xs font-bold text-rose-800">【合計】毎月の生活費</span>
+                    <div class="text-right">
+                        <span id="totalMonthlyExpenseDisplay" class="text-xl font-black text-rose-600">24.5</span>
+                        <span class="text-xs font-bold text-rose-800"> 万円/月</span>
+                    </div>
+                </div>
+
+                <!-- Accordion for Breakdown (Initially Open) -->
+                <details class="group" open>
+                    <summary class="flex justify-between items-center text-xs font-bold text-slate-600 cursor-pointer py-1 hover:text-slate-900 select-none">
+                        <span>内訳の詳細設定</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div class="space-y-2 pt-3 border-t border-slate-100 mt-2 text-xs">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-slate-500 font-medium">住居・修繕・固定資産</label>
+                                <input type="number" id="expHousing" value="8" step="0.5" oninput="updateTotalExpenseFromBreakdown(); runSimulation();" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 font-semibold">
+                            </div>
+                            <div>
+                                <label class="text-slate-500 font-medium">食費</label>
+                                <input type="number" id="expFood" value="5" step="0.5" oninput="updateTotalExpenseFromBreakdown(); runSimulation();" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 font-semibold">
+                            </div>
+                            <div>
+                                <label class="text-slate-500 font-medium">水道光熱・通信費</label>
+                                <input type="number" id="expUtilities" value="2.5" step="0.1" oninput="updateTotalExpenseFromBreakdown(); runSimulation();" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 font-semibold">
+                            </div>
+                            <div>
+                                <label class="text-slate-500 font-medium">日用品費</label>
+                                <input type="number" id="expSupplies" value="1" step="0.1" oninput="updateTotalExpenseFromBreakdown(); runSimulation();" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 font-semibold">
+                            </div>
+                            <div>
+                                <label class="text-slate-500 font-medium">医療費・保険料</label>
+                                <input type="number" id="expMedical" value="1.5" step="0.1" oninput="updateTotalExpenseFromBreakdown(); runSimulation();" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 font-semibold">
+                            </div>
+                            <div>
+                                <label class="text-slate-500 font-medium">税金・社会保険料</label>
+                                <input type="number" id="expTax" value="3" step="0.5" oninput="updateTotalExpenseFromBreakdown(); runSimulation();" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 font-semibold">
+                            </div>
+                            <div>
+                                <label class="text-slate-500 font-medium">交際費・趣味・娯楽</label>
+                                <input type="number" id="expHobby" value="2" step="0.5" oninput="updateTotalExpenseFromBreakdown(); runSimulation();" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 font-semibold">
+                            </div>
+                            <div>
+                                <label class="text-slate-500 font-medium">被服費</label>
+                                <input type="number" id="expClothes" value="0.5" step="0.1" oninput="updateTotalExpenseFromBreakdown(); runSimulation();" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 font-semibold">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-slate-500 font-medium">その他予備費</label>
+                            <input type="number" id="expOther" value="1" step="0.5" oninput="updateTotalExpenseFromBreakdown(); runSimulation();" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 font-semibold">
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Results & Visualizations (7 Cols) -->
+        <div id="rightDashboardContainer" class="lg:col-span-7 space-y-6 flex flex-col h-full">
+
+            <!-- Summary KPI Dashboard Header -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80">
+                    <p class="text-[11px] font-bold text-slate-400">FIRE判定</p>
+                    <p id="kpiStatus" class="text-base sm:text-lg font-black text-emerald-600 mt-0.5">計算中...</p>
+                </div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80">
+                    <p class="text-[11px] font-bold text-slate-400">資産ピーク額</p>
+                    <p id="kpiPeak" class="text-base sm:text-lg font-black text-slate-800 mt-0.5">- 万円</p>
+                </div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80">
+                    <p class="text-[11px] font-bold text-slate-400">リタイア時資産</p>
+                    <p id="kpiRetireAssets" class="text-base sm:text-lg font-black text-blue-600 mt-0.5">- 万円</p>
+                </div>
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80">
+                    <p class="text-[11px] font-bold text-slate-400">最終到達資産(<span id="kpiTargetAge">90</span>歳)</p>
+                    <p id="kpiFinalAssets" class="text-base sm:text-lg font-black text-slate-800 mt-0.5">- 万円</p>
+                </div>
+            </div>
+
+            <!-- Chart Card -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="bar-chart-3" class="w-5 h-5 text-indigo-600"></i>
+                        <h3 class="font-bold text-slate-800 text-base">資産推移チャート</h3>
+                    </div>
+                    <span class="text-xs text-slate-400 font-medium">※単位: 万円</span>
+                </div>
+                <div class="relative h-64 sm:h-72 w-full">
+                    <canvas id="assetChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Detailed Breakdown Data Table Card (Matched height to left side) -->
+            <div id="tableCard" class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/80 flex-grow flex flex-col min-h-[320px]">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="table" class="w-5 h-5 text-slate-600"></i>
+                        <h3 class="font-bold text-slate-800 text-base">年別詳細推移テーブル</h3>
+                    </div>
+                    <span class="text-xs text-slate-400 font-medium">スクロールで全期間確認</span>
+                </div>
+                <div id="tableScrollArea" class="overflow-x-auto border border-slate-200 rounded-xl flex-grow overflow-y-auto">
+                    <table class="w-full text-xs text-left text-slate-600">
+                        <thead class="text-[11px] uppercase bg-slate-100 text-slate-700 sticky top-0 z-10 font-bold">
+                            <tr>
+                                <th class="px-3 py-2.5">年齢</th>
+                                <th class="px-3 py-2.5">区分</th>
+                                <th class="px-3 py-2.5 text-right">年間収入</th>
+                                <th class="px-3 py-2.5 text-right">年間支出</th>
+                                <th class="px-3 py-2.5 text-right">運用益</th>
+                                <th class="px-3 py-2.5 text-right">運用資産</th>
+                                <th class="px-3 py-2.5 text-right">現金/防衛</th>
+                                <th class="px-3 py-2.5 text-right font-black">総資産額</th>
+                            </tr>
+                        </thead>
+                        <tbody id="simulationTableBody" class="divide-y divide-slate-100 font-medium">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-2 opacity-0 transition-opacity duration-300 pointer-events-none z-50">
+        <i data-lucide="info" class="w-4 h-4 text-emerald-400"></i>
+        <span id="toastMsg">通知メッセージ</span>
+    </div>
+
+    <!-- Modal: 生活費算出ウィザード (Pop-up Modal) -->
+    <div id="expenseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 transition-all transform scale-100">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="calculator" class="w-5 h-5 text-rose-600"></i>
+                    <h3 class="font-bold text-slate-800 text-base">生活費自動概算ウィザード</h3>
+                </div>
+                <button onclick="closeExpenseModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-500 mb-4">世帯状況・居住形態・生活スタイルから一般的な生活費目安を自動計算・反映します。</p>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">A-1. 住居の形態</label>
+                    <select id="wizardHousing" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-rose-500 focus:outline-none font-semibold">
+                        <option value="rent_tokyo">賃貸 (首都圏/都心部)</option>
+                        <option value="rent_local">賃貸 (地方・郊外)</option>
+                        <option value="own_mortgage">持ち家 (住宅ローン返済中)</option>
+                        <option value="own_paid">持ち家 (ローン完済・固定資産税等のみ)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">A-2. 世帯構成</label>
+                    <select id="wizardHousehold" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-rose-500 focus:outline-none font-semibold">
+                        <option value="single">単身 (独身)</option>
+                        <option value="couple">夫婦2人</option>
+                        <option value="family_1">夫婦 + 子供1人</option>
+                        <option value="family_2">夫婦 + 子供2人以上</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">A-3. ライフスタイル・地域</label>
+                    <select id="wizardRegion" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-800 focus:ring-2 focus:ring-rose-500 focus:outline-none font-semibold">
+                        <option value="standard">標準的・平均的</option>
+                        <option value="frugal">節約志向 (ミニマム生活)</option>
+                        <option value="luxury">ゆとり志向 (趣味・旅行多め)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeExpenseModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl text-xs transition">
+                    キャンセル
+                </button>
+                <button onclick="applyCalculatedExpenses()" class="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-xl text-xs shadow-md transition">
+                    A-4. 算出結果をメイン画面に反映
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let assetChartInstance = null;
+
+        // Input element ID list for state persistence
+        const INPUT_IDS = [
+            'currentAge', 'retireAge', 'pensionAge', 'maxAge',
+            'preRetireMonthlyIncome', 'retirementLumpSum', 'postRetirePension', 'postRetireSideIncome', 'postRetireRealEstate', 'postRetireOtherIncome',
+            'monthlyInvestment', 'postRetireMonthlyInvestment', 'currentTotalAssetsInput', 'currentInvested', 'retirementInvestAmount', 'returnRate',
+            'expHousing', 'expFood', 'expUtilities', 'expSupplies', 'expMedical', 'expTax', 'expHobby', 'expClothes', 'expOther'
+        ];
+
+        window.onload = function() {
+            lucide.createIcons();
+            updateTotalExpenseFromBreakdown();
+            updateAllocationUI();
+            runSimulation();
+            adjustTableHeightToMatchLeft();
+
+            window.addEventListener('resize', adjustTableHeightToMatchLeft);
+        };
+
+        // Format currency neatly (e.g. 1億2,500万円 or 8,500万円) without decimals
+        function formatCurrencyJapanese(valInTenThousand) {
+            const rounded = Math.round(valInTenThousand);
+            if (Math.abs(rounded) >= 10000) {
+                const oku = Math.floor(rounded / 10000);
+                const man = Math.abs(rounded % 10000);
+                if (man === 0) {
+                    return `${oku.toLocaleString()}億円`;
+                }
+                return `${oku.toLocaleString()}億${man.toLocaleString()}万円`;
+            }
+            return `${rounded.toLocaleString()}万円`;
+        }
+
+        // Adjust Table height to cleanly align bottom edge with Left Column
+        function adjustTableHeightToMatchLeft() {
+            if (window.innerWidth < 1024) return;
+            const leftContainer = document.getElementById('leftInputContainer');
+            const tableCard = document.getElementById('tableCard');
+            const tableScrollArea = document.getElementById('tableScrollArea');
+
+            if (leftContainer && tableCard && tableScrollArea) {
+                const leftBottom = leftContainer.getBoundingClientRect().bottom;
+                const tableCardTop = tableCard.getBoundingClientRect().top;
+                const targetHeight = leftBottom - tableCardTop;
+
+                if (targetHeight > 200) {
+                    tableCard.style.height = `${targetHeight}px`;
+                }
+            }
+        }
+
+        // Toast notifications
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = message;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        // Save settings to LocalStorage
+        function saveSettings() {
+            const data = {};
+            INPUT_IDS.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) data[id] = el.value;
+            });
+            localStorage.setItem('fire_simulator_config_v3', JSON.stringify(data));
+            showToast("設定をブラウザに保存しました");
+        }
+
+        // Load settings from LocalStorage
+        function loadSettings() {
+            const saved = localStorage.getItem('fire_simulator_config_v3');
+            if (!saved) {
+                showToast("保存された設定データがありません");
+                return;
+            }
+            try {
+                const data = JSON.parse(saved);
+                INPUT_IDS.forEach(id => {
+                    if (data[id] !== undefined && document.getElementById(id)) {
+                        document.getElementById(id).value = data[id];
+                    }
+                });
+                document.getElementById('returnRateVal').innerText = parseFloat(document.getElementById('returnRate').value).toFixed(1) + '%';
+                updateTotalExpenseFromBreakdown();
+                updateAllocationUI();
+                runSimulation();
+                showToast("設定データを復元しました");
+            } catch (e) {
+                showToast("設定データの読み込みに失敗しました");
+            }
+        }
+
+        // Reset to initial defaults
+        function resetDefaults() {
+            const defaults = {
+                currentAge: 35, retireAge: 50, pensionAge: 65, maxAge: 90,
+                preRetireMonthlyIncome: 38, monthlyInvestment: 12,
+                currentTotalAssetsInput: 1500, currentInvested: 1200,
+                retirementLumpSum: 1500, retirementInvestAmount: 1000,
+                postRetirePension: 14, postRetireSideIncome: 5, postRetireRealEstate: 0, postRetireOtherIncome: 0,
+                postRetireMonthlyInvestment: 0, returnRate: 5.0,
+                expHousing: 8, expFood: 5, expUtilities: 2.5, expSupplies: 1, expMedical: 1.5, expTax: 3, expHobby: 2, expClothes: 0.5, expOther: 1
+            };
+            Object.keys(defaults).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = defaults[id];
+            });
+            document.getElementById('returnRateVal').innerText = '5.0%';
+            updateTotalExpenseFromBreakdown();
+            updateAllocationUI();
+            runSimulation();
+            showToast("設定を初期値にリセットしました");
+        }
+
+        // Modal Controls
+        function openExpenseModal() {
+            document.getElementById('expenseModal').classList.remove('hidden');
+        }
+        function closeExpenseModal() {
+            document.getElementById('expenseModal').classList.add('hidden');
+        }
+
+        // Update allocation ratios & group visualizers
+        function updateAllocationUI() {
+            // Group 2: Pre-Retire Monthly
+            const preInc = parseFloat(document.getElementById('preRetireMonthlyIncome').value) || 0;
+            const preInv = parseFloat(document.getElementById('monthlyInvestment').value) || 0;
+            const preRatio = preInc > 0 ? Math.min(100, Math.max(0, (preInv / preInc) * 100)) : 0;
+            const preRemain = Math.max(0, preInc - preInv);
+
+            document.getElementById('preIncomeInvestRatio').innerText = `${preRatio.toFixed(1)}%`;
+            document.getElementById('preIncomeRemain').innerText = `${preRemain.toFixed(1)}万円`;
+            document.getElementById('preIncomeInvestBar').style.width = `${preRatio}%`;
+            document.getElementById('preIncomeRemainBar').style.width = `${100 - preRatio}%`;
+
+            // Group 3: Current Assets (Total vs Invested -> Cash)
+            const curTotalAsset = parseFloat(document.getElementById('currentTotalAssetsInput').value) || 0;
+            const curInv = parseFloat(document.getElementById('currentInvested').value) || 0;
+            const curCashRemain = Math.max(0, curTotalAsset - curInv);
+            const curInvRatio = curTotalAsset > 0 ? Math.min(100, Math.max(0, (curInv / curTotalAsset) * 100)) : 0;
+
+            document.getElementById('currentCashRemain').innerText = `${Math.round(curCashRemain).toLocaleString()}万円`;
+            document.getElementById('currentInvestRatio').innerText = `${curInvRatio.toFixed(1)}%`;
+            document.getElementById('currentInvestBar').style.width = `${curInvRatio}%`;
+            document.getElementById('currentCashBar').style.width = `${100 - curInvRatio}%`;
+
+            // Group 4: Retirement Lump Sum
+            const lumpTotal = parseFloat(document.getElementById('retirementLumpSum').value) || 0;
+            const lumpInv = parseFloat(document.getElementById('retirementInvestAmount').value) || 0;
+            const lumpRemain = Math.max(0, lumpTotal - lumpInv);
+            const lumpRatio = lumpTotal > 0 ? Math.min(100, Math.max(0, (lumpInv / lumpTotal) * 100)) : 0;
+
+            document.getElementById('retirementCashRemain').innerText = `${Math.round(lumpRemain).toLocaleString()}万円`;
+            document.getElementById('retirementInvestRatio').innerText = `${lumpRatio.toFixed(1)}%`;
+            document.getElementById('retirementInvestBar').style.width = `${lumpRatio}%`;
+            document.getElementById('retirementCashBar').style.width = `${100 - lumpRatio}%`;
+
+            // Group 5: Post Retire Monthly Income Sum
+            const pension = parseFloat(document.getElementById('postRetirePension').value) || 0;
+            const side = parseFloat(document.getElementById('postRetireSideIncome').value) || 0;
+            const re = parseFloat(document.getElementById('postRetireRealEstate').value) || 0;
+            const otherInc = parseFloat(document.getElementById('postRetireOtherIncome').value) || 0;
+            const postIncTotal = pension + side + re + otherInc;
+
+            document.getElementById('postIncomeTotalInput').value = postIncTotal.toFixed(1);
+
+            setTimeout(adjustTableHeightToMatchLeft, 50);
+        }
+
+        // Helper to get total monthly expense from breakdown inputs
+        function getTotalBreakdownExpense() {
+            const keys = ['expHousing', 'expFood', 'expUtilities', 'expSupplies', 'expMedical', 'expTax', 'expHobby', 'expClothes', 'expOther'];
+            let total = 0;
+            keys.forEach(key => {
+                total += parseFloat(document.getElementById(key).value) || 0;
+            });
+            return total;
+        }
+
+        function updateTotalExpenseFromBreakdown() {
+            const total = getTotalBreakdownExpense();
+            document.getElementById('totalMonthlyExpenseDisplay').innerText = total.toFixed(1);
+        }
+
+        // Apply Wizard Results
+        function applyCalculatedExpenses() {
+            const housingType = document.getElementById('wizardHousing').value;
+            const household = document.getElementById('wizardHousehold').value;
+            const region = document.getElementById('wizardRegion').value;
+
+            let h = 8, f = 4.5, u = 2.2, s = 1.0, m = 1.2, t = 2.5, hb = 2.0, c = 0.8, o = 1.0;
+
+            if (household === 'single') {
+                f = 3.5; u = 1.5; s = 0.8; m = 1.0; t = 2.0; hb = 2.0; c = 0.5; o = 0.8;
+            } else if (household === 'couple') {
+                f = 6.0; u = 2.5; s = 1.2; m = 1.8; t = 3.5; hb = 3.0; c = 1.0; o = 1.2;
+            } else if (household === 'family_1') {
+                f = 7.5; u = 3.0; s = 1.8; m = 2.0; t = 4.0; hb = 3.5; c = 1.2; o = 2.0;
+            } else if (household === 'family_2') {
+                f = 9.0; u = 3.6; s = 2.2; m = 2.5; t = 4.5; hb = 4.0; c = 1.5; o = 3.0;
+            }
+
+            if (housingType === 'rent_tokyo') {
+                h = (household === 'single') ? 9.5 : (household === 'couple' ? 14.0 : 18.0);
+            } else if (housingType === 'rent_local') {
+                h = (household === 'single') ? 5.5 : (household === 'couple' ? 8.0 : 10.0);
+            } else if (housingType === 'own_mortgage') {
+                h = (household === 'single') ? 8.0 : (household === 'couple' ? 11.0 : 13.0);
+            } else if (housingType === 'own_paid') {
+                h = 2.5;
+            }
+
+            if (region === 'frugal') {
+                f *= 0.8; hb *= 0.6; c *= 0.6; o *= 0.7;
+            } else if (region === 'luxury') {
+                f *= 1.3; hb *= 1.6; c *= 1.5; o *= 1.4;
+            }
+
+            document.getElementById('expHousing').value = h.toFixed(1);
+            document.getElementById('expFood').value = f.toFixed(1);
+            document.getElementById('expUtilities').value = u.toFixed(1);
+            document.getElementById('expSupplies').value = s.toFixed(1);
+            document.getElementById('expMedical').value = m.toFixed(1);
+            document.getElementById('expTax').value = t.toFixed(1);
+            document.getElementById('expHobby').value = hb.toFixed(1);
+            document.getElementById('expClothes').value = c.toFixed(1);
+            document.getElementById('expOther').value = o.toFixed(1);
+
+            updateTotalExpenseFromBreakdown();
+            closeExpenseModal();
+            runSimulation();
+        }
+
+        // Main Simulation Engine
+        function runSimulation() {
+            const currentAge = parseInt(document.getElementById('currentAge').value) || 35;
+            const retireAge = parseInt(document.getElementById('retireAge').value) || 50;
+            const pensionAge = parseInt(document.getElementById('pensionAge').value) || 65;
+            const maxAge = parseInt(document.getElementById('maxAge').value) || 90;
+
+            const preIncomeMonthly = parseFloat(document.getElementById('preRetireMonthlyIncome').value) || 0;
+            const lumpSum = parseFloat(document.getElementById('retirementLumpSum').value) || 0;
+            
+            const pensionMonthly = parseFloat(document.getElementById('postRetirePension').value) || 0;
+            const sideMonthly = parseFloat(document.getElementById('postRetireSideIncome').value) || 0;
+            const reMonthly = parseFloat(document.getElementById('postRetireRealEstate').value) || 0;
+            const otherMonthly = parseFloat(document.getElementById('postRetireOtherIncome').value) || 0;
+
+            const preMonthlyInvest = parseFloat(document.getElementById('monthlyInvestment').value) || 0;
+            const postMonthlyInvest = parseFloat(document.getElementById('postRetireMonthlyInvestment').value) || 0;
+            
+            const currentTotalAssetInput = parseFloat(document.getElementById('currentTotalAssetsInput').value) || 0;
+            let investedAsset = parseFloat(document.getElementById('currentInvested').value) || 0;
+            let cashAsset = Math.max(0, currentTotalAssetInput - investedAsset);
+
+            const lumpSumInvest = Math.min(lumpSum, parseFloat(document.getElementById('retirementInvestAmount').value) || 0);
+            const returnRate = (parseFloat(document.getElementById('returnRate').value) || 0) / 100;
+            const monthlyExpense = getTotalBreakdownExpense();
+
+            document.getElementById('kpiTargetAge').innerText = maxAge;
+
+            const labels = [];
+            const investedData = [];
+            const cashData = [];
+            const totalData = [];
+            const tableRows = [];
+
+            let peakAsset = cashAsset + investedAsset;
+            let retireAsset = 0;
+            let isAssetDepleted = false;
+            let depletedAge = null;
+
+            for (let age = currentAge; age <= maxAge; age++) {
+                const isRetired = age >= retireAge;
+                const isPensionActive = age >= pensionAge;
+
+                let annualIncome = 0;
+                let annualExpense = monthlyExpense * 12;
+                let investmentGain = 0;
+
+                if (!isRetired) {
+                    annualIncome = preIncomeMonthly * 12;
+                    const annualContribution = preMonthlyInvest * 12;
+                    
+                    investmentGain = investedAsset * returnRate;
+                    investedAsset += investmentGain + annualContribution;
+
+                    const annualSurplus = annualIncome - annualExpense - annualContribution;
+                    if (annualSurplus > 0) {
+                        cashAsset += annualSurplus;
+                    }
+                } else {
+                    if (age === retireAge) {
+                        investedAsset += lumpSumInvest;
+                        cashAsset += (lumpSum - lumpSumInvest);
+                    }
+
+                    let activeIncomeMonthly = sideMonthly + reMonthly + otherMonthly;
+                    if (isPensionActive) {
+                        activeIncomeMonthly += pensionMonthly;
+                    }
+                    annualIncome = activeIncomeMonthly * 12;
+
+                    const annualPostContribution = postMonthlyInvest * 12;
+                    investmentGain = investedAsset * returnRate;
+                    investedAsset += investmentGain + annualPostContribution;
+
+                    const netCashflow = annualIncome - annualExpense - annualPostContribution;
+                    if (netCashflow >= 0) {
+                        cashAsset += netCashflow;
+                    } else {
+                        const deficit = Math.abs(netCashflow);
+                        if (cashAsset >= deficit) {
+                            cashAsset -= deficit;
+                        } else {
+                            const remainingDeficit = deficit - cashAsset;
+                            cashAsset = 0;
+                            investedAsset -= remainingDeficit;
+                        }
+                    }
+                }
+
+                if (investedAsset < 0) {
+                    cashAsset += investedAsset;
+                    investedAsset = 0;
+                }
+                if (cashAsset < 0) cashAsset = 0;
+
+                const currentTotal = investedAsset + cashAsset;
+
+                if (currentTotal > peakAsset) peakAsset = currentTotal;
+                if (age === retireAge) retireAsset = currentTotal;
+
+                if (currentTotal <= 0 && !isAssetDepleted) {
+                    isAssetDepleted = true;
+                    depletedAge = age;
+                }
+
+                labels.push(`${age}歳`);
+                investedData.push(Math.round(investedAsset));
+                cashData.push(Math.round(cashAsset));
+                totalData.push(Math.round(currentTotal));
+
+                tableRows.push({
+                    age,
+                    status: isRetired ? 'リタイア期' : '現役期',
+                    income: Math.round(annualIncome),
+                    expense: Math.round(annualExpense),
+                    gain: Math.round(investmentGain),
+                    invested: Math.round(investedAsset),
+                    cash: Math.round(cashAsset),
+                    total: Math.round(currentTotal)
+                });
+            }
+
+            // Update Header KPI Cards with rounded Japanese format
+            document.getElementById('kpiPeak').innerText = formatCurrencyJapanese(peakAsset);
+            document.getElementById('kpiRetireAssets').innerText = formatCurrencyJapanese(retireAsset);
+            
+            const finalAsset = totalData[totalData.length - 1];
+            document.getElementById('kpiFinalAssets').innerText = formatCurrencyJapanese(finalAsset);
+
+            const kpiStatus = document.getElementById('kpiStatus');
+            if (!isAssetDepleted) {
+                kpiStatus.innerText = "FIRE達成 🎉";
+                kpiStatus.className = "text-base sm:text-lg font-black text-emerald-600 mt-0.5";
+            } else {
+                kpiStatus.innerText = `${depletedAge}歳で枯渇 ⚠️`;
+                kpiStatus.className = "text-base sm:text-lg font-black text-rose-600 mt-0.5";
+            }
+
+            // Render Table Rows (Rounded integers)
+            const tableBody = document.getElementById('simulationTableBody');
+            tableBody.innerHTML = tableRows.map(row => `
+                <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                    <td class="px-3 py-2 font-bold text-slate-800">${row.age}歳</td>
+                    <td class="px-3 py-2">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${row.status === '現役期' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}">
+                            ${row.status}
+                        </span>
+                    </td>
+                    <td class="px-3 py-2 text-right font-medium">${row.income.toLocaleString()}</td>
+                    <td class="px-3 py-2 text-right font-medium text-rose-500">${row.expense.toLocaleString()}</td>
+                    <td class="px-3 py-2 text-right font-medium text-emerald-600">+${row.gain.toLocaleString()}</td>
+                    <td class="px-3 py-2 text-right font-medium">${row.invested.toLocaleString()}</td>
+                    <td class="px-3 py-2 text-right font-medium">${row.cash.toLocaleString()}</td>
+                    <td class="px-3 py-2 text-right font-bold text-slate-900">${row.total.toLocaleString()}</td>
+                </tr>
+            `).join('');
+
+            // Render Chart
+            const ctx = document.getElementById('assetChart').getContext('2d');
+            if (assetChartInstance) {
+                assetChartInstance.destroy();
+            }
+
+            assetChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '運用資産 (投資)',
+                            data: investedData,
+                            backgroundColor: '#3b82f6',
+                            stack: 'combined'
+                        },
+                        {
+                            label: '現金・生活防衛資金',
+                            data: cashData,
+                            backgroundColor: '#10b981',
+                            stack: 'combined'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { family: "'Noto Sans JP', sans-serif", size: 11, weight: '600' }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${formatCurrencyJapanese(context.raw)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: { display: false },
+                            ticks: { font: { size: 10, weight: '500' } }
+                        },
+                        y: {
+                            stacked: true,
+                            grid: { color: '#f1f5f9' },
+                            ticks: {
+                                font: { size: 10, weight: '500' },
+                                callback: function(value) { return Math.round(value).toLocaleString() + '万'; }
+                            }
+                        }
+                    }
+                }
+            });
+
+            adjustTableHeightToMatchLeft();
+        }
+
+        // Export standalone HTML file
+        function downloadCurrentHTML() {
+            const htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "FIRE_Simulator_Pro.html";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
