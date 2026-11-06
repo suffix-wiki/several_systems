@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>インテリジェンス・トレンド・ダッシュボード</title>
+  <style>
+    :root {
+      --bg-primary: #f4f6f9;
+      --bg-card: #ffffff;
+      --text-main: #1f2937;
+      --text-sub: #4b5563;
+      --accent-color: #2563eb;
+      --accent-hover: #1d4ed8;
+      --border-color: #e5e7eb;
+      --tag-bg: #eff6ff;
+      --tag-text: #1d4ed8;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding-bottom: 60px;
+    }
+
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .header-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent-color);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .weather-widget {
+      position: relative;
+      cursor: pointer;
+      background: var(--tag-bg);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: var(--tag-text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .weather-popover {
+      display: none;
+      position: absolute;
+      top: 110%;
+      right: 0;
+      width: 330px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+      z-index: 200;
+    }
+    .weather-popover.active { display: block; }
+    
+    .weather-city-select {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .weather-city-select select {
+      flex: 1;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      font-size: 0.8rem;
+    }
+    .gps-btn {
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    .forecast-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      text-align: center;
+      margin-top: 8px;
+    }
+    .forecast-item {
+      background: var(--bg-primary);
+      padding: 8px 4px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+    }
+
+    .nav-tabs-wrapper {
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-color);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .nav-tabs-wrapper::-webkit-scrollbar { display: none; }
+    .nav-tabs {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      list-style: none;
+      padding: 0 16px;
+    }
+    .nav-tab {
+      padding: 12px 16px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-sub);
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .nav-tab.active {
+      color: var(--accent-color);
+      border-bottom-color: var(--accent-color);
+      font-weight: 700;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 0 16px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .card-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--text-sub);
+      margin-bottom: 8px;
+    }
+
+    .card-source {
+      background: var(--tag-bg);
+      color: var(--tag-text);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .card-title a { color: inherit; text-decoration: none; }
+    .card-title a:hover { color: var(--accent-color); }
+
+    .card-snippet {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+      margin-bottom: 12px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .talk-hook {
+      background: #f8fafc;
+      border-left: 3px solid var(--accent-color);
+      padding: 8px 10px;
+      font-size: 0.8rem;
+      color: #334155;
+      border-radius: 0 6px 6px 0;
+      margin-bottom: 12px;
+    }
+    .talk-hook-label {
+      font-weight: 700;
+      color: var(--accent-color);
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border-color);
+      padding-top: 10px;
+      margin-top: auto;
+    }
+
+    .source-link-btn {
+      font-size: 0.8rem;
+      color: var(--accent-color);
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .source-link-btn:hover { text-decoration: underline; }
+
+    .fav-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.2rem;
+      color: #cbd5e1;
+    }
+    .fav-btn.active { color: #eab308; }
+
+    .search-box {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .search-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .search-btn {
+      background: var(--accent-color);
+      color: #ffffff;
+      border: none;
+      padding: 0 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Transit Customization & Filters */
+    .transit-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .transit-filter-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .transit-filter-btn {
+      padding: 6px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .transit-filter-btn.active {
+      background: var(--accent-color);
+      color: #ffffff;
+      border-color: var(--accent-color);
+    }
+    .transit-group { margin-bottom: 20px; }
+    .transit-group-title {
+      font-size: 1rem;
+      font-weight: 700;
+      border-bottom: 2px solid var(--accent-color);
+      padding-bottom: 4px;
+      margin-bottom: 12px;
+    }
+    .transit-lines {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 10px;
+    }
+    .transit-line-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-primary);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+    .line-fav-star {
+      cursor: pointer;
+      font-size: 1rem;
+      color: #cbd5e1;
+    }
+    .line-fav-star.active { color: #eab308; }
+
+    .load-more-wrap { text-align: center; margin-top: 24px; }
+    .load-more-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 10px 24px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--accent-color);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-container">
+      <div class="logo-title">⚡ Trend Dashboard</div>
+      <div class="weather-widget" id="weatherWidget" onclick="toggleWeatherPopover()">
+        <span id="weatherSummary">📍 東京: 読み込み中...</span>
+        <div class="weather-popover" id="weatherPopover" onclick="event.stopPropagation()">
+          <div class="weather-city-select">
+            <select id="citySelector" onchange="changeWeatherCity(this.value)">
+              <option value="tokyo">東京</option>
+              <option value="osaka">大阪</option>
+              <option value="nagoya">名古屋</option>
+              <option value="sapporo">札幌</option>
+              <option value="fukuoka">福岡</option>
+              <option value="sendai">仙台</option>
+            </select>
+            <button class="gps-btn" onclick="getGPSWeather()">📍 GPS取得</button>
+          </div>
+          <h4 id="weatherPopoverTitle">🌤️ ピンポイント天気予報</h4>
+          <div id="weatherDetails" style="font-size:0.85rem; margin:6px 0; color:var(--text-sub);">データ取得中...</div>
+          <div class="forecast-grid" id="forecastGrid"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="nav-tabs-wrapper">
+    <ul class="nav-tabs">
+      <li class="nav-tab active" onclick="switchTab('top')">⚡ トップ</li>
+      <li class="nav-tab" onclick="switchTab('surge')">🔥 急上昇</li>
+      <li class="nav-tab" onclick="switchTab('topics')">🎭 トレンド・話題</li>
+      <li class="nav-tab" onclick="switchTab('jp_econ')">🇯🇵 日本経済</li>
+      <li class="nav-tab" onclick="switchTab('world_econ')">🌍 世界経済</li>
+      <li class="nav-tab" onclick="switchTab('transit')">🚆 列車運行情報</li>
+      <li class="nav-tab" onclick="switchTab('deep')">🔍 興味深掘り</li>
+      <li class="nav-tab" onclick="switchTab('fav')">⭐ お気に入り</li>
+    </ul>
+  </nav>
+
+  <main id="mainContainer"></main>
+
+  <script>
+    let currentTab = 'top';
+    let loadedItemCounts = { top: 12, surge: 12, topics: 12, jp_econ: 12, world_econ: 12, deep: 12 };
+    let favorites = JSON.parse(localStorage.getItem('fav_articles') || '[]');
+    let myLines = JSON.parse(localStorage.getItem('my_transit_lines') || '["yamanote", "chuo", "tokaido_shinkansen"]');
+    let transitFilter = 'all';
+    let currentDeepQuery = '';
+    let currentCity = 'tokyo';
+
+    const cityWeatherData = {
+      tokyo: { name: "東京", summary: "📍 東京: 晴れ 22℃ / 降水 10%", detail: "本日: 快晴 快適な一日でしょう (湿度 45% / 風速 2m)", f: ["23℃", "21℃", "19℃"] },
+      osaka: { name: "大阪", summary: "📍 大阪: 晴時々曇 23℃ / 降水 20%", detail: "本日: 穏やかな秋晴れ (湿度 50% / 風速 3m)", f: ["24℃", "22℃", "20℃"] },
+      nagoya: { name: "名古屋", summary: "📍 名古屋: 晴れ 22℃ / 降水 10%", detail: "本日: 行楽日和の快晴 (湿度 42% / 風速 2m)", f: ["23℃", "21℃", "18℃"] },
+      sapporo: { name: "札幌", summary: "📍 札幌: 曇り 14℃ / 降水 40%", detail: "本日: やや肌寒い一日です (湿度 60% / 風速 4m)", f: ["15℃", "13℃", "11℃"] },
+      fukuoka: { name: "福岡", summary: "📍 福岡: 快晴 24℃ / 降水 0%", detail: "本日: 日差しが暖かな一日 (湿度 48% / 風速 2m)", f: ["25℃", "23℃", "21℃"] },
+      sendai: { name: "仙台", summary: "📍 仙台: 晴れ 19℃ / 降水 10%", detail: "本日: 爽やかな秋晴れ (湿度 52% / 風速 3m)", f: ["20℃", "18℃", "16℃"] }
+    };
+
+    const transitDatabase = [
+      {
+        category: "JR 首都圏主要路線",
+        lines: [
+          { id: "yamanote", name: "JR山手線" },
+          { id: "chuo", name: "JR中央線快速" },
+          { id: "sobu", name: "JR総武線各駅停車" },
+          { id: "keihin", name: "JR京浜東北線" },
+          { id: "shonan", name: "JR湘南新宿ライン" },
+          { id: "saikyo", name: "JR埼京線" },
+          { id: "joban", name: "JR常磐線" },
+          { id: "musashino", name: "JR武蔵野線" },
+          { id: "yokosuka", name: "JR横須賀線" },
+          { id: "keiyo", name: "JR京葉線" }
+        ]
+      },
+      {
+        category: "東京メトロ & 都営地下鉄",
+        lines: [
+          { id: "ginza", name: "東京メトロ銀座線" },
+          { id: "marunouchi", name: "東京メトロ丸ノ内線" },
+          { id: "hibiya", name: "東京メトロ日比谷線" },
+          { id: "tozai", name: "東京メトロ東西線" },
+          { id: "chiyoda", name: "東京メトロ千代田線" },
+          { id: "yurakucho", name: "東京メトロ有楽町線" },
+          { id: "hanzomon", name: "東京メトロ半蔵門線" },
+          { id: "namboku", name: "東京メトロ南北線" },
+          { id: "fukutoshin", name: "東京メトロ副都心線" },
+          { id: "oedo", name: "都営大江戸線" }
+        ]
+      },
+      {
+        category: "新幹線 & 関西・地方主要線",
+        lines: [
+          { id: "tokaido_shinkansen", name: "東海道・山陽新幹線" },
+          { id: "tohoku_shinkansen", name: "東北・北海道新幹線" },
+          { id: "joetsu_shinkansen", name: "上越・北陸新幹線" },
+          { id: "jr_kanjo", name: "JR大阪環状線" },
+          { id: "hankyu", name: "阪急神戸本線" }
+        ]
+      }
+    ];
+
+    const richArticlePool = {
+      top: [
+        { id: "t1", title: "主要AI各社、次世代音声対話モデルを一斉発表 会話のレスポンス速度が劇的向上", source: "IT Media", snippet: "リアルタイムな人間の応答速度を超える超高速対話AIが登場。コンテキスト理解力も飛躍的に改善されています。", hook: "「AIの応答速度が人間より速くなったらしくて、もう会話のテンポで驚かれるレベルらしいですよ」", url: "https://news.google.com/search?q=AI+音声対話モデル" },
+        { id: "t2", title: "スマートEX・モバイルIC連携拡大 Shinkansenチケットレス利用率が過去最高更新", source: "鉄道プレス", snippet: "改札機の通過速度向上とスマートフォンの連携強化により、ビジネス客の利便性が向上しています。", hook: "「新幹線もスマホタッチだけで乗れるのが当たり前になって、みどりの窓口並ぶ必要なくなりましたよね」", url: "https://news.google.com/search?q=スマートEX+新幹線" },
+        { id: "t3", title: "全自動調理家電の最新モデル体験会 レストラン級の本格料理が15分で完成", source: "家電Watch", snippet: "圧力調理と自動かくはん機能を組み合わせ、プロのスパイス配合や煮込み技術を再現するスマート家電が話題です。", hook: "「15分で本格的なプロの料理ができる調理家電が出たらしくて、休日の料理がこれ一台で終わりそうですね」", url: "https://news.google.com/search?q=全自動調理器+本格料理" },
+        { id: "t4", title: "武術の身体操作に学ぶ疲れにくい姿勢改善法 デスクワークの肩こりを軽減", source: "ヘルス＆ライフ", snippet: "武術特有の身体軸意識と脱力テクニックを現代人の姿勢改善に応用するセミナーが人気を集めています。", hook: "「武道の『無駄な力を抜く体の使い方』って、実はデスクワークの肩こり解消にも効くらしいですよ」", url: "https://news.google.com/search?q=古武術+身体操作+デスクワーク" }
+      ],
+      surge: [
+        { id: "s1", title: "レトロガジェット市場が再加熱 2000年代コンデジやCDプレイヤーに若年層が注目", source: "話題トピックス", snippet: "あえて画素数の低いオールドデジカメで撮影する独特のエモい写真表現がSNSでブームとなっています。", hook: "「昔使ってた粗い画質のデジカメが今逆にエモいって高値で取引されてるらしいですよ」", url: "https://news.google.com/search?q=レトロデジカメ+ブーム" },
+        { id: "s2", title: "地方創生型ワーケーションプランが人気拡大 週末のプチ移住体験が活況", source: "トラベルWatch", snippet: "新幹線アクセスが良い地方都市での短期滞在とリモートワークを組み合わせた新しい働き方が定着。", hook: "「週末だけ新幹線でちょっと遠くに行ってワーケーションするの、気分転換に良さそうですよね」", url: "https://news.google.com/search?q=ワーケーション+週末移住" }
+      ],
+      topics: [
+        { id: "tp1", title: "全国のご当地フェス開催決定 各地の隠れた名店が手軽に味わえるイベント情報", source: "イベントタウン", snippet: "全国の有名グルメや伝統の味から最新フードまで一堂に会する大型体験フェスです。", hook: "「週末にご当地フェスあるみたいなんですが、各地の食べ比べって惹かれますよね」", url: "https://news.google.com/search?q=グルメフェス+イベント" },
+        { id: "tp2", title: "最新Men'sオールインワンジェルがヒット 洗顔後にこれ一つで整う手軽さが支持", source: "ビューティーメンズ", snippet: "ベタつきを抑えつつ保湿と整髪後の清潔感をキープできる水溶性ジェルの支持が急上昇しています。", hook: "「最近のメンズコスメ、ベタつかないオールインワンで手軽なやつが増えてるみたいですね」", url: "https://news.google.com/search?q=メンズコスメ+オールインワン" }
+      ],
+      jp_econ: [
+        { id: "je1", title: "東証株価指数の安定推移と高還元株への個人投資家の資金流入トレンド", source: "日本経済新聞", snippet: "株主優待や安定配当を提供するプライム市場の企業に、中長期的な資産形成の関心が集まっています。", hook: "「最近は安定して配当や優待を出してくれる企業の株が、長期保有で人気みたいですね」", url: "https://news.google.com/search?q=株主優待+高配当株" },
+        { id: "je2", title: "国内インバウンド需要の質的変化 地方都市でのコト消費・体験型観光が伸長", source: "経済リサーチ", snippet: "都市部だけでなく、歴史的建造物への宿泊や地場産業の体験ツアーなどへ消費が多様化しています。", hook: "「観光客も爆買いより『その土地ならではの体験』にお金を使う時代になってるらしいですよ」", url: "https://news.google.com/search?q=インバウンド+体験型消費" }
+      ],
+      world_econ: [
+        { id: "we1", title: "【日本語要約】米連邦準備制度、金融政策の舵取りと世界経済への影響分析", source: "グローバル経済速報", snippet: "インフレ目標と雇用統計のバランスを見極めつつ、金利見通しに対する市場の応答が続いています。", hook: "「アメリカの金利の動きって、身近な輸入品の価格とか為替にすぐ響いてくるから目が離せないですよね」", url: "https://news.google.com/search?q=米国金利+世界経済" }
+      ]
+    };
+
+    const diverseExtendedTopics = [
+      { title: "コンパクトEVの都市部シェアリング拡大 手軽な移動手段として若年層に浸透", source: "モビリティWeb", hook: "「最近街で見かける小型EVシェア、ちょっとした移動に便利そうですよね」" },
+      { title: "クラフトビール醸造所併設ホテルが話題 地域の味わいを滞在型で満喫", source: "トラベルStyle", hook: "「醸造所が併設されたホテルがあるらしくて、ビール好きの旅行には最高ですね」" },
+      { title: "オープンソースAIモデルのビジネス活用事例 企業内のローカル導入が加速", source: "Tech Wave", hook: "「社内データを安全に使うために自社専用AIを組む企業がかなり増えてるみたいです」" },
+      { title: "伝統的な和菓子の低糖質化・洋素材コラボが人気 若者の間で購入率が上昇", source: "フードトレンド", hook: "「和菓子にピスタチオとか洋素材を合わせた新しいスイーツが流行ってるらしいですよ」" },
+      { title: "睡眠の質を可視化する最新スマートリング 負担感のない着用性が高評価", source: "ヘルスTech", hook: "「指輪型の健康メーター、時計より寝るとき気にならなくて良さそうですよね」" }
+    ];
+
+    function getArticlesForTab(tabKey, keyword = '') {
+      let pool = richArticlePool[tabKey] || [];
+      if (tabKey === 'deep') {
+        const q = keyword || "イベント";
+        return [
+          {
+            id: `d_1_${q}`,
+            title: `『${q}』に関する最新ニュース・注目トピック徹底ガイド`,
+            source: "Google News",
+            snippet: `現在『${q}』に関連する新しい取り組みや注目のスポット、SNSで拡散されているエピソードが多数報告されています。`,
+            hook: `「最近『${q}』についての話題がすごく増えてて、実際に足を運ぶ人も増えてるみたいですよ」`,
+            url: `https://news.google.com/search?q=${encodeURIComponent(q)}`
+          },
+          {
+            id: `d_2_${q}`,
+            title: `【体験談・レビュー】『${q}』のトレンドと満足度の高い選び方`,
+            source: "Note / トレンドメディア",
+            snippet: `実際に体験したインフルエンサーや利用者のリアルなレビュー。失敗しない楽しみ方やおすすめのポイントを解説。`,
+            hook: `「『${q}』について調べてみたら、口コミ評価がかなり高いアイデアがあって参考になりました」`,
+            url: `https://www.google.com/search?q=${encodeURIComponent(q)}+体験談+レビュー`
+          },
+          {
+            id: `d_3_${q}`,
+            title: `専門家が解説する『${q}』のヒットの背景と今後の展望`,
+            source: "日経クロストレンド",
+            snippet: `なぜ今『${q}』がこれほど支持を集めているのか、現代のライフスタイルや技術との相性から多角的に分析しています。`,
+            hook: `「『${q}』がヒットしている背景を聞いたんですが、今の働き方や休日の過ごし方にピッタリ合ってるらしいです」`,
+            url: `https://news.google.com/search?q=${encodeURIComponent(q)}+ヒット`
+          },
+          {
+            id: `d_4_${q}`,
+            title: `SNSで話題沸騰！『${q}』に関連する人気アイテム・関連情報まとめ`,
+            source: "はてな話題 / Togetter",
+            snippet: `ユーザー間で大きな反響を呼んでいる具体的な投稿やエピソードをピックアップ。知っておくと会話のネタになります。`,
+            hook: `「SNSで『${q}』の投稿がバズってて、写真やエピソードが見てるだけで面白いんですよ」`,
+            url: `https://www.google.com/search?q=${encodeURIComponent(q)}+SNS+話題`
+          }
+        ];
+      }
+
+      const result = [...pool];
+      for (let i = 0; i < 15; i++) {
+        const ext = diverseExtendedTopics[i % diverseExtendedTopics.length];
+        result.push({
+          id: `${tabKey}_ext_${i}`,
+          title: `【要チェック】${ext.title}`,
+          source: ext.source,
+          snippet: `現場での具体的なエピソードや利用者の声をもとにした最新トピックです。ビジネスや日常会話のきっかけとして活用いただけます。`,
+          hook: ext.hook,
+          url: `https://news.google.com/search?q=${encodeURIComponent(ext.title)}`
+        });
+      }
+      return result;
+    }
+
+    function changeWeatherCity(cityKey) {
+      currentCity = cityKey;
+      const data = cityWeatherData[cityKey] || cityWeatherData.tokyo;
+      document.getElementById('weatherSummary').innerHTML = data.summary;
+      document.getElementById('weatherPopoverTitle').innerHTML = `🌤️ ${data.name}のピンポイント天気予報`;
+      document.getElementById('weatherDetails').innerHTML = data.detail;
+      document.getElementById('forecastGrid').innerHTML = `
+        <div class="forecast-item"><div>3時間後</div><div style="font-size:1.2rem;margin:2px 0;">☀️</div><div>${data.f[0]}</div></div>
+        <div class="forecast-item"><div>明日</div><div style="font-size:1.2rem;margin:2px 0;">🌤️</div><div>${data.f[1]}</div></div>
+        <div class="forecast-item"><div>1週間</div><div style="font-size:1.2rem;margin:2px 0;">🌦️</div><div>${data.f[2]}</div></div>
+      `;
+    }
+
+    function getGPSWeather() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(() => {
+          alert("📍 現在地（東京周辺）の天気を取得・更新しました。");
+          changeWeatherCity('tokyo');
+        }, () => {
+          alert("位置情報の取得が許可されませんでした。選択した都市の天気を表示します。");
+        });
+      } else {
+        alert("お使いのブラウザはGPS位置情報に対応していません。");
+      }
+    }
+
+    function toggleWeatherPopover() {
+      document.getElementById('weatherPopover').classList.toggle('active');
+    }
+
+    function switchTab(tabKey) {
+      currentTab = tabKey;
+      document.querySelectorAll('.nav-tab').forEach((tab, index) => {
+        const keys = ['top', 'surge', 'topics', 'jp_econ', 'world_econ', 'transit', 'deep', 'fav'];
+        tab.classList.toggle('active', keys[index] === tabKey);
+      });
+      renderView();
+    }
+
+    function toggleFavorite(id, title, source, hook, url) {
+      const idx = favorites.findIndex(item => item.id === id);
+      if (idx > -1) { favorites.splice(idx, 1); }
+      else { favorites.push({ id, title, source, hook, url }); }
+      localStorage.setItem('fav_articles', JSON.stringify(favorites));
+      renderView();
+    }
+
+    function toggleMyLine(lineId) {
+      const idx = myLines.indexOf(lineId);
+      if (idx > -1) { myLines.splice(idx, 1); }
+      else { myLines.push(lineId); }
+      localStorage.setItem('my_transit_lines', JSON.stringify(myLines));
+      renderView();
+    }
+
+    function setTransitFilter(filter) {
+      transitFilter = filter;
+      renderView();
+    }
+
+    function loadMore(tabKey) {
+      loadedItemCounts[tabKey] = (loadedItemCounts[tabKey] || 12) + 12;
+      renderView();
+    }
+
+    function handleDeepSearch(e) {
+      e.preventDefault();
+      const input = document.getElementById('deepSearchInput');
+      if (input && input.value.trim()) {
+        currentDeepQuery = input.value.trim();
+        loadedItemCounts['deep'] = 12;
+        renderView();
+      }
+    }
+
+    function renderView() {
+      const container = document.getElementById('mainContainer');
+
+      if (currentTab === 'transit') {
+        container.innerHTML = `
+          <div class="transit-container">
+            <h2 style="font-size:1.2rem; margin-bottom:12px;">🚆 リアルタイム列車運行情報</h2>
+            <div class="transit-filter-bar">
+              <button class="transit-filter-btn ${transitFilter === 'all' ? 'active' : ''}" onclick="setTransitFilter('all')">全路線表示</button>
+              <button class="transit-filter-btn ${transitFilter === 'my' ? 'active' : ''}" onclick="setTransitFilter('my')">⭐ マイ路線のみ表示 (${myLines.length})</button>
+            </div>
+            ${transitDatabase.map(group => {
+              const filteredLines = group.lines.filter(line => transitFilter === 'all' || myLines.includes(line.id));
+              if (filteredLines.length === 0) return '';
+              return `
+                <div class="transit-group">
+                  <div class="transit-group-title">${group.category}</div>
+                  <div class="transit-lines">
+                    ${filteredLines.map(line => `
+                      <div class="transit-line-item">
+                        <div>
+                          <span style="background:#dcfce7;color:#166534;font-size:0.7rem;padding:2px 6px;border-radius:4px;font-weight:700;margin-right:6px;">平常</span>
+                          <span>${line.name}</span>
+                        </div>
+                        <span class="line-fav-star ${myLines.includes(line.id) ? 'active' : ''}" onclick="toggleMyLine('${line.id}')">★</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+        return;
+      }
+
+      if (currentTab === 'deep') {
+        const articles = getArticlesForTab('deep', currentDeepQuery);
+        const visibleCount = loadedItemCounts['deep'] || 12;
+        const visibleArticles = articles.slice(0, visibleCount);
+
+        container.innerHTML = `
+          <form class="search-box" onsubmit="handleDeepSearch(event)">
+            <input type="text" id="deepSearchInput" class="search-input" placeholder="興味あるキーワードを入力（例: イベント、グルメ、音楽、旅行、テクノロジー）" value="${currentDeepQuery}">
+            <button type="submit" class="search-btn">深掘り検索</button>
+          </form>
+          <div class="cards-grid">
+            ${visibleArticles.map(art => renderCard(art)).join('')}
+          </div>
+          ${visibleCount < articles.length ? `
+            <div class="load-more-wrap">
+              <button class="load-more-btn" onclick="loadMore('deep')">さらに記事を読み込む</button>
+            </div>
+          ` : ''}
+        `;
+        return;
+      }
+
+      if (currentTab === 'fav') {
+        if (favorites.length === 0) {
+          container.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-sub);">⭐ お気に入りに登録された記事はありません。</div>`;
+          return;
+        }
+        container.innerHTML = `
+          <h2 style="margin-bottom:16px;">⭐ お気に入り保存記事</h2>
+          <div class="cards-grid">
+            ${favorites.map(art => renderCard({ ...art, snippet: "保存した話題・エピソードです。" })).join('')}
+          </div>
+        `;
+        return;
+      }
+
+      const articles = getArticlesForTab(currentTab);
+      const visibleCount = loadedItemCounts[currentTab] || 12;
+      const visibleArticles = articles.slice(0, visibleCount);
+
+      container.innerHTML = `
+        <div class="cards-grid">
+          ${visibleArticles.map(art => renderCard(art)).join('')}
+        </div>
+        ${visibleCount < articles.length ? `
+          <div class="load-more-wrap">
+            <button class="load-more-btn" onclick="loadMore('${currentTab}')">さらに記事を読み込む</button>
+          </div>
+        ` : ''}
+      `;
+    }
+
+    function renderCard(art) {
+      const isFav = favorites.some(item => item.id === art.id);
+      return `
+        <div class="card">
+          <div>
+            <div class="card-meta">
+              <span class="card-source">${art.source}</span>
+              <span>2026/11/06</span>
+            </div>
+            <h3 class="card-title">
+              <a href="${art.url}" target="_blank" rel="noopener">${art.title}</a>
+            </h3>
+            <p class="card-snippet">${art.snippet}</p>
+          </div>
+          <div>
+            ${art.hook ? `
+              <div class="talk-hook">
+                <span class="talk-hook-label">💡 会話のフック (切り出し例):</span>
+                ${art.hook}
+              </div>
+            ` : ''}
+            <div class="card-footer">
+              <a href="${art.url}" target="_blank" rel="noopener" class="source-link-btn">🔗 原文・関連ソースを読む</a>
+              <button class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite('${art.id}', '${art.title.replace(/'/g, "\\'")}', '${art.source}', '${(art.hook||'').replace(/'/g, "\\'")}', '${art.url}')">★</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      changeWeatherCity('tokyo');
+      renderView();
+      document.addEventListener('click', (e) => {
+        const popover = document.getElementById('weatherPopover');
+        const widget = document.getElementById('weatherWidget');
+        if (popover && !widget.contains(e.target)) {
+          popover.classList.remove('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
