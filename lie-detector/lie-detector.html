@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Cyber Polygraph - 嘘発見システム</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN for real-time visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome for iconography -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            bg: '#0a0d14',
+                            panel: '#121824',
+                            border: '#1e293b',
+                            primary: '#00f0ff',
+                            danger: '#ff0055',
+                            warning: '#ffb700',
+                            success: '#00ff66'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0d14;
+            color: #e2e8f0;
+        }
+        .font-mono-tech {
+            font-family: 'Share Tech Mono', monospace;
+        }
+        /* Custom Glowing & Pulse Effects */
+        .glow-cyan {
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+        }
+        .glow-red {
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.4);
+        }
+        .scanline {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0, 240, 255, 0.1) 50%,
+                rgba(0, 240, 255, 0.1)
+            );
+            background-size: 100% 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-cyan-500 selection:text-black">
+
+    <!-- Header / Status Bar -->
+    <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-50 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
+            <div class="flex items-center space-x-3">
+                <div class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></div>
+                <h1 class="text-xl font-bold tracking-wider font-mono-tech text-cyan-400 flex items-center gap-2">
+                    <i class="fa-solid font-bold fa-brain"></i> CYBER_POLYGRAPH
+                    <span class="text-[10px] font-sans px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 uppercase tracking-normal">
+                        ENTERTAINMENT SIMULATOR
+                    </span>
+                </h1>
+            </div>
+            <div class="flex items-center gap-2 text-xs font-mono-tech text-slate-400">
+                <!-- Sound Effect Toggle Button -->
+                <button id="btn-sound-toggle" title="サイバー効果音 ON/OFF" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded border border-slate-700 flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-volume-high"></i> <span class="hidden sm:inline">SFX: ON</span>
+                </button>
+                <!-- Highlighted Disclaimer Button in Header -->
+                <button id="btn-show-disclaimer-info" class="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 rounded flex items-center gap-1.5 transition cursor-pointer">
+                    <i class="fa-solid fa-circle-info text-amber-400"></i> <span>※本アプリの注釈</span>
+                </button>
+                <button id="btn-open-custom-q" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-pen-to-square text-cyan-400"></i> <span>質問・プリセット</span>
+                </button>
+                <span id="sys-status" class="px-2 py-1 bg-slate-800 rounded border border-slate-700 text-cyan-400">STATUS: STANDBY</span>
+                <span class="hidden md:inline" id="live-timer">00:00:00</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Disclaimer Modal Info Box -->
+    <div id="disclaimer-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold font-mono-tech text-cyan-400 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-amber-400"></i> 本シミュレーターに関する注釈
+                </h3>
+                <button id="btn-close-disclaimer-modal" class="text-slate-400 hover:text-white text-xl p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="text-xs text-slate-300 leading-relaxed space-y-2.5 font-sans">
+                <div class="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-[11px] font-semibold">
+                    ※本アプリケーションは娯楽・実験体験を目的とした【ネタ／エンターテインメント・シミュレーター】です。
+                </div>
+                <p>マイク入力（音声周波数・発話遅延・言い淀み）やカメラ映像（体動差分）から生体反応スコアをリアルタイム演算してサイバー演出を行いますが、医学的・法医学的な「嘘検知の正確性」を保証するものではありません。</p>
+                <p class="text-slate-400 text-[11px]">判定結果はゲーム・シミュレーターの演出としてお楽しみください。実際の人間関係や重要判断の根拠として用いることはできません。</p>
+            </div>
+            <div class="flex justify-end border-t border-slate-800 pt-3">
+                <button id="btn-ack-disclaimer" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs rounded transition">
+                    了解しました
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto w-full p-4 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Sensor & Execution Mode Toolbars -->
+        <div class="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            <!-- Sensor Switcher -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 shadow-lg">
+                <div class="flex items-center gap-2 text-xs font-mono-tech text-slate-300">
+                    <i class="fa-solid fa-sliders text-cyan-400"></i>
+                    <span class="font-bold">SENSOR:</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-xs font-mono-tech">
+                    <button id="mode-btn-both" class="px-2.5 py-1.5 rounded-lg border border-cyan-500 bg-cyan-500/20 text-cyan-300 font-bold transition flex items-center gap-1">
+                        <i class="fa-solid fa-layer-group"></i> <span>両方</span>
+                    </button>
+                    <button id="mode-btn-cam" class="px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 font-bold hover:bg-slate-700 transition flex items-center gap-1">
+                        <i class="fa-solid fa-camera"></i> <span>カメラ</span>
+                    </button>
+                    <button id="mode-btn-mic" class="px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 font-bold hover:bg-slate-700 transition flex items-center gap-1">
+                        <i class="fa-solid fa-microphone"></i> <span>マイク</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Test Mode Switcher & TTS Toggle -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 shadow-lg">
+                <div class="flex items-center gap-2 text-xs font-mono-tech text-slate-300">
+                    <i class="fa-solid fa-vial text-amber-400"></i>
+                    <span class="font-bold">EVAL MODE:</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs font-mono-tech">
+                    <button id="eval-mode-session" class="px-3 py-1.5 rounded-lg border border-amber-500 bg-amber-500/20 text-amber-300 font-bold transition">
+                        連続セッション
+                    </button>
+                    <button id="eval-mode-single" class="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-400 font-bold hover:bg-slate-700 transition">
+                        対話型（自由判定）
+                    </button>
+                    <button id="btn-tts-toggle" title="質問読み上げON/OFF" class="px-2.5 py-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Detection Sensitivity Switcher -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 shadow-lg">
+                <div class="flex items-center gap-1.5 text-xs font-mono-tech text-slate-300" title="生体ストレスの検知感度">
+                    <i class="fa-solid fa-gauge-high text-cyan-400"></i>
+                    <span class="font-bold">SENSITIVITY:</span>
+                </div>
+                <div class="flex items-center gap-1 text-xs font-mono-tech">
+                    <button id="sens-high" title="高感度（小さな動揺や声の震えも検知）" class="px-2 py-1.5 rounded border border-slate-700 bg-slate-800 text-slate-400 hover:text-cyan-300 transition">
+                        HIGH (鋭敏)
+                    </button>
+                    <button id="sens-mid" title="標準感度（バランスの良い判定）" class="px-2 py-1.5 rounded border border-cyan-500 bg-cyan-500/20 text-cyan-300 font-bold transition">
+                        MID (標準)
+                    </button>
+                    <button id="sens-low" title="低感度（顕著な動揺のみ検知）" class="px-2 py-1.5 rounded border border-slate-700 bg-slate-800 text-slate-400 hover:text-cyan-300 transition">
+                        LOW (安定)
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Left Column: Vision & Audio Sensors (6/12 Desktop) -->
+        <section class="lg:col-span-6 flex flex-col gap-6">
+            
+            <!-- Video Container -->
+            <div id="cam-container" class="relative bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl transition-all">
+                <div class="absolute top-3 left-3 z-10 px-2.5 py-1 bg-black/60 backdrop-blur rounded text-xs font-mono-tech text-cyan-400 border border-cyan-500/30 flex items-center gap-2">
+                    <i class="fa-solid fa-camera"></i> CAM_FEED // MESH_ANALYZER
+                </div>
+                
+                <!-- Video & Canvas Display -->
+                <div class="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
+                    <video id="webcam" class="w-full h-full object-cover transform -scale-x-100" autoplay playsinline muted></video>
+                    <canvas id="face-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+                    
+                    <!-- Overlay Grid Scan effect -->
+                    <div class="absolute inset-0 scanline pointer-events-none opacity-40"></div>
+                    
+                    <!-- No Camera Fallback Notice -->
+                    <div id="cam-fallback" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 text-center p-6 gap-3">
+                        <i class="fa-solid fa-video-slash text-4xl text-slate-600"></i>
+                        <p id="cam-fallback-msg" class="text-sm text-slate-400">カメラが停止中または非許可です。<br>「デバイス起動」を押してください。</p>
+                        <button id="btn-start-dev" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs rounded transition uppercase tracking-wider">
+                            センサーを起動
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Realtime Vision Indicators Grid -->
+                <div class="p-4 grid grid-cols-3 gap-3 bg-slate-950/60 border-t border-slate-800 text-xs font-mono-tech">
+                    <div class="bg-slate-900/80 p-2.5 rounded border border-slate-800">
+                        <div class="text-slate-400 mb-1">Eye Deviation (視線)</div>
+                        <div id="val-gaze" class="text-base font-bold text-cyan-400">0.0 %</div>
+                        <div class="w-full bg-slate-800 h-1.5 rounded-full mt-1 overflow-hidden">
+                            <div id="bar-gaze" class="bg-cyan-400 h-full w-0 transition-all"></div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900/80 p-2.5 rounded border border-slate-800">
+                        <div class="text-slate-400 mb-1">Blink Rate (瞬き)</div>
+                        <div id="val-blink" class="text-base font-bold text-emerald-400">NORMAL</div>
+                        <div class="w-full bg-slate-800 h-1.5 rounded-full mt-1 overflow-hidden">
+                            <div id="bar-blink" class="bg-emerald-400 h-full w-20 transition-all"></div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900/80 p-2.5 rounded border border-slate-800">
+                        <div class="text-slate-400 mb-1">Body Jitter (体動)</div>
+                        <div id="val-jitter" class="text-base font-bold text-amber-400">LOW</div>
+                        <div class="w-full bg-slate-800 h-1.5 rounded-full mt-1 overflow-hidden">
+                            <div id="bar-jitter" class="bg-amber-400 h-full w-10 transition-all"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audio Spectrum Visualizer Box -->
+            <div id="mic-container" class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-col gap-3 transition-all">
+                <div class="flex justify-between items-center text-xs font-mono-tech">
+                    <span class="text-cyan-400 flex items-center gap-2">
+                        <i class="fa-solid fa-microphone-lines"></i> AUDIO_SPECTRUM & PITCH_ANALYZE
+                    </span>
+                    <span id="val-pitch-stress" class="text-slate-400">Voice Stress: <strong class="text-white">0%</strong></span>
+                </div>
+                <canvas id="audio-canvas" class="w-full h-20 bg-slate-950 rounded border border-slate-800/80"></canvas>
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <div>話者発話状態: <span id="speech-state" class="text-slate-200">沈黙待機中</span></div>
+                    <div>応答遅延: <span id="speech-delay" class="text-cyan-400 font-mono-tech">0.00s</span></div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Right Column: Polygraph Control & Live Stress Dashboard (6/12 Desktop) -->
+        <section class="lg:col-span-6 flex flex-col gap-6">
+            
+            <!-- Prominent Cyber Disclaimer Banner over Stress Dashboard -->
+            <div class="bg-gradient-to-r from-amber-950/40 via-slate-900 to-amber-950/40 border border-amber-500/40 rounded-xl p-3 flex items-center gap-3 text-xs shadow-lg">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-face-laugh-beam text-amber-400 text-lg"></i>
+                </div>
+                <div class="text-[11px] leading-snug">
+                    <span class="font-bold text-amber-300 block font-mono-tech">NOTICE: JOKE SIMULATOR MODE ACTIVE</span>
+                    <span class="text-slate-400">※本ツールはゲーム・娯楽用ジョークシミュレーターです。実際の嘘判別機能ではありません。</span>
+                </div>
+            </div>
+
+            <!-- Realtime Stress Meter Gauge Header -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-2xl relative overflow-hidden">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider font-mono-tech">Overall Polygraph Stress Level</h2>
+                        <div class="text-3xl font-black font-mono-tech flex items-baseline gap-2 mt-1">
+                            <span id="total-stress-val" class="text-cyan-400 text-5xl">00</span>
+                            <span class="text-lg text-slate-500">% STRESS</span>
+                        </div>
+                    </div>
+                    <div id="verdict-badge" class="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold font-mono-tech uppercase">
+                        Baseline Stable
+                    </div>
+                </div>
+
+                <!-- Main Progress Bar -->
+                <div class="w-full bg-slate-950 h-4 rounded-full overflow-hidden border border-slate-800 p-0.5">
+                    <div id="total-stress-bar" class="h-full bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-600 w-0 transition-all duration-300 rounded-full"></div>
+                </div>
+
+                <!-- Live Chart -->
+                <div class="mt-4 h-32 w-full">
+                    <canvas id="stressChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Interactive Question Session Console -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl flex flex-col justify-between flex-1 gap-4">
+                
+                <div>
+                    <div class="flex flex-wrap justify-between items-center text-xs font-mono-tech text-slate-400 border-b border-slate-800 pb-2 mb-3 gap-2">
+                        <div class="flex items-center gap-2">
+                            <span id="session-phase-tag" class="text-amber-400 font-bold">PHASE: STANDBY</span>
+                            <span id="question-index">Q 0/0</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-slate-500"><i class="fa-solid fa-user-tag text-cyan-400"></i> 被験者:</span>
+                            <input type="text" id="subject-name-input" placeholder="名前 (例: 被験者A)" class="bg-slate-950 border border-slate-700 rounded px-2 py-0.5 text-xs text-cyan-300 focus:outline-none focus:border-cyan-400 w-28 font-sans">
+                        </div>
+                    </div>
+
+                    <!-- Question Prompt Display Card -->
+                    <div class="bg-slate-950 border border-slate-800/80 p-4 rounded-lg min-h-[100px] flex flex-col justify-center gap-2">
+                        <div class="flex justify-between items-center">
+                            <div class="text-xs text-slate-500 font-mono-tech">CURRENT_QUESTION:</div>
+                            <button id="btn-speak-q" class="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
+                                <i class="fa-solid fa-volume-high"></i> 再生
+                            </button>
+                        </div>
+                        
+                        <!-- Dynamic Single-Question Input (Active in Single Mode) -->
+                    <div id="free-q-input-container" class="hidden flex-col gap-2">
+                        <div class="flex gap-2">
+                            <input type="text" id="free-q-input" placeholder="質問文メモ（任意入力・または口頭で問いかけてください）" class="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-cyan-400 font-sans">
+                        </div>
+                        <p class="text-[11px] text-amber-400/90 font-sans">
+                            💡 質問者が被験者に口頭で聞き、被験者が答えるタイミングで「回答の判定を開始」を押してください。
+                        </p>
+                    </div>
+
+                    <p id="question-text" class="text-base sm:text-lg font-medium text-slate-100 leading-snug">
+                        「測定開始」ボタンを押すと、基準測定（キャリブレーション）が始まります。
+                    </p>
+                </div>
+
+                <!-- Recognized Speech Box -->
+                <div class="mt-3 bg-slate-900/90 p-3 rounded border border-slate-800 text-xs">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-slate-500 font-mono-tech flex items-center gap-1.5">
+                            <i class="fa-solid fa-microphone-lines text-cyan-400"></i> RECOGNIZED_TRANSCRIPT:
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <button id="btn-edit-transcript" title="手動で回答テキストを入力・修正" class="text-slate-400 hover:text-cyan-400 text-[11px] flex items-center gap-1 transition">
+                                <i class="fa-solid fa-pen-to-square"></i> 修正
+                            </button>
+                            <button id="btn-clear-transcript" title="現在の回答をクリア" class="text-slate-400 hover:text-rose-400 text-[11px] flex items-center gap-1 transition">
+                                <i class="fa-solid fa-eraser"></i> クリア
+                            </button>
+                            <span id="speech-recognition-status" class="text-[10px] text-amber-400 font-mono-tech">SPEECH API: READY</span>
+                        </div>
+                    </div>
+                    <div id="transcript-container" class="min-h-[38px] p-2 bg-slate-950/80 rounded border border-slate-800/80">
+                        <span id="transcript-text" class="text-cyan-300 font-sans text-sm">（被験者がマイクで発話した内容がここにリアルタイムで文字起こし記録されます）</span>
+                    </div>
+                </div>
+
+                <!-- Single Question Verdict Display Area -->
+                <div id="single-verdict-card" class="mt-3 p-3 rounded border border-slate-800 bg-slate-950 hidden">
+                    <div class="text-xs font-mono-tech text-slate-400">SINGLE EVALUATION RESULT:</div>
+                    <div id="single-verdict-result" class="text-lg font-bold font-mono-tech mt-1 text-emerald-400">---</div>
+                </div>
+            </div>
+
+            <!-- Control Buttons Area -->
+            <div class="flex flex-wrap gap-3 pt-2">
+                <button id="btn-main-action" class="flex-1 py-3 px-5 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-sm rounded-lg transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 cursor-pointer">
+                    <i class="fa-solid fa-play"></i> <span>測定セッションを開始</span>
+                </button>
+                
+                <!-- Interactive Single Mode Action Buttons -->
+                <button id="btn-start-single-listen" class="hidden flex-1 py-3 px-5 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-sm rounded-lg transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 cursor-pointer">
+                    <i class="fa-solid fa-microphone"></i> <span>回答の判定を開始 (マイクON)</span>
+                </button>
+                <button id="btn-evaluate-single" class="hidden flex-1 py-3 px-5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm rounded-lg transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer">
+                    <i class="fa-solid fa-gavel"></i> <span>判定を確定 (結果表示)</span>
+                </button>
+                
+                <button id="btn-next-q" disabled class="py-3 px-5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-lg transition flex items-center justify-center gap-2 border border-slate-700 cursor-pointer">
+                    <span>次の質問へ</span> <i class="fa-solid fa-forward"></i>
+                </button>
+                <button id="btn-reset" title="リセット" class="py-3 px-4 bg-slate-800 hover:bg-rose-900/50 text-slate-300 hover:text-rose-300 text-sm rounded-lg transition border border-slate-700 cursor-pointer">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
+            </div>
+            
+        </div>
+    </section>
+    </main>
+
+    <!-- Custom Questions & Presets Modal -->
+    <div id="custom-q-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl flex flex-col gap-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-lg font-bold font-mono-tech text-cyan-400 flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square"></i> 質問編集 ＆ プリセット
+                </h3>
+                <button id="btn-close-q-modal" class="text-slate-400 hover:text-white text-xl p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Presets Section -->
+            <div class="space-y-1.5">
+                <div class="text-xs font-bold text-cyan-400 font-mono-tech flex items-center gap-1">
+                    <i class="fa-solid fa-bolt"></i> プリセットをワンクリック適用:
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button id="preset-party" class="p-2.5 bg-slate-950 hover:bg-cyan-500/10 border border-slate-800 hover:border-cyan-500/40 rounded-lg text-left transition flex flex-col gap-1">
+                        <span class="text-xs font-bold text-cyan-300 flex items-center gap-1"><i class="fa-solid fa-brain"></i> 心理ストレス</span>
+                        <span class="text-[10px] text-slate-400 leading-tight">隠し事・秘密・動揺を誘う質問群</span>
+                    </button>
+                    <button id="preset-office" class="p-2.5 bg-slate-950 hover:bg-amber-500/10 border border-slate-800 hover:border-amber-500/40 rounded-lg text-left transition flex flex-col gap-1">
+                        <span class="text-xs font-bold text-amber-300 flex items-center gap-1"><i class="fa-solid fa-briefcase"></i> 日常・ビジネス</span>
+                        <span class="text-[10px] text-slate-400 leading-tight">遅刻理由・サボり・知ったかぶり</span>
+                    </button>
+                    <button id="preset-serious" class="p-2.5 bg-slate-950 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/40 rounded-lg text-left transition flex flex-col gap-1">
+                        <span class="text-xs font-bold text-rose-300 flex items-center gap-1"><i class="fa-solid fa-shield-halved"></i> 刑事尋問</span>
+                        <span class="text-[10px] text-slate-400 leading-tight">重大な嘘・虚偽証言の事実確認</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-3 flex flex-col gap-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-semibold text-slate-300">現在のセッション質問リスト:</span>
+                    <span class="text-[11px] text-slate-500 font-mono-tech" id="q-count-badge">4件</span>
+                </div>
+                <div id="custom-q-list" class="space-y-1.5 max-h-48 overflow-y-auto text-xs pr-1">
+                    <!-- Dynamic Question Items -->
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <input type="text" id="new-q-input" placeholder="新しい質問文を入力して追加..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400">
+                <button id="btn-add-q" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs rounded-lg transition shrink-0 cursor-pointer">
+                    追加
+                </button>
+            </div>
+
+            <div class="flex justify-end gap-2 border-t border-slate-800 pt-3">
+                <button id="btn-save-q" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-lg transition shadow-lg shadow-emerald-500/20 cursor-pointer">
+                    設定を保存して閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Modal Report Panel -->
+    <div id="report-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl flex flex-col gap-6">
+            
+            <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                <div>
+                    <h3 class="text-xl font-bold font-mono-tech text-cyan-400 flex items-center gap-2">
+                        <i class="fa-solid fa-file-contract"></i> POLYGRAPH_FINAL_REPORT
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-1">マルチモーダル心理・生体データ統合解析結果</p>
+                </div>
+                <button id="btn-close-modal" class="text-slate-400 hover:text-white text-xl p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Lie Probability & Multi-Stage Diagnosis Card -->
+            <div id="report-diagnosis-card" class="p-5 rounded-2xl border border-slate-700 bg-slate-950/80 text-center flex flex-col items-center gap-3 shadow-xl">
+                <div class="flex justify-between items-center w-full px-2 text-xs font-mono-tech">
+                    <span class="uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-scale-balanced text-cyan-400"></i> PROBABILITY OF DECEPTION
+                    </span>
+                    <span id="report-stage-level" class="px-2.5 py-0.5 rounded text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                        STAGE 1/5: VERIFIED TRUTH
+                    </span>
+                </div>
+
+                <!-- Big Percentage Display -->
+                <div class="flex items-baseline justify-center gap-2 py-1">
+                    <span class="text-xs font-mono-tech text-slate-400">虚偽・嘘をついている確率:</span>
+                    <span id="report-lie-prob" class="text-5xl sm:text-6xl font-black font-mono-tech text-emerald-400 tracking-tight">0%</span>
+                </div>
+
+                <!-- 5-Stage Visual Meter Bar -->
+                <div class="w-full max-w-lg space-y-1.5">
+                    <div class="w-full bg-slate-900 h-3.5 rounded-full overflow-hidden border border-slate-800 p-0.5 relative">
+                        <div id="report-prob-bar" class="h-full bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-600 w-0 transition-all duration-700 rounded-full"></div>
+                    </div>
+                    <!-- 5 Scale Step Indicators -->
+                    <div class="grid grid-cols-5 text-[10px] font-mono-tech text-slate-500 px-0.5">
+                        <span id="scale-step-1" class="text-left font-bold text-slate-500">1.完全真実</span>
+                        <span id="scale-step-2" class="text-center font-bold text-slate-500">2.真実高</span>
+                        <span id="scale-step-3" class="text-center font-bold text-slate-500">3.動揺不審</span>
+                        <span id="scale-step-4" class="text-center font-bold text-slate-500">4.嘘の疑い</span>
+                        <span id="scale-step-5" class="text-right font-bold text-slate-500">5.虚偽確定</span>
+                    </div>
+                </div>
+
+                <!-- Detailed Verdict Title & Description -->
+                <div class="border-t border-slate-800/80 pt-3 w-full">
+                    <span id="report-verdict-title" class="text-2xl sm:text-3xl font-black font-mono-tech tracking-wide block text-emerald-400">
+                        VERIFIED TRUTH (潔白・完全な真実)
+                    </span>
+                    <p id="report-verdict-desc" class="text-xs text-slate-300 max-w-lg mx-auto mt-2 leading-relaxed font-sans">
+                        被験者の生理反応・声色・言いよどみ頻度はすべて正常基準値内であり、虚偽の兆候は検出されませんでした。
+                    </p>
+                </div>
+            </div>
+
+            <!-- Disclaimer Banner in Report Modal -->
+            <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-slate-300 text-[11px] leading-relaxed flex items-center gap-2">
+                <i class="fa-solid fa-circle-info text-base text-cyan-400 shrink-0"></i>
+                <span>【免責事項】本ツールは実験・エンターテインメント目的のシミュレーターです。医学的・科学的な証拠能力はありません。演出としてお楽しみください。</span>
+            </div>
+
+            <!-- Score Metrics Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono-tech text-xs">
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                    <span class="text-slate-400">平均視線動揺度</span>
+                    <div id="rep-gaze-score" class="text-lg font-bold text-cyan-400 mt-1">0.0%</div>
+                </div>
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                    <span class="text-slate-400">音声緊張指数</span>
+                    <div id="rep-voice-score" class="text-lg font-bold text-amber-400 mt-1">0.0%</div>
+                </div>
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                    <span class="text-slate-400">平均回答遅延</span>
+                    <div id="rep-delay-score" class="text-lg font-bold text-emerald-400 mt-1">0.0s</div>
+                </div>
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                    <span class="text-slate-400">躊躇フラグ数</span>
+                    <div id="rep-hesitation-score" class="text-lg font-bold text-rose-400 mt-1">0 回</div>
+                </div>
+            </div>
+
+            <!-- Session Logs Breakdown -->
+            <div>
+                <h4 class="text-sm font-semibold text-slate-300 font-mono-tech mb-2">Question Session Log & Transcripts</h4>
+                <div id="report-logs-container" class="space-y-2 text-xs">
+                    <!-- Dynamic Log Items Inserted Here -->
+                </div>
+            </div>
+
+            <!-- Close & Restart Actions -->
+            <div class="flex flex-wrap justify-between items-center border-t border-slate-800 pt-4 gap-2">
+                <button id="btn-copy-report" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-lg transition border border-slate-700 flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-copy text-cyan-400"></i> <span id="copy-btn-text">結果をコピー</span>
+                </button>
+                <div class="flex items-center gap-2">
+                    <button id="btn-modal-retry" class="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-500/20">
+                        <i class="fa-solid fa-rotate-right"></i> <span>もう一度測定する</span>
+                    </button>
+                    <button id="btn-modal-finish" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-lg transition cursor-pointer border border-slate-700">
+                        閉じる
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 bg-slate-950 px-4 py-3 text-center text-xs text-slate-500 font-mono-tech flex flex-col sm:flex-row justify-between items-center max-w-7xl mx-auto w-full gap-2">
+        <div>CYBER POLYGRAPH SIMULATION &copy; ALL SYSTEM LOGS ENCRYPTED</div>
+        <div class="text-amber-400/80 text-[11px] font-sans">※本アプリはエンターテインメント目的のジョークアプリです。実際の嘘を見破る精度を保証するものではありません。</div>
+    </footer>
+
+    <!-- Application Logic Script -->
+    <script>
+        /**
+         * AI Cyber Polygraph Logic Engine (v4.3 Pro Forensic & Responsive VSA Edition)
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // Sensor Modes: 'BOTH', 'CAM_ONLY', 'MIC_ONLY'
+            let sensorMode = 'BOTH';
+            // Evaluation Modes: 'SESSION', 'SINGLE'
+            let evalMode = 'SESSION';
+            // Detection Sensitivity: 'HIGH', 'MID', 'LOW'
+            let sensitivity = 'MID';
+            let ttsEnabled = true;
+            let soundEnabled = true;
+            let singleListening = false;
+            let isReadingQuestion = false;
+            let currentQuestionToken = 0;
+
+            // --- State Management ---
+            let isRunning = false;
+            let currentPhase = 'STANDBY';
+            let questionIdx = 0;
+            let activeQuestions = [];
+            
+            let metrics = {
+                gazeDeviation: 0,
+                blinkCount: 0,
+                bodyJitter: 0,
+                voicePitchJitter: 0,
+                responseDelay: 0,
+                hesitationCount: 0,
+                totalStress: 0
+            };
+
+            let baselineStress = 15;
+            let questionStartTime = 0;
+            let speechDetected = false;
+            let sessionLogs = [];
+            let fullTranscript = '';
+
+            // Answering evaluation trackers (persists across silence after speech)
+            let questionPeakStress = 0;
+            let questionStressSamples = [];
+            let smoothedStress = 0;
+            let lastSpeechVolume = 0;
+            let lastDecayedVoiceStress = 0;
+            let hasSpokenInQuestion = false;
+
+            // Web Media Streams & APIs
+            let mediaStream = null;
+            let audioCtx = null;
+            let analyser = null;
+            let speechRecognizer = null;
+            let isRecognizing = false;
+            let devicesInitialized = false;
+
+            // DOM Elements
+            const btnSoundToggle = document.getElementById('btn-sound-toggle');
+            const btnStartSingleListen = document.getElementById('btn-start-single-listen');
+            const btnEvaluateSingle = document.getElementById('btn-evaluate-single');
+            const freeQInputContainer = document.getElementById('free-q-input-container');
+            const freeQInput = document.getElementById('free-q-input');
+            const singleVerdictCard = document.getElementById('single-verdict-card');
+            const singleVerdictResult = document.getElementById('single-verdict-result');
+
+            const camContainer = document.getElementById('cam-container');
+            const micContainer = document.getElementById('mic-container');
+            const btnStartDev = document.getElementById('btn-start-dev');
+            const totalStressVal = document.getElementById('total-stress-val');
+            const totalStressBar = document.getElementById('total-stress-bar');
+            const verdictBadge = document.getElementById('verdict-badge');
+            const questionText = document.getElementById('question-text');
+            const transcriptText = document.getElementById('transcript-text');
+            const btnEditTranscript = document.getElementById('btn-edit-transcript');
+            const btnClearTranscript = document.getElementById('btn-clear-transcript');
+            const speechRecStatus = document.getElementById('speech-recognition-status');
+            const sessionPhaseTag = document.getElementById('session-phase-tag');
+            const questionIndexTag = document.getElementById('question-index');
+            const btnMainAction = document.getElementById('btn-main-action');
+            const btnNextQ = document.getElementById('btn-next-q');
+            const btnReset = document.getElementById('btn-reset');
+            const btnSpeakQ = document.getElementById('btn-speak-q');
+            const btnTTSToggle = document.getElementById('btn-tts-toggle');
+
+            // Sensitivity Switcher Buttons
+            const btnSensHigh = document.getElementById('sens-high');
+            const btnSensMid = document.getElementById('sens-mid');
+            const btnSensLow = document.getElementById('sens-low');
+
+            // Disclaimer Modals
+            const disclaimerModal = document.getElementById('disclaimer-modal');
+            const btnShowDisclaimerInfo = document.getElementById('btn-show-disclaimer-info');
+            const btnCloseDisclaimerModal = document.getElementById('btn-close-disclaimer-modal');
+            const btnAckDisclaimer = document.getElementById('btn-ack-disclaimer');
+
+            if (btnShowDisclaimerInfo) btnShowDisclaimerInfo.addEventListener('click', () => disclaimerModal.classList.remove('hidden'));
+            if (btnCloseDisclaimerModal) btnCloseDisclaimerModal.addEventListener('click', () => disclaimerModal.classList.add('hidden'));
+            if (btnAckDisclaimer) btnAckDisclaimer.addEventListener('click', () => disclaimerModal.classList.add('hidden'));
+
+            // Mode Selector Buttons
+            const btnModeBoth = document.getElementById('mode-btn-both');
+            const btnModeCam = document.getElementById('mode-btn-cam');
+            const btnModeMic = document.getElementById('mode-btn-mic');
+            const btnEvalSession = document.getElementById('eval-mode-session');
+            const btnEvalSingle = document.getElementById('eval-mode-single');
+
+            // Custom Questions Modal & Presets
+            const customQModal = document.getElementById('custom-q-modal');
+            const btnOpenCustomQ = document.getElementById('btn-open-custom-q');
+            const btnCloseQModal = document.getElementById('btn-close-q-modal');
+            const btnSaveQ = document.getElementById('btn-save-q');
+            const btnAddQ = document.getElementById('btn-add-q');
+            const newQInput = document.getElementById('new-q-input');
+            const customQListContainer = document.getElementById('custom-q-list');
+            const qCountBadge = document.getElementById('q-count-badge');
+            const presetPartyBtn = document.getElementById('preset-party');
+            const presetOfficeBtn = document.getElementById('preset-office');
+            const presetSeriousBtn = document.getElementById('preset-serious');
+
+            // Presets Definition (Psychological Stress, Workplace/Daily, and Forensic Interrogation)
+            const questionPresets = {
+                party: [
+                    "最近、周囲の人に隠している重大な秘密や隠し事はありますか？",
+                    "過去についた嘘の中で、今でも罪悪感を抱いているものはありますか？",
+                    "自分の経歴や実績について、実際よりも誇張して話したことがありますか？",
+                    "本当は嫌だったのに、相手に話を合わせて嘘の賛同をしたことがありますか？",
+                    "先ほどの質問に対する回答はすべて真実で、やましい点は一切ありませんか？"
+                ],
+                office: [
+                    "勤務中や作業中、周囲の目を盗んでサボったり別のことをしたことがありますか？",
+                    "理解していない内容を、知ったかぶりで納得したように装ったことがありますか？",
+                    "遅刻や締め切り遅れの理由で、事実とは異なる口実を使って誤魔化したことがありますか？",
+                    "過去に自分のミスを他人のせいにしたり、こっそり隠蔽したことがありますか？"
+                ],
+                serious: [
+                    "現在、何らかの重要な事実を故意に隠蔽していますか？",
+                    "直近の1週間において、誰かに対して明確な虚偽の証言を行いましたか？",
+                    "先ほど述べた内容の中に、一部でも偽りや誇張が含まれていますか？",
+                    "この尋問に対して、やましい点や嘘の意図は一切存在しませんか？"
+                ]
+            };
+
+            const calibrationQuestions = [
+                "【基準測定 1/3】あなたのお名前をマイクに向けて教えてください。",
+                "【基準測定 2/3】本日の天気または現在地を教えてください。",
+                "【基準測定 3/3】今朝食べた朝食は何ですか？"
+            ];
+
+            let customQuestions = JSON.parse(localStorage.getItem('polygraph_custom_q')) || questionPresets.party.slice();
+
+            // --- Sensitivity Switching Logic ---
+            function setSensitivity(level) {
+                sensitivity = level;
+                const activeCls = ['border-cyan-500', 'bg-cyan-500/20', 'text-cyan-300', 'font-bold'];
+                const inactiveCls = ['border-slate-700', 'bg-slate-800', 'text-slate-400'];
+
+                [btnSensHigh, btnSensMid, btnSensLow].forEach(btn => {
+                    if (btn) {
+                        btn.classList.remove(...activeCls);
+                        btn.classList.add(...inactiveCls);
+                    }
+                });
+
+                if (level === 'HIGH' && btnSensHigh) {
+                    btnSensHigh.classList.remove(...inactiveCls);
+                    btnSensHigh.classList.add(...activeCls);
+                } else if (level === 'MID' && btnSensMid) {
+                    btnSensMid.classList.remove(...inactiveCls);
+                    btnSensMid.classList.add(...activeCls);
+                } else if (level === 'LOW' && btnSensLow) {
+                    btnSensLow.classList.remove(...inactiveCls);
+                    btnSensLow.classList.add(...activeCls);
+                }
+                playSfx('beep');
+            }
+
+            if (btnSensHigh) btnSensHigh.addEventListener('click', () => setSensitivity('HIGH'));
+            if (btnSensMid) btnSensMid.addEventListener('click', () => setSensitivity('MID'));
+            if (btnSensLow) btnSensLow.addEventListener('click', () => setSensitivity('LOW'));
+
+            function getSensitivityParams() {
+                if (sensitivity === 'HIGH') {
+                    return { multiplier: 1.35, lieThreshold: 45, suspiciousThreshold: 28 };
+                } else if (sensitivity === 'LOW') {
+                    return { multiplier: 0.75, lieThreshold: 68, suspiciousThreshold: 45 };
+                }
+                // MID (default)
+                return { multiplier: 1.0, lieThreshold: 55, suspiciousThreshold: 35 };
+            }
+
+            // --- Web Audio SFX Engine (No External Assets Required) ---
+            function getAudioContext() {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                return audioCtx;
+            }
+
+            function playSfx(type) {
+                if (!soundEnabled) return;
+                try {
+                    const ctx = getAudioContext();
+                    const now = ctx.currentTime;
+
+                    if (type === 'beep') {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(880, now);
+                        gain.gain.setValueAtTime(0.12, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.15);
+                    } else if (type === 'ready') {
+                        [0, 0.08].forEach((delay, i) => {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.type = 'triangle';
+                            osc.frequency.setValueAtTime(i === 0 ? 987 : 1318, now + delay);
+                            gain.gain.setValueAtTime(0.1, now + delay);
+                            gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.07);
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start(now + delay);
+                            osc.stop(now + delay + 0.07);
+                        });
+                    } else if (type === 'heartbeat') {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(75, now);
+                        osc.frequency.exponentialRampToValueAtTime(35, now + 0.12);
+                        gain.gain.setValueAtTime(0.18, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.12);
+                    } else if (type === 'lie') {
+                        [180, 245, 120].forEach((freq) => {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.type = 'sawtooth';
+                            osc.frequency.setValueAtTime(freq, now);
+                            gain.gain.setValueAtTime(0.15, now);
+                            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start(now);
+                            osc.stop(now + 0.45);
+                        });
+                    } else if (type === 'truth') {
+                        [523.25, 659.25, 783.99].forEach((freq, idx) => {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.type = 'sine';
+                            const t = now + (idx * 0.08);
+                            osc.frequency.setValueAtTime(freq, t);
+                            gain.gain.setValueAtTime(0.15, t);
+                            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start(t);
+                            osc.stop(t + 0.35);
+                        });
+                    }
+                } catch (e) {
+                    // Audio context fallback
+                }
+            }
+
+            // Sound Toggle Handler
+            if (btnSoundToggle) {
+                btnSoundToggle.addEventListener('click', () => {
+                    soundEnabled = !soundEnabled;
+                    btnSoundToggle.classList.toggle('text-cyan-400', soundEnabled);
+                    btnSoundToggle.classList.toggle('text-slate-600', !soundEnabled);
+                    btnSoundToggle.querySelector('span').textContent = soundEnabled ? 'SFX: ON' : 'SFX: OFF';
+                    if (soundEnabled) playSfx('beep');
+                });
+            }
+
+            // --- Real Frame-Difference Optical Motion Detection Setup ---
+            const motionCanvas = document.createElement('canvas');
+            motionCanvas.width = 48;
+            motionCanvas.height = 36;
+            const motionCtx = motionCanvas.getContext('2d', { willReadFrequently: true });
+            let prevFrameData = null;
+
+            function computeRealMotion(videoEl) {
+                if (!videoEl || videoEl.readyState < 2 || videoEl.videoWidth === 0) return null;
+                motionCtx.drawImage(videoEl, 0, 0, motionCanvas.width, motionCanvas.height);
+                const currentFrame = motionCtx.getImageData(0, 0, motionCanvas.width, motionCanvas.height);
+                if (!prevFrameData) {
+                    prevFrameData = currentFrame;
+                    return 0;
+                }
+                let diffSum = 0;
+                const len = currentFrame.data.length;
+                for (let i = 0; i < len; i += 4) {
+                    const curGray = (currentFrame.data[i] + currentFrame.data[i + 1] + currentFrame.data[i + 2]) / 3;
+                    const prevGray = (prevFrameData.data[i] + prevFrameData.data[i + 1] + prevFrameData.data[i + 2]) / 3;
+                    diffSum += Math.abs(curGray - prevGray);
+                }
+                prevFrameData = currentFrame;
+                const avgDiff = diffSum / (motionCanvas.width * motionCanvas.height);
+                return Math.min(100, avgDiff * 6);
+            }
+
+            // --- Advanced Voice Stress Analysis (VSA: Formant Tension, Micro-Tremor & Dynamics) ---
+            function analyzeAudioFeatures() {
+                if (!analyser) return { isSpeaking: false, instantVoiceStress: 0, speechVol: 0 };
+                const bufferLength = analyser.frequencyBinCount;
+                const freqData = new Uint8Array(bufferLength);
+                analyser.getByteFrequencyData(freqData);
+
+                // Speech spectrum: ~80Hz to 4000Hz (bins 1 to ~45 at 512 FFT)
+                const maxSpeechBin = Math.min(48, bufferLength);
+                let speechEnergy = 0;
+                let tensionEnergy = 0;
+
+                for (let i = 1; i < maxSpeechBin; i++) {
+                    const val = freqData[i];
+                    speechEnergy += val;
+                    // Tension band (1.4kHz - 3.2kHz, bins 15 to 35): vocal fold constriction elevates this band
+                    if (i >= 15 && i <= 35) {
+                        tensionEnergy += val;
+                    }
+                }
+
+                const avgSpeechVol = speechEnergy / maxSpeechBin;
+                // Voice threshold: room noise is usually 1-5, audible speech is >= 7
+                const isSpeaking = avgSpeechVol > 7;
+
+                if (!isSpeaking) {
+                    return { isSpeaking: false, instantVoiceStress: 0, speechVol: avgSpeechVol };
+                }
+
+                // 1. Vocal Tension Ratio
+                const tensionRatio = speechEnergy > 0 ? (tensionEnergy / speechEnergy) : 0;
+                // Normal calm voice has tensionRatio around 0.15 - 0.22; nervous/strained voice rises to 0.35+
+                const vocalTensionScore = Math.min(100, Math.max(0, (tensionRatio - 0.14) * 260));
+
+                // 2. Amplitude Micro-Tremor (Vocal dynamics fluctuation)
+                const volDiff = Math.abs(avgSpeechVol - lastSpeechVolume);
+                lastSpeechVolume = avgSpeechVol;
+                const tremorScore = Math.min(100, volDiff * 9);
+
+                // 3. Combined Instantaneous Voice Stress
+                const instantVoiceStress = Math.min(100, Math.round(vocalTensionScore * 0.55 + tremorScore * 0.45));
+
+                return { isSpeaking: true, instantVoiceStress, speechVol: avgSpeechVol };
+            }
+
+            // --- Robust Web Speech Recognition Engine (With TTS Shield & Token Guard) ---
+            function initSpeechRecognition() {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) {
+                    if (speechRecStatus) {
+                        speechRecStatus.textContent = 'SPEECH API: 非対応ブラウザ';
+                        speechRecStatus.className = 'text-[10px] text-rose-400 font-mono-tech';
+                    }
+                    return;
+                }
+
+                if (speechRecognizer) {
+                    try { speechRecognizer.abort(); } catch(e){}
+                }
+
+                speechRecognizer = new SpeechRecognition();
+                speechRecognizer.lang = 'ja-JP';
+                speechRecognizer.continuous = true;
+                speechRecognizer.interimResults = true;
+
+                speechRecognizer.onstart = () => {
+                    isRecognizing = true;
+                    if (speechRecStatus) {
+                        speechRecStatus.textContent = 'MIC ON (聞き取り中) 🎙️';
+                        speechRecStatus.className = 'text-[10px] text-cyan-400 font-mono-tech animate-pulse';
+                    }
+                };
+
+                speechRecognizer.onresult = (event) => {
+                    if (isReadingQuestion) return;
+
+                    let interimTranscript = '';
+                    let newFinal = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            newFinal += transcript + ' ';
+                            checkHesitationWords(transcript);
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+
+                    if (newFinal) {
+                        fullTranscript += newFinal;
+                    }
+
+                    const combined = (fullTranscript + interimTranscript).trim();
+                    if (combined) {
+                        transcriptText.textContent = combined;
+                        transcriptText.className = 'text-cyan-300 font-medium text-sm font-sans';
+
+                        if (!speechDetected) {
+                            speechDetected = true;
+                            metrics.responseDelay = ((Date.now() - questionStartTime) / 1000).toFixed(2);
+                            document.getElementById('speech-delay').textContent = `${metrics.responseDelay}s`;
+                        }
+                    }
+                };
+
+                speechRecognizer.onerror = (event) => {
+                    if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                        console.warn('Speech recognition notice:', event.error);
+                    }
+                };
+
+                speechRecognizer.onend = () => {
+                    isRecognizing = false;
+                    const shouldKeepListening = (isRunning && currentPhase !== 'STANDBY' && !isReadingQuestion) || (singleListening && !isReadingQuestion);
+                    if (shouldKeepListening && speechRecognizer) {
+                        try {
+                            speechRecognizer.start();
+                        } catch (e) {
+                            // ignore already started
+                        }
+                    } else if (speechRecStatus) {
+                        speechRecStatus.textContent = isReadingQuestion ? 'TTS読み上げ中 (マイク待機)' : 'SPEECH API: 待機中';
+                        speechRecStatus.className = 'text-[10px] text-slate-500 font-mono-tech';
+                    }
+                };
+            }
+
+            function startListeningSpeech() {
+                if (!speechRecognizer) initSpeechRecognition();
+                fullTranscript = '';
+                transcriptText.textContent = isReadingQuestion ? '（📢 質問読み上げ中... 読み上げ完了後に話してください）' : '（🎙️ 回答待機中... マイクに向かって話してください）';
+                transcriptText.className = 'text-slate-400 italic font-sans text-sm';
+
+                if (speechRecognizer && !isRecognizing && !isReadingQuestion) {
+                    try {
+                        speechRecognizer.start();
+                    } catch (e) {
+                        // ignore
+                    }
+                }
+            }
+
+            function stopListeningSpeech() {
+                if (speechRecognizer) {
+                    try {
+                        speechRecognizer.abort();
+                    } catch(e){}
+                    isRecognizing = false;
+                }
+            }
+
+            // Manual Edit of Recognized Transcript
+            if (btnEditTranscript) {
+                btnEditTranscript.addEventListener('click', () => {
+                    const current = transcriptText.textContent.startsWith('（') ? '' : transcriptText.textContent;
+                    const updated = prompt('【回答の手動入力・修正】\n被験者が答えた内容を修正できます:', current);
+                    if (updated !== null && updated.trim() !== '') {
+                        fullTranscript = updated.trim();
+                        transcriptText.textContent = fullTranscript;
+                        transcriptText.className = 'text-cyan-300 font-medium text-sm font-sans';
+                        checkHesitationWords(fullTranscript);
+                    }
+                });
+            }
+
+            // Manual Clear of Transcript
+            if (btnClearTranscript) {
+                btnClearTranscript.addEventListener('click', () => {
+                    fullTranscript = '';
+                    transcriptText.textContent = '（回答待機中... 話しかけてください）';
+                    transcriptText.className = 'text-slate-400 italic font-sans text-sm';
+                });
+            }
+
+            function checkHesitationWords(text) {
+                const hesitations = ['えーと', 'えっと', 'あの', '実は', 'たぶん', '確か', 'まあ', 'その', '違う', '嘘', '本当は', 'いや'];
+                hesitations.forEach(word => {
+                    if (text.includes(word)) {
+                        metrics.hesitationCount++;
+                    }
+                });
+            }
+
+            // --- Multi-Channel Polygraph Chart Setup ---
+            const ctxChart = document.getElementById('stressChart').getContext('2d');
+            const stressChart = new Chart(ctxChart, {
+                type: 'line',
+                data: {
+                    labels: Array(25).fill(''),
+                    datasets: [
+                        {
+                            label: 'OVERALL STRESS',
+                            data: Array(25).fill(20),
+                            borderColor: '#00f0ff',
+                            borderWidth: 2.2,
+                            tension: 0.35,
+                            pointRadius: 0,
+                            fill: true,
+                            backgroundColor: 'rgba(0, 240, 255, 0.08)'
+                        },
+                        {
+                            label: 'PULSE / BPM',
+                            data: Array(25).fill(25),
+                            borderColor: '#ff0055',
+                            borderWidth: 1.2,
+                            tension: 0.2,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: 'GSR (SKIN CONDUCTANCE)',
+                            data: Array(25).fill(15),
+                            borderColor: '#ffb700',
+                            borderWidth: 1.2,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: 'RESPIRATION',
+                            data: Array(25).fill(10),
+                            borderColor: '#00ff66',
+                            borderWidth: 1,
+                            borderDash: [3, 3],
+                            tension: 0.4,
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            min: 0,
+                            max: 100,
+                            grid: { color: 'rgba(30, 41, 59, 0.6)' },
+                            ticks: { color: '#64748b', font: { size: 9, family: 'monospace' } }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            align: 'end',
+                            labels: {
+                                boxWidth: 10,
+                                boxHeight: 2,
+                                color: '#94a3b8',
+                                font: { size: 9, family: 'monospace' }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // --- Hardware Devices Init (Prompt Only Once Per Session) ---
+            async function initDevices() {
+                if (devicesInitialized && mediaStream && mediaStream.active) {
+                    return;
+                }
+                try {
+                    getAudioContext();
+                    // Request camera and microphone together on initial authorization
+                    const constraints = {
+                        video: true,
+                        audio: true
+                    };
+                    
+                    mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    devicesInitialized = true;
+                    if (mediaStream.getVideoTracks().length > 0) {
+                        const videoEl = document.getElementById('webcam');
+                        videoEl.srcObject = mediaStream;
+                        document.getElementById('cam-fallback').style.display = 'none';
+                    }
+                    if (mediaStream.getAudioTracks().length > 0) {
+                        const ctx = getAudioContext();
+                        if (!analyser) {
+                            analyser = ctx.createAnalyser();
+                            const source = ctx.createMediaStreamSource(mediaStream);
+                            source.connect(analyser);
+                            analyser.fftSize = 512; // 256 frequency bins for accurate voice spectrum
+                        }
+                    }
+                    document.getElementById('sys-status').textContent = 'STATUS: ACTIVE_RECORDING';
+                    document.getElementById('sys-status').className = 'px-2 py-1 bg-cyan-900/40 rounded border border-cyan-500 text-cyan-300 animate-pulse';
+                    startListeningSpeech();
+                } catch (err) {
+                    console.warn('Media Device access notice:', err);
+                    document.getElementById('sys-status').textContent = 'STATUS: SIMULATION_MODE';
+                    startListeningSpeech();
+                }
+            }
+
+            if (btnStartDev) {
+                btnStartDev.addEventListener('click', () => {
+                    initDevices();
+                    if (!isRunning) {
+                        isRunning = true;
+                        requestAnimationFrame(updateSimulation);
+                    }
+                });
+            }
+
+            // --- TTS Speech with Shielding ---
+            function speakText(text) {
+                if (!ttsEnabled || !('speechSynthesis' in window)) {
+                    isReadingQuestion = false;
+                    playSfx('ready');
+                    startListeningSpeech();
+                    return;
+                }
+
+                window.speechSynthesis.cancel();
+                isReadingQuestion = true;
+                stopListeningSpeech();
+
+                const utterance = new SpeechSynthesisUtterance(text.replace(/【.*?】/g, ''));
+                utterance.lang = 'ja-JP';
+                utterance.rate = 1.05;
+
+                utterance.onend = () => {
+                    isReadingQuestion = false;
+                    playSfx('ready');
+                    startListeningSpeech();
+                };
+
+                utterance.onerror = () => {
+                    isReadingQuestion = false;
+                    playSfx('ready');
+                    startListeningSpeech();
+                };
+
+                window.speechSynthesis.speak(utterance);
+            }
+
+            btnSpeakQ.addEventListener('click', () => speakText(questionText.textContent));
+            btnTTSToggle.addEventListener('click', () => {
+                ttsEnabled = !ttsEnabled;
+                btnTTSToggle.classList.toggle('text-cyan-400', ttsEnabled);
+                btnTTSToggle.classList.toggle('text-slate-600', !ttsEnabled);
+            });
+
+            // --- Mode Switchers ---
+            function setSensorMode(mode) {
+                sensorMode = mode;
+                const activeCls = ['border-cyan-500', 'bg-cyan-500/20', 'text-cyan-300'];
+                const inactiveCls = ['border-slate-700', 'bg-slate-800', 'text-slate-400'];
+
+                [btnModeBoth, btnModeCam, btnModeMic].forEach(btn => {
+                    btn.classList.remove(...activeCls);
+                    btn.classList.add(...inactiveCls);
+                });
+
+                if (mode === 'BOTH') {
+                    btnModeBoth.classList.remove(...inactiveCls); btnModeBoth.classList.add(...activeCls);
+                    camContainer.style.display = 'block'; micContainer.style.display = 'flex';
+                } else if (mode === 'CAM_ONLY') {
+                    btnModeCam.classList.remove(...inactiveCls); btnModeCam.classList.add(...activeCls);
+                    camContainer.style.display = 'block'; micContainer.style.display = 'none';
+                } else if (mode === 'MIC_ONLY') {
+                    btnModeMic.classList.remove(...inactiveCls); btnModeMic.classList.add(...activeCls);
+                    camContainer.style.display = 'none'; micContainer.style.display = 'flex';
+                }
+            }
+
+            function setEvalMode(mode) {
+                evalMode = mode;
+                const activeCls = ['border-amber-500', 'bg-amber-500/20', 'text-amber-300'];
+                const inactiveCls = ['border-slate-700', 'bg-slate-800', 'text-slate-400'];
+
+                if (mode === 'SESSION') {
+                    btnEvalSession.classList.remove(...inactiveCls); btnEvalSession.classList.add(...activeCls);
+                    btnEvalSingle.classList.remove(...activeCls); btnEvalSingle.classList.add(...inactiveCls);
+                    freeQInputContainer.classList.add('hidden');
+                    singleVerdictCard.classList.add('hidden');
+                    btnMainAction.classList.remove('hidden');
+                    btnStartSingleListen.classList.add('hidden');
+                    btnEvaluateSingle.classList.add('hidden');
+                    btnNextQ.classList.remove('hidden');
+                    questionText.textContent = '「測定セッションを開始」ボタンを押すと、基準測定（キャリブレーション）が始まります。';
+                } else {
+                    btnEvalSingle.classList.remove(...inactiveCls); btnEvalSingle.classList.add(...activeCls);
+                    btnEvalSession.classList.remove(...activeCls); btnEvalSession.classList.add(...inactiveCls);
+                    freeQInputContainer.classList.remove('hidden');
+                    btnMainAction.classList.add('hidden');
+                    btnStartSingleListen.classList.remove('hidden');
+                    btnEvaluateSingle.classList.add('hidden');
+                    btnNextQ.classList.add('hidden');
+                    questionText.textContent = '質問者：被験者に声で問いかけた後、「回答の判定を開始」を押してください。';
+                    sessionPhaseTag.textContent = 'PHASE: INTERACTIVE_SINGLE';
+                }
+            }
+
+            btnModeBoth.addEventListener('click', () => setSensorMode('BOTH'));
+            btnModeCam.addEventListener('click', () => setSensorMode('CAM_ONLY'));
+            btnModeMic.addEventListener('click', () => setSensorMode('MIC_ONLY'));
+            btnEvalSession.addEventListener('click', () => setEvalMode('SESSION'));
+            btnEvalSingle.addEventListener('click', () => setEvalMode('SINGLE'));
+
+            // Helper: compute evaluated answer score (combines peak agitation and average)
+            function getEvaluatedAnswerStress() {
+                const avg = questionStressSamples.length > 0 ?
+                    (questionStressSamples.reduce((a, b) => a + b, 0) / questionStressSamples.length) :
+                    metrics.totalStress;
+                // Weighted: 70% peak agitation during answer + 30% average
+                return Math.min(100, Math.max(metrics.totalStress, Math.round(questionPeakStress * 0.7 + avg * 0.3)));
+            }
+
+            // --- Simulation & Canvas Loop with Real Optical & Audio Tracking ---
+            let simAngle = 0;
+            let heartbeatCooldown = 0;
+
+            function updateSimulation() {
+                simAngle += 0.05;
+
+                // 1. Video Real Motion Detection
+                const videoEl = document.getElementById('webcam');
+                let realMotion = computeRealMotion(videoEl);
+                if (realMotion !== null) {
+                    metrics.bodyJitter = Math.min(100, (realMotion * 1.6 + Math.random() * 2).toFixed(1));
+                    metrics.gazeDeviation = Math.min(100, Math.max(0, (realMotion * 0.8 + Math.sin(simAngle * 0.7) * 12 + 10).toFixed(1)));
+                } else {
+                    metrics.gazeDeviation = Math.min(100, Math.max(0, (Math.sin(simAngle * 0.7) * 20 + Math.random() * 15).toFixed(1)));
+                    metrics.bodyJitter = (Math.cos(simAngle * 1.3) * 15 + Math.random() * 10).toFixed(1);
+                }
+
+                document.getElementById('val-gaze').textContent = `${metrics.gazeDeviation} %`;
+                document.getElementById('bar-gaze').style.width = `${metrics.gazeDeviation}%`;
+                document.getElementById('val-jitter').textContent = metrics.bodyJitter > 20 ? 'HIGH' : 'LOW';
+                document.getElementById('bar-jitter').style.width = `${Math.min(100, metrics.bodyJitter * 2.5)}%`;
+
+                // 2. Audio Spectrum & Pitch / Stress Analysis (VSA)
+                const audioFeatures = analyzeAudioFeatures();
+                let instantVoiceStress = 0;
+
+                if (audioFeatures.isSpeaking) {
+                    hasSpokenInQuestion = true;
+                    instantVoiceStress = audioFeatures.instantVoiceStress;
+                    lastDecayedVoiceStress = instantVoiceStress; // anchor for natural decay after speaking
+                    metrics.voicePitchJitter = instantVoiceStress;
+                    document.getElementById('speech-state').textContent = '発話検知中 (Speaking)';
+                    document.getElementById('speech-state').className = 'text-cyan-400 font-bold';
+                } else {
+                    // Natural physiological decay instead of instantaneous zero drop
+                    lastDecayedVoiceStress *= 0.95;
+                    metrics.voicePitchJitter = Math.round(lastDecayedVoiceStress);
+                    document.getElementById('speech-state').textContent = '沈黙待機中 (Silent)';
+                    document.getElementById('speech-state').className = 'text-slate-400';
+                }
+                document.getElementById('val-pitch-stress').querySelector('strong').textContent = `${metrics.voicePitchJitter}%`;
+
+                // 3. Response Delay & Hesitation Penalties
+                let hesitationPenalty = Math.min(50, metrics.hesitationCount * 16);
+                let delayPenalty = 0;
+                const curDelaySec = parseFloat(metrics.responseDelay) || 0;
+                if (curDelaySec > 1.8) {
+                    delayPenalty = Math.min(40, Math.round((curDelaySec - 1.8) * 15));
+                }
+
+                // Uncomfortable silence penalty if question is waiting and subject hasn't answered after 3s
+                let silencePenalty = 0;
+                if (!hasSpokenInQuestion && (currentPhase === 'MAIN' || singleListening)) {
+                    const elapsedSec = (Date.now() - questionStartTime) / 1000;
+                    if (elapsedSec > 3.0) {
+                        silencePenalty = Math.min(45, Math.round((elapsedSec - 3.0) * 10));
+                    }
+                }
+
+                // 4. Overall Raw Stress Score Calculation
+                let rawStress = 0;
+                if (sensorMode === 'BOTH') {
+                    rawStress = (metrics.gazeDeviation * 0.22) + 
+                                (metrics.bodyJitter * 0.22) + 
+                                (metrics.voicePitchJitter * 0.45) + 
+                                hesitationPenalty + delayPenalty + silencePenalty;
+                } else if (sensorMode === 'CAM_ONLY') {
+                    rawStress = (metrics.gazeDeviation * 0.5) + (metrics.bodyJitter * 0.5);
+                } else if (sensorMode === 'MIC_ONLY') {
+                    rawStress = (metrics.voicePitchJitter * 0.65) + hesitationPenalty + delayPenalty + silencePenalty;
+                }
+
+                if (currentPhase === 'CALIBRATION') {
+                    baselineStress = (baselineStress * 0.96) + (rawStress * 0.04);
+                }
+
+                // Calibration deduction
+                let netStress = Math.max(0, rawStress - (currentPhase === 'MAIN' ? baselineStress * 0.35 : 0));
+
+                // Sensitivity adjustment
+                const sensParams = getSensitivityParams();
+                let scaledStress = Math.min(100, Math.max(0, Math.round(netStress * sensParams.multiplier)));
+
+                // Smooth low-pass filter
+                smoothedStress = (smoothedStress * 0.88) + (scaledStress * 0.12);
+                let displayStress = Math.round(smoothedStress);
+                metrics.totalStress = displayStress;
+
+                // Track Peak Stress for current question
+                if (currentPhase === 'MAIN' || singleListening) {
+                    questionPeakStress = Math.max(questionPeakStress, displayStress);
+                    if (audioFeatures.isSpeaking || hesitationPenalty > 0 || delayPenalty > 10) {
+                        questionStressSamples.push(displayStress);
+                    }
+                }
+
+                totalStressVal.textContent = String(displayStress).padStart(2, '0');
+                totalStressBar.style.width = `${displayStress}%`;
+
+                // Pulse sound effect based on stress level
+                heartbeatCooldown++;
+                const heartbeatThreshold = displayStress > 60 ? 30 : (displayStress > 35 ? 45 : 60);
+                if (heartbeatCooldown > heartbeatThreshold && isRunning && (currentPhase === 'MAIN' || singleListening)) {
+                    heartbeatCooldown = 0;
+                    playSfx('heartbeat');
+                }
+
+                // Update Realtime Verdict Badge
+                if (displayStress >= sensParams.lieThreshold) {
+                    verdictBadge.textContent = 'HIGH STRESS / DETECTED';
+                    verdictBadge.className = 'px-3 py-1.5 rounded-lg bg-rose-500/20 border border-rose-500/50 text-rose-400 text-xs font-bold font-mono-tech uppercase glow-red animate-pulse';
+                } else if (displayStress >= sensParams.suspiciousThreshold) {
+                    verdictBadge.textContent = 'SUSPICIOUS AGITATION';
+                    verdictBadge.className = 'px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-400 text-xs font-bold font-mono-tech uppercase';
+                } else {
+                    verdictBadge.textContent = 'NORMAL STABLE';
+                    verdictBadge.className = 'px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-bold font-mono-tech uppercase';
+                }
+
+                // 5. Update Multi-Channel Chart Datasets
+                const pulseVal = Math.min(100, Math.max(10, Math.round(displayStress * 0.7 + (Math.sin(simAngle * 3) > 0.8 ? 25 : 0) + Math.random() * 8)));
+                const gsrVal = Math.min(100, Math.max(5, Math.round(displayStress * 0.8 + Math.cos(simAngle * 0.5) * 8 + 8)));
+                const respVal = Math.min(100, Math.max(5, Math.round(20 + Math.sin(simAngle * 0.8) * 15 + (displayStress > 50 ? Math.random() * 8 : 0))));
+
+                const d0 = stressChart.data.datasets[0].data;
+                const d1 = stressChart.data.datasets[1].data;
+                const d2 = stressChart.data.datasets[2].data;
+                const d3 = stressChart.data.datasets[3].data;
+
+                d0.shift(); d0.push(displayStress);
+                d1.shift(); d1.push(pulseVal);
+                d2.shift(); d2.push(gsrVal);
+                d3.shift(); d3.push(respVal);
+                stressChart.update();
+
+                // 6. Draw Audio Oscilloscope on mic-canvas
+                const audioCanvas = document.getElementById('audio-canvas');
+                if (audioCanvas && analyser) {
+                    const actx = audioCanvas.getContext('2d');
+                    const w = audioCanvas.width;
+                    const h = audioCanvas.height;
+                    const timeData = new Uint8Array(analyser.fftSize);
+                    analyser.getByteTimeDomainData(timeData);
+
+                    actx.fillStyle = 'rgba(10, 13, 20, 0.4)';
+                    actx.fillRect(0, 0, w, h);
+
+                    actx.lineWidth = 1.5;
+                    actx.strokeStyle = displayStress > 50 ? '#ff0055' : '#00f0ff';
+                    actx.beginPath();
+
+                    const sliceWidth = w * 1.0 / analyser.fftSize;
+                    let x = 0;
+                    for (let i = 0; i < analyser.fftSize; i++) {
+                        const v = timeData[i] / 128.0;
+                        const y = v * h / 2;
+                        if (i === 0) actx.moveTo(x, y);
+                        else actx.lineTo(x, y);
+                        x += sliceWidth;
+                    }
+                    actx.stroke();
+                }
+
+                // 7. Dynamic Cyber Mesh on face-canvas
+                const faceCanvas = document.getElementById('face-canvas');
+                if (faceCanvas && sensorMode !== 'MIC_ONLY') {
+                    const ctx = faceCanvas.getContext('2d');
+                    ctx.clearRect(0, 0, faceCanvas.width, faceCanvas.height);
+                    
+                    const isAlert = displayStress > 50;
+                    ctx.strokeStyle = isAlert ? 'rgba(255, 0, 85, 0.7)' : 'rgba(0, 240, 255, 0.6)';
+                    ctx.lineWidth = 1.5;
+                    
+                    const cx = faceCanvas.width / 2 + Math.sin(simAngle) * (metrics.bodyJitter > 20 ? 8 : 3);
+                    const cy = faceCanvas.height / 2 + Math.cos(simAngle * 0.8) * 3;
+                    
+                    const boxSize = 70;
+                    ctx.strokeRect(cx - boxSize, cy - boxSize - 10, boxSize * 2, boxSize * 2.2);
+                    
+                    const cornerLen = 15;
+                    ctx.beginPath();
+                    // Top-Left
+                    ctx.moveTo(cx - boxSize, cy - boxSize + cornerLen - 10);
+                    ctx.lineTo(cx - boxSize, cy - boxSize - 10);
+                    ctx.lineTo(cx - boxSize + cornerLen, cy - boxSize - 10);
+                    // Top-Right
+                    ctx.moveTo(cx + boxSize - cornerLen, cy - boxSize - 10);
+                    ctx.lineTo(cx + boxSize, cy - boxSize - 10);
+                    ctx.lineTo(cx + boxSize, cy - boxSize + cornerLen - 10);
+                    // Bottom-Left
+                    ctx.moveTo(cx - boxSize, cy + boxSize * 1.2 - cornerLen - 10);
+                    ctx.lineTo(cx - boxSize, cy + boxSize * 1.2 - 10);
+                    ctx.lineTo(cx - boxSize + cornerLen, cy + boxSize * 1.2 - 10);
+                    // Bottom-Right
+                    ctx.moveTo(cx + boxSize - cornerLen, cy + boxSize * 1.2 - 10);
+                    ctx.lineTo(cx + boxSize, cy + boxSize * 1.2 - 10);
+                    ctx.lineTo(cx + boxSize, cy + boxSize * 1.2 - cornerLen - 10);
+                    ctx.stroke();
+
+                    // Eyes tracking dots
+                    ctx.fillStyle = isAlert ? '#ff0055' : '#00f0ff';
+                    ctx.beginPath();
+                    ctx.arc(cx - 24, cy - 15, 4, 0, Math.PI * 2);
+                    ctx.arc(cx + 24, cy - 15, 4, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // HUD Data tag overlay on camera
+                    ctx.font = '10px monospace';
+                    ctx.fillStyle = isAlert ? '#ff0055' : '#00f0ff';
+                    ctx.fillText(`MOTION: ${metrics.bodyJitter}%`, cx - boxSize, cy - boxSize - 15);
+                    ctx.fillText(`PULSE: ${pulseVal} BPM`, cx - boxSize, cy + boxSize * 1.2 + 8);
+                }
+
+                if (isRunning) requestAnimationFrame(updateSimulation);
+            }
+
+            // --- Interactive Single Mode Logic ---
+            btnStartSingleListen.addEventListener('click', () => {
+                const customPrompt = freeQInput.value.trim();
+                questionText.textContent = customPrompt ? `問: 「${customPrompt}」` : '被験者の回答をリアルタイム解析中...';
+                singleListening = true;
+                currentQuestionToken = Date.now();
+                questionStartTime = Date.now();
+                speechDetected = false;
+                hasSpokenInQuestion = false;
+                questionPeakStress = 0;
+                questionStressSamples = [];
+                metrics.hesitationCount = 0;
+                metrics.responseDelay = 0;
+                document.getElementById('speech-delay').textContent = '0.00s';
+
+                fullTranscript = '';
+                transcriptText.textContent = '（🎙️ 回答待機中... マイクに向かって話してください）';
+                transcriptText.className = 'text-slate-400 italic font-sans text-sm';
+                singleVerdictCard.classList.add('hidden');
+                btnStartSingleListen.classList.add('hidden');
+                btnEvaluateSingle.classList.remove('hidden');
+
+                playSfx('ready');
+                startListeningSpeech();
+
+                if (!isRunning) {
+                    isRunning = true;
+                    initDevices();
+                    requestAnimationFrame(updateSimulation);
+                }
+            });
+
+            // --- 5-Stage Multi-Level Deception Evaluation Engine ---
+            function getDeceptionVerdict(score) {
+                const prob = Math.min(100, Math.max(0, Math.round(score)));
+                if (prob < 20) {
+                    return {
+                        stage: 1,
+                        stageLabel: 'STAGE 1/5: 完全な真実 (VERIFIED TRUTH)',
+                        prob: prob,
+                        title: 'VERIFIED TRUTH (潔白・完全な真実)',
+                        titleColor: 'text-emerald-400',
+                        desc: '【生体解析所見】被験者の生理シグナル・音声緊張・微細動揺はすべて極めて平穏な基準値内を維持。返答の遅延や逡巡反応も皆無であり、完全に真実を述べていると判定されます。',
+                        barColor: 'from-emerald-500 to-emerald-400',
+                        cardClass: 'p-5 rounded-2xl border border-emerald-500/50 bg-emerald-950/40 text-center flex flex-col items-center gap-3 shadow-xl',
+                        badgeClass: 'px-2.5 py-0.5 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40',
+                        probColor: 'text-emerald-400',
+                        sound: 'truth'
+                    };
+                } else if (prob < 40) {
+                    return {
+                        stage: 2,
+                        stageLabel: 'STAGE 2/5: 真実の可能性高 (PROBABLE TRUTH)',
+                        prob: prob,
+                        title: 'PROBABLE TRUTH (真実の可能性高)',
+                        titleColor: 'text-cyan-400',
+                        desc: '【生体解析所見】わずかな生理的ノイズや軽微な緊張が見受けられるものの、欺瞞や隠蔽を示す特異な周波数変化は検出されず、概ね真実を証言していると推測されます。',
+                        barColor: 'from-cyan-500 to-emerald-400',
+                        cardClass: 'p-5 rounded-2xl border border-cyan-500/50 bg-cyan-950/40 text-center flex flex-col items-center gap-3 shadow-xl',
+                        badgeClass: 'px-2.5 py-0.5 rounded text-[11px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40',
+                        probColor: 'text-cyan-400',
+                        sound: 'truth'
+                    };
+                } else if (prob < 60) {
+                    return {
+                        stage: 3,
+                        stageLabel: 'STAGE 3/5: 動揺・不審反応あり (AGITATED / INCONCLUSIVE)',
+                        prob: prob,
+                        title: 'INCONCLUSIVE (動揺・不審反応あり)',
+                        titleColor: 'text-amber-400',
+                        desc: '【生体解析所見】返答時の音声緊張度上昇および応答遅延を検知。心理的動揺や隠し事、あるいは質問に対する強い躊躇が存在する可能性が示唆されます。',
+                        barColor: 'from-amber-500 to-yellow-400',
+                        cardClass: 'p-5 rounded-2xl border border-amber-500/50 bg-amber-950/40 text-center flex flex-col items-center gap-3 shadow-xl',
+                        badgeClass: 'px-2.5 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40',
+                        probColor: 'text-amber-400',
+                        sound: 'beep'
+                    };
+                } else if (prob < 80) {
+                    return {
+                        stage: 4,
+                        stageLabel: 'STAGE 4/5: 虚偽・嘘の疑い強 (DECEPTION SUSPECTED)',
+                        prob: prob,
+                        title: 'DECEPTION SUSPECTED (虚偽・嘘の疑い強)',
+                        titleColor: 'text-orange-400',
+                        desc: '【生体解析所見】生体シグナル急変・言い淀み・声帯帯域の歪みが顕著に発生。事実と異なる証言を行っている、もしくは重要な情報を故意に隠蔽している公算が極めて高いです。',
+                        barColor: 'from-orange-500 to-amber-500',
+                        cardClass: 'p-5 rounded-2xl border border-orange-500/50 bg-orange-950/40 text-center flex flex-col items-center gap-3 shadow-xl',
+                        badgeClass: 'px-2.5 py-0.5 rounded text-[11px] font-bold bg-orange-500/20 text-orange-300 border border-orange-500/40',
+                        probColor: 'text-orange-400',
+                        sound: 'lie'
+                    };
+                } else {
+                    return {
+                        stage: 5,
+                        stageLabel: 'STAGE 5/5: 重大な虚偽・嘘確定 (HIGH DECEPTION)',
+                        prob: prob,
+                        title: 'HIGH DECEPTION (重大な虚偽・嘘確定)',
+                        titleColor: 'text-rose-400',
+                        desc: '【生体解析所見】全生体チャンネルにおいて欺瞞特有の極大反応を記録。明らかな虚偽の供述を行っており、事実の全面的な隠蔽が行われていると結論付けます。',
+                        barColor: 'from-rose-600 to-red-500',
+                        cardClass: 'p-5 rounded-2xl border border-rose-500/60 bg-rose-950/50 text-center flex flex-col items-center gap-3 shadow-xl glow-red',
+                        badgeClass: 'px-2.5 py-0.5 rounded text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse',
+                        probColor: 'text-rose-400',
+                        sound: 'lie'
+                    };
+                }
+            }
+
+            btnEvaluateSingle.addEventListener('click', () => {
+                singleListening = false;
+                stopListeningSpeech();
+
+                // Evaluated stress retains the peak agitation recorded during their answer!
+                const finalStress = getEvaluatedAnswerStress();
+                const verdict = getDeceptionVerdict(finalStress);
+                playSfx(verdict.sound);
+
+                singleVerdictCard.classList.remove('hidden');
+                btnEvaluateSingle.classList.add('hidden');
+                btnStartSingleListen.classList.remove('hidden');
+
+                singleVerdictResult.innerHTML = `
+                    <div class="flex items-center justify-between text-xs font-mono-tech mb-1">
+                        <span class="${verdict.badgeClass}">${verdict.stageLabel}</span>
+                        <span class="${verdict.probColor} font-bold text-sm">虚偽確率: ${verdict.prob}%</span>
+                    </div>
+                    <div class="text-sm font-bold font-mono-tech ${verdict.titleColor}">${verdict.title}</div>
+                    <div class="text-[11px] font-sans text-slate-300 mt-1">${verdict.desc}</div>
+                `;
+            });
+
+            // --- Continuous Session Workflow ---
+            btnMainAction.addEventListener('click', () => {
+                if (!isRunning) {
+                    resetPolygraph();
+                    isRunning = true;
+                    initDevices();
+                    startCalibration();
+                    requestAnimationFrame(updateSimulation);
+                }
+            });
+
+            function startCalibration() {
+                currentPhase = 'CALIBRATION';
+                questionIdx = 0;
+                activeQuestions = calibrationQuestions;
+                sessionPhaseTag.textContent = 'PHASE: BASELINE_CALIBRATION';
+                sessionPhaseTag.className = 'text-cyan-400 font-bold';
+                btnMainAction.disabled = true;
+                btnMainAction.classList.add('opacity-50');
+                btnNextQ.disabled = false;
+                loadQuestion();
+            }
+
+            function loadQuestion() {
+                if (questionIdx < activeQuestions.length) {
+                    currentQuestionToken = Date.now();
+                    const currentQText = activeQuestions[questionIdx];
+                    questionText.textContent = currentQText;
+                    questionIndexTag.textContent = `Q ${questionIdx + 1}/${activeQuestions.length}`;
+                    
+                    // Reset answer stress history for this new question
+                    fullTranscript = '';
+                    transcriptText.textContent = '（準備中...）';
+                    transcriptText.className = 'text-slate-400 italic font-sans text-sm';
+                    questionStartTime = Date.now();
+                    speechDetected = false;
+                    hasSpokenInQuestion = false;
+                    questionPeakStress = 0;
+                    questionStressSamples = [];
+                    metrics.hesitationCount = 0;
+                    metrics.responseDelay = 0;
+                    document.getElementById('speech-delay').textContent = '0.00s';
+
+                    playSfx('beep');
+                    speakText(currentQText);
+                } else {
+                    if (currentPhase === 'CALIBRATION') {
+                        currentPhase = 'MAIN';
+                        questionIdx = 0;
+                        activeQuestions = customQuestions;
+                        sessionPhaseTag.textContent = 'PHASE: TARGET_TEST';
+                        sessionPhaseTag.className = 'text-rose-400 font-bold';
+                        loadQuestion();
+                    } else {
+                        finishSession();
+                    }
+                }
+            }
+
+            btnNextQ.addEventListener('click', () => {
+                // Record session snapshot with true answer peak/sustained stress
+                const recordedAnswer = transcriptText.textContent.startsWith('（') ? '（無言・未回答）' : transcriptText.textContent;
+                const evaluatedAnswerStress = getEvaluatedAnswerStress();
+
+                sessionLogs.push({
+                    q: activeQuestions[questionIdx],
+                    transcript: recordedAnswer,
+                    stress: evaluatedAnswerStress,
+                    delay: metrics.responseDelay,
+                    hesitation: metrics.hesitationCount
+                });
+                questionIdx++;
+                loadQuestion();
+            });
+
+            function finishSession() {
+                isRunning = false;
+                stopListeningSpeech();
+                sessionPhaseTag.textContent = 'PHASE: COMPLETED';
+                sessionPhaseTag.className = 'text-emerald-400 font-bold';
+                btnNextQ.disabled = true;
+                btnMainAction.disabled = false;
+                btnMainAction.classList.remove('opacity-50');
+                btnMainAction.innerHTML = '<i class="fa-solid fa-rotate-right"></i> <span>もう一度測定セッションを開始</span>';
+                showReportModal();
+            }
+
+            // --- Report Modal & Multi-Stage Deception Diagnosis ---
+            function showReportModal() {
+                const modal = document.getElementById('report-modal');
+                modal.classList.remove('hidden');
+
+                const totalAvgStress = Math.round(sessionLogs.reduce((acc, l) => acc + l.stress, 0) / (sessionLogs.length || 1));
+                
+                document.getElementById('rep-gaze-score').textContent = `${metrics.gazeDeviation}%`;
+                document.getElementById('rep-voice-score').textContent = `${metrics.voicePitchJitter}%`;
+                document.getElementById('rep-delay-score').textContent = `${metrics.responseDelay}s`;
+                document.getElementById('rep-hesitation-score').textContent = `${metrics.hesitationCount} 回`;
+
+                const verdict = getDeceptionVerdict(totalAvgStress);
+                playSfx(verdict.sound);
+
+                // Probability % and Visual Gauge Bar
+                const probEl = document.getElementById('report-lie-prob');
+                const probBar = document.getElementById('report-prob-bar');
+                const stageLevelEl = document.getElementById('report-stage-level');
+                const vTitle = document.getElementById('report-verdict-title');
+                const vDesc = document.getElementById('report-verdict-desc');
+                const diagCard = document.getElementById('report-diagnosis-card');
+
+                if (probEl) {
+                    probEl.textContent = `${verdict.prob}%`;
+                    probEl.className = `text-5xl sm:text-6xl font-black font-mono-tech tracking-tight ${verdict.probColor}`;
+                }
+                if (probBar) {
+                    probBar.style.width = `${verdict.prob}%`;
+                }
+                if (stageLevelEl) {
+                    stageLevelEl.textContent = verdict.stageLabel;
+                    stageLevelEl.className = verdict.badgeClass;
+                }
+                if (vTitle) {
+                    vTitle.textContent = verdict.title;
+                    vTitle.className = `text-2xl sm:text-3xl font-black font-mono-tech tracking-wide block ${verdict.titleColor}`;
+                }
+                if (vDesc) {
+                    vDesc.textContent = verdict.desc;
+                }
+                if (diagCard) {
+                    diagCard.className = verdict.cardClass;
+                }
+
+                // 5-Stage Scale Step Indicators
+                for (let i = 1; i <= 5; i++) {
+                    const stepEl = document.getElementById(`scale-step-${i}`);
+                    if (stepEl) {
+                        const alignClass = (i === 1) ? 'text-left' : ((i === 5) ? 'text-right' : 'text-center');
+                        if (i === verdict.stage) {
+                            stepEl.className = `${alignClass} font-black text-cyan-300 underline drop-shadow-[0_0_8px_rgba(0,240,255,0.8)] scale-105 transition-all`;
+                        } else {
+                            stepEl.className = `${alignClass} font-medium text-slate-600 transition-all`;
+                        }
+                    }
+                }
+
+                const sensParams = getSensitivityParams();
+                const logsContainer = document.getElementById('report-logs-container');
+                logsContainer.innerHTML = sessionLogs.map((log) => `
+                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex justify-between items-start gap-3">
+                        <div class="space-y-1 flex-1">
+                            <div class="font-bold text-slate-200 text-xs">${log.q}</div>
+                            <div class="text-cyan-400 font-sans text-xs flex items-center gap-1.5">
+                                <i class="fa-solid fa-comment-dots text-slate-500"></i>
+                                <span>${log.transcript}</span>
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <span class="px-2 py-1 rounded text-[11px] font-bold font-mono-tech ${log.stress >= sensParams.lieThreshold ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : (log.stress >= sensParams.suspiciousThreshold ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-300')}">
+                                STRESS: ${log.stress}%
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // --- Custom Questions & Presets Logic ---
+            function renderCustomQList() {
+                if (qCountBadge) qCountBadge.textContent = `${customQuestions.length}件`;
+                customQListContainer.innerHTML = customQuestions.map((q, idx) => `
+                    <div class="flex items-center justify-between bg-slate-950 p-2.5 rounded-lg border border-slate-800 gap-2">
+                        <span class="text-slate-300 font-sans truncate text-xs">${idx + 1}. ${q}</span>
+                        <button onclick="removeQuestion(${idx})" class="text-rose-400 hover:text-rose-300 p-1 transition cursor-pointer">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            window.removeQuestion = (idx) => {
+                customQuestions.splice(idx, 1);
+                renderCustomQList();
+            };
+
+            if (btnAddQ) {
+                btnAddQ.addEventListener('click', () => {
+                    const val = newQInput.value.trim();
+                    if (val) {
+                        customQuestions.push(val);
+                        newQInput.value = '';
+                        renderCustomQList();
+                    }
+                });
+            }
+
+            // Preset Buttons Click Handlers
+            if (presetPartyBtn) {
+                presetPartyBtn.addEventListener('click', () => {
+                    customQuestions = questionPresets.party.slice();
+                    renderCustomQList();
+                    playSfx('beep');
+                });
+            }
+            if (presetOfficeBtn) {
+                presetOfficeBtn.addEventListener('click', () => {
+                    customQuestions = questionPresets.office.slice();
+                    renderCustomQList();
+                    playSfx('beep');
+                });
+            }
+            if (presetSeriousBtn) {
+                presetSeriousBtn.addEventListener('click', () => {
+                    customQuestions = questionPresets.serious.slice();
+                    renderCustomQList();
+                    playSfx('beep');
+                });
+            }
+
+            if (btnOpenCustomQ) {
+                btnOpenCustomQ.addEventListener('click', () => {
+                    renderCustomQList();
+                    if (customQModal) customQModal.classList.remove('hidden');
+                });
+            }
+
+            if (btnCloseQModal) btnCloseQModal.addEventListener('click', () => customQModal.classList.add('hidden'));
+            if (btnSaveQ) {
+                btnSaveQ.addEventListener('click', () => {
+                    localStorage.setItem('polygraph_custom_q', JSON.stringify(customQuestions));
+                    if (customQModal) customQModal.classList.add('hidden');
+                    playSfx('beep');
+                });
+            }
+
+            // --- Modal Control & Retry Logic ---
+            const btnModalRetry = document.getElementById('btn-modal-retry');
+            if (btnModalRetry) {
+                btnModalRetry.addEventListener('click', () => {
+                    document.getElementById('report-modal').classList.add('hidden');
+                    resetPolygraph();
+                    isRunning = true;
+                    initDevices();
+                    startCalibration();
+                    requestAnimationFrame(updateSimulation);
+                });
+            }
+
+            document.getElementById('btn-close-modal').addEventListener('click', () => {
+                document.getElementById('report-modal').classList.add('hidden');
+                resetPolygraph();
+            });
+            document.getElementById('btn-modal-finish').addEventListener('click', () => {
+                document.getElementById('report-modal').classList.add('hidden');
+                resetPolygraph();
+            });
+
+            // Copy Report Text to Clipboard
+            const btnCopyReport = document.getElementById('btn-copy-report');
+            if (btnCopyReport) {
+                btnCopyReport.addEventListener('click', () => {
+                    const subjectInput = document.getElementById('subject-name-input');
+                    const subjectName = (subjectInput && subjectInput.value.trim()) ? subjectInput.value.trim() : '被験者';
+                    const verdictTitle = document.getElementById('report-verdict-title').textContent.trim();
+                    const stageLabel = document.getElementById('report-stage-level').textContent.trim();
+                    const lieProb = document.getElementById('report-lie-prob').textContent.trim();
+                    const desc = document.getElementById('report-verdict-desc').textContent.trim();
+                    const totalAvgStress = Math.round(sessionLogs.reduce((acc, l) => acc + l.stress, 0) / (sessionLogs.length || 1));
+
+                    const shareText = `【🤖 AI CYBER POLYGRAPH 検査結果】\n` +
+                        `🎯 被験者: ${subjectName}\n` +
+                        `📊 判定段階: ${stageLabel}\n` +
+                        `🔍 診断結果: ${verdictTitle}\n` +
+                        `💥 嘘・虚偽の確率: ${lieProb} (平均動揺ストレス: ${totalAvgStress}%)\n` +
+                        `📝 生体解析所見: ${desc}\n` +
+                        `※本アプリは実験・シミュレーション用のエンターテインメントツールです。`;
+
+                    navigator.clipboard.writeText(shareText).then(() => {
+                        const copyBtnText = document.getElementById('copy-btn-text');
+                        copyBtnText.textContent = 'コピーしました！';
+                        setTimeout(() => { copyBtnText.textContent = '結果をコピー'; }, 2000);
+                        playSfx('beep');
+                    }).catch(() => {
+                        alert(shareText);
+                    });
+                });
+            }
+
+            btnReset.addEventListener('click', resetPolygraph);
+
+            function resetPolygraph() {
+                isRunning = false;
+                stopListeningSpeech();
+                currentPhase = 'STANDBY';
+                questionIdx = 0;
+                sessionLogs = [];
+                sessionPhaseTag.textContent = 'PHASE: STANDBY';
+                sessionPhaseTag.className = 'text-amber-400 font-bold';
+                questionText.textContent = '「測定セッションを開始」ボタンを押すと、基準測定（キャリブレーション）が始まります。';
+                questionIndexTag.textContent = 'Q 0/0';
+                transcriptText.textContent = '（被験者の音声回答がここにリアルタイム表示されます）';
+                transcriptText.className = 'text-slate-400 italic font-sans text-sm';
+                btnMainAction.disabled = false;
+                btnMainAction.classList.remove('opacity-50');
+                btnMainAction.innerHTML = '<i class="fa-solid fa-play"></i> <span>測定セッションを開始</span>';
+                btnNextQ.disabled = true;
+                totalStressVal.textContent = '00';
+                totalStressBar.style.width = '0%';
+                singleVerdictCard.classList.add('hidden');
+                questionPeakStress = 0;
+                questionStressSamples = [];
+                hasSpokenInQuestion = false;
+            }
+
+            // Realtime Live Clock
+            setInterval(() => {
+                const d = new Date();
+                const timerEl = document.getElementById('live-timer');
+                if (timerEl) timerEl.textContent = d.toTimeString().split(' ')[0];
+            }, 1000);
+
+        });
+    </script>
+</body>
+</html>
