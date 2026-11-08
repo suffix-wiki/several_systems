@@ -158,7 +158,66 @@
             </select>
           </div>
 
-          <div>
+          <div class="border-t border-slate-700 pt-3 space-y-2">
+            <div class="font-semibold text-cyan-300"><i class="fa-solid fa-microphone-lines"></i> 鼻歌からメロディ入力</div>
+            <p class="text-[11px] text-slate-400">マイクに向かって歌うと、音程と長さを検出して現在の小節から配置します。録音音声は保存・送信されません。</p>
+            <div class="flex gap-2">
+              <button id="btn-humming-start" class="flex-1 bg-rose-700 hover:bg-rose-600 text-white font-bold py-2 rounded-lg text-xs">
+                <i class="fa-solid fa-circle"></i> 鼻歌を録音
+              </button>
+              <button id="btn-humming-stop" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-2 rounded-lg text-xs" disabled>
+                <i class="fa-solid fa-stop"></i> 録音終了
+              </button>
+            </div>
+            <p id="humming-status" class="text-[11px] text-slate-400 min-h-4" aria-live="polite">録音したい長さだけ歌ってください。</p>
+            <div id="humming-countdown" class="hidden text-center text-4xl leading-none font-black text-rose-300" aria-live="assertive"></div>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="text-[11px] text-slate-400">長さの合わせ方
+                <select id="humming-length-mode" class="mt-1 w-full bg-slate-900 border border-slate-700 text-slate-100 rounded p-1.5">
+                  <option value="fit">指定小節数にフィット</option>
+                  <option value="scale">倍率で伸縮</option>
+                </select>
+              </label>
+              <label class="text-[11px] text-slate-400">全体を半音移調
+                <select id="humming-transpose" class="mt-1 w-full bg-slate-900 border border-slate-700 text-slate-100 rounded p-1.5">
+                  <option value="-12">-12 半音</option><option value="-11">-11 半音</option><option value="-10">-10 半音</option>
+                  <option value="-9">-9 半音</option><option value="-8">-8 半音</option><option value="-7">-7 半音</option>
+                  <option value="-6">-6 半音</option><option value="-5">-5 半音</option><option value="-4">-4 半音</option>
+                  <option value="-3">-3 半音</option><option value="-2">-2 半音</option><option value="-1">-1 半音</option>
+                  <option value="0" selected>変更なし</option>
+                  <option value="1">+1 半音</option><option value="2">+2 半音</option><option value="3">+3 半音</option>
+                  <option value="4">+4 半音</option><option value="5">+5 半音</option><option value="6">+6 半音</option>
+                  <option value="7">+7 半音</option><option value="8">+8 半音</option><option value="9">+9 半音</option>
+                  <option value="10">+10 半音</option><option value="11">+11 半音</option><option value="12">+12 半音</option>
+                </select>
+              </label>
+              <label id="humming-fit-controls" class="col-start-1 text-[11px] text-slate-400">合わせる小節数
+                <input id="humming-fit-measures" type="number" min="1" max="32" step="1" value="1" class="mt-1 w-full bg-slate-900 border border-slate-700 text-center text-slate-100 rounded p-1.5">
+              </label>
+              <label id="humming-scale-controls" class="hidden col-start-1 text-[11px] text-slate-400">長さ倍率
+                <div class="mt-1 flex items-center gap-1">
+                  <input id="humming-length-scale" type="number" min="0.5" max="2" step="0.05" value="1" class="w-full bg-slate-900 border border-slate-700 text-center text-slate-100 rounded p-1.5">
+                  <span class="text-slate-500">倍</span>
+                </div>
+              </label>
+              <label class="col-start-2 text-[11px] text-slate-400">開始位置（16分音符）
+                <input id="humming-start-offset" type="number" min="-32" max="32" step="1" value="0" class="mt-1 w-full bg-slate-900 border border-slate-700 text-center text-slate-100 rounded p-1.5">
+              </label>
+            </div>
+            <p id="humming-length-help" class="text-[10px] text-slate-500">鼻歌を指定小節数に収めます。開始位置は+4で1拍右、-4で1拍左です。</p>
+            <p id="humming-measure-count" class="text-[11px] text-cyan-300 min-h-4">反映予定: -- 小節</p>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="btn-humming-listen" class="bg-indigo-700 hover:bg-indigo-600 text-white font-bold py-2 rounded-lg text-xs" disabled>
+                <i class="fa-solid fa-play"></i> 調整を再生
+              </button>
+              <button id="btn-humming-apply" class="bg-cyan-700 hover:bg-cyan-600 text-white font-bold py-2 rounded-lg text-xs" disabled>
+                <i class="fa-solid fa-wand-magic-sparkles"></i> メロディに反映（確定）
+              </button>
+            </div>
+            <p class="text-[10px] text-slate-500">音符は16分音符単位に整えます。既存メロディがある小節へ反映する場合は確認します。</p>
+          </div>
+
+          <div class="border-t border-slate-700 pt-3">
             <div class="flex justify-between items-center mb-1">
               <span class="text-slate-400 font-semibold">メロディテンプレート (サビ対応)</span>
               <button id="btn-save-melody-pattern" class="text-cyan-400 text-xs hover:underline"><i class="fa-solid fa-plus"></i> 現在の小節を保存</button>
@@ -350,7 +409,8 @@
               <span class="text-xs font-bold text-cyan-400 flex items-center gap-1">
                 <i class="fa-solid fa-lines-leaning"></i> メロディ入力 (ピアノロール - 16分割)
               </span>
-              <span class="text-[10px] text-slate-500">タップで音配置 / 右端スライドで長さ変更</span>
+              <span id="piano-roll-hint" class="text-[10px] text-slate-500">タップで音配置 / 右端スライドで長さ変更</span>
+              <span id="humming-preview-legend" class="hidden text-[10px] font-semibold text-amber-300">橙の点線バー＝未確定の鼻歌 / 青バー＝登録済み</span>
             </div>
             <div id="piano-roll-grid" class="relative bg-slate-900/90 border border-slate-800 rounded-lg overflow-hidden">
               <!-- Generated by JS -->
@@ -419,16 +479,19 @@
      * かんたん作曲 Studio Ultimate Pro - ENGINE & CONTROLLER
      */
 
-    const PITCHES = [
-      { name: "C5", label: "ド (高)", freq: 523.25, midiNote: 72 },
-      { name: "B4", label: "シ", freq: 493.88, midiNote: 71 },
-      { name: "A4", label: "ラ", freq: 440.00, midiNote: 69 },
-      { name: "G4", label: "ソ", freq: 392.00, midiNote: 67 },
-      { name: "F4", label: "ファ", freq: 349.23, midiNote: 65 },
-      { name: "E4", label: "ミ", freq: 329.63, midiNote: 64 },
-      { name: "D4", label: "レ", freq: 293.66, midiNote: 62 },
-      { name: "C4", label: "ド (中)", freq: 261.63, midiNote: 60 }
-    ];
+    const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const NOTE_LABELS = ["ド", "ド#", "レ", "レ#", "ミ", "ファ", "ファ#", "ソ", "ソ#", "ラ", "ラ#", "シ"];
+    const PITCHES = Array.from({ length: 37 }, (_, index) => {
+      const midiNote = 84 - index;
+      const noteIndex = midiNote % 12;
+      const octave = Math.floor(midiNote / 12) - 1;
+      return {
+        name: `${NOTE_NAMES[noteIndex]}${octave}`,
+        label: `${NOTE_LABELS[noteIndex]}${octave}`,
+        freq: 440 * Math.pow(2, (midiNote - 69) / 12),
+        midiNote
+      };
+    });
 
     const DRUM_TYPES = [
       { id: "crash", label: "クラッシュ", color: "bg-amber-500", midiKeys: [49, 57] },
@@ -564,6 +627,10 @@
     let bgmBuffer = null;
     let bgmSourceNode = null;
     let bgmGainNode = null;
+    let hummingCapture = null;
+    let capturedHummingNotes = [];
+    let capturedHummingStartMeasure = 0;
+    let hummingPreviewOscillators = [];
 
     window.addEventListener("DOMContentLoaded", () => {
       // Load stored custom templates if exists
@@ -576,6 +643,13 @@
       renderMeasureTabs();
       renderGrid();
       renderPresetsList();
+      window.addEventListener("pagehide", () => {
+        if (!hummingCapture) return;
+        window.clearInterval(hummingCapture.timer);
+        hummingCapture.stream.getTracks().forEach(track => track.stop());
+        hummingCapture.source.disconnect();
+        hummingCapture = null;
+      });
     });
 
     function savePresetsToStorage() {
@@ -611,7 +685,10 @@
       // PLAYBACK CONTROLS
       document.getElementById("btn-play-all").addEventListener("click", () => startPlayback("all"));
       document.getElementById("btn-play-loop").addEventListener("click", () => startPlayback("loop"));
-      document.getElementById("btn-stop").addEventListener("click", stopPlayback);
+      document.getElementById("btn-stop").addEventListener("click", () => {
+        stopPlayback();
+        stopHummingPreview();
+      });
 
       // BASE BPM
       const bpmInput = document.getElementById("bpm-input");
@@ -619,6 +696,8 @@
         let val = parseInt(bpmInput.value) || 120;
         songState.bpm = Math.max(40, Math.min(240, val));
         bpmInput.value = songState.bpm;
+        stopHummingPreview();
+        updateHummingPreview();
       });
 
       // PER MEASURE BPM
@@ -680,8 +759,29 @@
       });
 
       // INSTRUMENT SELECTORS
-      document.getElementById("melody-instrument").addEventListener("change", (e) => songState.melodyInstrument = e.target.value);
+      document.getElementById("melody-instrument").addEventListener("change", (e) => {
+        stopHummingPreview();
+        songState.melodyInstrument = e.target.value;
+      });
       document.getElementById("accompaniment-instrument").addEventListener("change", (e) => songState.accompanimentInstrument = e.target.value);
+
+      document.getElementById("btn-humming-start").addEventListener("click", startHummingCapture);
+      document.getElementById("btn-humming-stop").addEventListener("click", stopHummingCapture);
+      document.getElementById("btn-humming-listen").addEventListener("click", previewHummingMelody);
+      document.getElementById("btn-humming-apply").addEventListener("click", applyHummingMelody);
+      const onHummingSettingsChange = () => {
+        stopHummingPreview();
+        updateHummingPreview();
+      };
+      document.getElementById("humming-length-scale").addEventListener("input", onHummingSettingsChange);
+      document.getElementById("humming-fit-measures").addEventListener("input", onHummingSettingsChange);
+      document.getElementById("humming-start-offset").addEventListener("input", onHummingSettingsChange);
+      document.getElementById("humming-length-mode").addEventListener("change", () => {
+        updateHummingLengthControls();
+        onHummingSettingsChange();
+      });
+      document.getElementById("humming-transpose").addEventListener("change", onHummingSettingsChange);
+      updateHummingLengthControls();
 
       // MODAL
       const modal = document.getElementById("modal-project");
@@ -913,6 +1013,445 @@
       document.getElementById("btn-export-mp3").addEventListener("click", exportToMP3);
     }
 
+    async function startHummingCapture() {
+      if (hummingCapture) return;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("このブラウザではマイク録音を利用できません。HTTPSまたはlocalhostで開いてください。");
+        return;
+      }
+
+      stopHummingPreview();
+      document.getElementById("btn-humming-start").disabled = true;
+      document.getElementById("btn-humming-listen").disabled = true;
+      document.getElementById("humming-status").textContent = "マイクの許可を待っています…";
+      let stream = null;
+      try {
+        const ctx = getAudioContext();
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+        });
+        if (ctx.state === "suspended") await ctx.resume();
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 4096;
+        analyser.smoothingTimeConstant = 0;
+        const source = ctx.createMediaStreamSource(stream);
+        source.connect(analyser);
+
+        const capture = {
+          stream,
+          source,
+          analyser,
+          buffer: new Float32Array(analyser.fftSize),
+          startedAt: null,
+          startMeasure: songState.currentMeasure,
+          frames: [],
+          timer: null
+        };
+        hummingCapture = capture;
+        capturedHummingNotes = [];
+        capturedHummingStartMeasure = capture.startMeasure;
+        document.getElementById("btn-humming-stop").disabled = false;
+        document.getElementById("btn-humming-listen").disabled = true;
+        document.getElementById("btn-humming-apply").disabled = true;
+        updateHummingPreview();
+
+        for (let count = 3; count >= 1; count--) {
+          if (hummingCapture !== capture) return;
+          const countdown = document.getElementById("humming-countdown");
+          countdown.textContent = String(count);
+          countdown.classList.remove("hidden");
+          document.getElementById("humming-status").textContent = "カウントに合わせて、選択中の小節の頭から歌い始めてください。";
+          await new Promise(resolve => window.setTimeout(resolve, 1000));
+        }
+        if (hummingCapture !== capture) return;
+
+        document.getElementById("humming-countdown").classList.add("hidden");
+        capture.startedAt = performance.now();
+        document.getElementById("humming-status").textContent = "録音中です。歌い終わったら「録音終了」を押してください。";
+        capture.timer = window.setInterval(() => {
+          analyser.getFloatTimeDomainData(capture.buffer);
+          const frequency = detectHummingFrequency(capture.buffer, ctx.sampleRate);
+          capture.frames.push({
+            time: (performance.now() - capture.startedAt) / 1000,
+            midi: frequency ? 69 + 12 * Math.log2(frequency / 440) : null
+          });
+          if (capture.frames.length % 3 === 0) updateHummingPreview();
+        }, 40);
+      } catch (error) {
+        stream?.getTracks().forEach(track => track.stop());
+        hummingCapture = null;
+        document.getElementById("btn-humming-start").disabled = false;
+        document.getElementById("btn-humming-listen").disabled = capturedHummingNotes.length === 0;
+        document.getElementById("btn-humming-stop").disabled = true;
+        document.getElementById("humming-countdown").classList.add("hidden");
+        document.getElementById("humming-status").textContent = "録音を開始できませんでした。";
+        alert(`マイクを利用できませんでした。ブラウザのマイク許可を確認してください。\n${error.message}`);
+      }
+    }
+
+    function detectHummingFrequency(buffer, sampleRate) {
+      const downsampleFactor = 4;
+      const signal = new Float32Array(Math.floor(buffer.length / downsampleFactor));
+      let rms = 0;
+      for (let i = 0; i < signal.length; i++) {
+        const value = buffer[i * downsampleFactor];
+        signal[i] = value;
+        rms += value * value;
+      }
+      rms = Math.sqrt(rms / signal.length);
+      if (rms < 0.012) return null;
+
+      const effectiveRate = sampleRate / downsampleFactor;
+      const minLag = Math.max(2, Math.floor(effectiveRate / 1000));
+      const maxLag = Math.min(Math.floor(effectiveRate / 65), Math.floor(signal.length / 2));
+      const differences = new Float32Array(maxLag + 1);
+      for (let lag = minLag; lag <= maxLag; lag++) {
+        let sum = 0;
+        for (let i = 0; i < signal.length - maxLag; i++) {
+          const delta = signal[i] - signal[i + lag];
+          sum += delta * delta;
+        }
+        differences[lag] = sum;
+      }
+
+      let runningSum = 0;
+      const normalized = new Float32Array(maxLag + 1);
+      for (let lag = 1; lag <= maxLag; lag++) {
+        runningSum += differences[lag];
+        normalized[lag] = runningSum === 0 ? 1 : differences[lag] * lag / runningSum;
+      }
+
+      let bestLag = -1;
+      for (let lag = minLag; lag <= maxLag; lag++) {
+        if (normalized[lag] < 0.16) {
+          while (lag + 1 <= maxLag && normalized[lag + 1] < normalized[lag]) lag++;
+          bestLag = lag;
+          break;
+        }
+      }
+      if (bestLag < 0) {
+        let bestValue = 0.28;
+        for (let lag = minLag; lag <= maxLag; lag++) {
+          if (normalized[lag] < bestValue) {
+            bestValue = normalized[lag];
+            bestLag = lag;
+          }
+        }
+      }
+      if (bestLag < 0) return null;
+
+      const before = normalized[bestLag - 1] || normalized[bestLag];
+      const after = normalized[bestLag + 1] || normalized[bestLag];
+      const denominator = 2 * (2 * normalized[bestLag] - before - after);
+      const correction = denominator ? (after - before) / denominator : 0;
+      const frequency = effectiveRate / (bestLag + correction);
+      return frequency >= 65 && frequency <= 1000 ? frequency : null;
+    }
+
+    function finishHummingCapture(capture) {
+      const notes = [];
+      let active = null;
+      let candidate = null;
+      let candidateCount = 0;
+      let candidateStart = 0;
+
+      const finishActive = (endTime) => {
+        if (active && endTime - active.start >= 0.09) {
+          notes.push({ midi: active.midi, start: active.start, end: endTime });
+        }
+        active = null;
+        candidate = null;
+        candidateCount = 0;
+      };
+
+      capture.frames.forEach(frame => {
+        if (frame.midi == null) {
+          if (active && frame.time - active.lastSeen > 0.16) finishActive(active.lastSeen + 0.08);
+          return;
+        }
+
+        const midi = Math.round(frame.midi);
+        if (!active) {
+          if (candidate === midi) candidateCount++;
+          else {
+            candidate = midi;
+            candidateCount = 1;
+            active = { midi, start: frame.time, lastSeen: frame.time };
+          }
+          active.lastSeen = frame.time;
+          return;
+        }
+
+        if (midi === active.midi) {
+          active.lastSeen = frame.time;
+          candidate = null;
+          candidateCount = 0;
+          return;
+        }
+
+        if (candidate === midi) candidateCount++;
+        else {
+          candidate = midi;
+          candidateCount = 1;
+          candidateStart = frame.time;
+        }
+        if (candidateCount >= 3) {
+          const nextStart = typeof candidateStart === "number" ? candidateStart : frame.time;
+          const previousMidi = active.midi;
+          const previousStart = active.start;
+          const previousEnd = Math.max(previousStart, nextStart);
+          if (previousEnd - previousStart >= 0.09) notes.push({ midi: previousMidi, start: previousStart, end: previousEnd });
+          active = { midi, start: nextStart, lastSeen: frame.time };
+          candidate = null;
+          candidateCount = 0;
+        }
+      });
+
+      if (active) finishActive(active.lastSeen + 0.08);
+      return notes;
+    }
+
+    function stopHummingCapture() {
+      const capture = hummingCapture;
+      if (!capture) return;
+      if (capture.timer) window.clearInterval(capture.timer);
+      capture.stream.getTracks().forEach(track => track.stop());
+      capture.source.disconnect();
+      hummingCapture = null;
+      document.getElementById("btn-humming-start").disabled = false;
+      document.getElementById("btn-humming-stop").disabled = true;
+      document.getElementById("humming-countdown").classList.add("hidden");
+
+      if (capture.startedAt == null) {
+        document.getElementById("humming-status").textContent = "カウントダウンを中止しました。";
+        updateHummingPreview();
+        return;
+      }
+
+      capturedHummingNotes = finishHummingCapture(capture);
+      const status = document.getElementById("humming-status");
+      if (!capturedHummingNotes.length) {
+        status.textContent = "音程を検出できませんでした。声を少し大きくして、もう一度録音してください。";
+        document.getElementById("btn-humming-listen").disabled = true;
+        document.getElementById("btn-humming-apply").disabled = true;
+        updateHummingPreview();
+        return;
+      }
+
+      document.getElementById("btn-humming-listen").disabled = false;
+      const sourceEndSteps = Math.max(...capturedHummingNotes.map(note => note.end)) * (songState.bpm / 60) * 4;
+      document.getElementById("humming-fit-measures").value = Math.max(1, Math.min(32, Math.ceil(sourceEndSteps / 16)));
+      document.getElementById("btn-humming-apply").disabled = false;
+      updateHummingPreview();
+      status.textContent = `${capturedHummingNotes.length}音を検出しました。小節数・開始位置・高さを調整して反映できます。`;
+    }
+
+    function getHummingLengthScale() {
+      const input = document.getElementById("humming-length-scale");
+      const value = Number(input.value);
+      return Number.isFinite(value) ? Math.max(0.5, Math.min(2, value)) : 1;
+    }
+
+    function updateHummingLengthControls() {
+      const fitMode = document.getElementById("humming-length-mode").value === "fit";
+      document.getElementById("humming-fit-controls").classList.toggle("hidden", !fitMode);
+      document.getElementById("humming-scale-controls").classList.toggle("hidden", fitMode);
+      document.getElementById("humming-length-help").textContent = fitMode
+        ? "フレーズ全体を指定小節数にぴったり伸縮します。曲のBPMは変えません。開始位置は+4で1拍右、-4で1拍左です。"
+        : "1.00倍はそのまま、0.80倍は20%短く、1.20倍は20%長くします。開始位置は+4で1拍右、-4で1拍左です。";
+    }
+
+    function getHummingTiming(notes, isLive = false) {
+      if (!notes.length) {
+        const measure = capturedHummingStartMeasure + Math.floor(getHummingStartOffset() / 16);
+        return { scale: 1, notes: [], firstMeasure: measure, lastMeasure: measure, measureCount: 1 };
+      }
+
+      const stepsPerSecond = (songState.bpm / 60) * 4;
+      const sourceEndSteps = Math.max(...notes.map(note => note.end)) * stepsPerSecond;
+      const isFitMode = document.getElementById("humming-length-mode").value === "fit";
+      let scale = getHummingLengthScale();
+      if (isFitMode && !(isLive && hummingCapture?.startedAt != null)) {
+        const fitMeasures = Math.max(1, Math.min(32, parseInt(document.getElementById("humming-fit-measures").value, 10) || 1));
+        scale = (fitMeasures * 16) / Math.max(1, sourceEndSteps);
+      } else if (isFitMode) {
+        scale = 1;
+      }
+
+      const anchorStep = capturedHummingStartMeasure * 16 + getHummingStartOffset();
+      const timedNotes = notes.map(note => {
+        const startStep = anchorStep + Math.round(note.start * stepsPerSecond * scale);
+        const endStep = Math.max(startStep + 1, anchorStep + Math.round(note.end * stepsPerSecond * scale));
+        return { ...note, startStep, endStep };
+      });
+      const firstMeasure = Math.floor(Math.min(...timedNotes.map(note => note.startStep)) / 16);
+      const lastMeasure = Math.floor((Math.max(...timedNotes.map(note => note.endStep)) - 1) / 16);
+      return {
+        scale,
+        notes: timedNotes,
+        firstMeasure,
+        lastMeasure,
+        measureCount: lastMeasure - firstMeasure + 1
+      };
+    }
+
+    function getHummingStartOffset() {
+      const input = document.getElementById("humming-start-offset");
+      const value = parseInt(input.value, 10);
+      return Number.isFinite(value) ? Math.max(-32, Math.min(32, value)) : 0;
+    }
+
+    function shiftHummingPitches(notes, transpose) {
+      if (!notes.length) return [];
+      const shifted = notes.map(note => ({ ...note, midi: note.midi + transpose }));
+      const minMidi = Math.min(...shifted.map(note => note.midi));
+      const maxMidi = Math.max(...shifted.map(note => note.midi));
+      let octaveShift = 0;
+      while (maxMidi + octaveShift > 84 && minMidi + octaveShift - 12 >= 48) octaveShift -= 12;
+      while (minMidi + octaveShift < 48 && maxMidi + octaveShift + 12 <= 84) octaveShift += 12;
+      return shifted.map(note => ({ ...note, midi: Math.max(48, Math.min(84, note.midi + octaveShift)) }));
+    }
+
+    function updateHummingPreview() {
+      const notes = hummingCapture ? finishHummingCapture(hummingCapture) : capturedHummingNotes;
+      const timing = getHummingTiming(notes, Boolean(hummingCapture?.startedAt != null));
+      const measureCount = timing.measureCount;
+      document.getElementById("humming-measure-count").textContent =
+        `反映予定: ${notes.length ? measureCount : "--"} 小節（${timing.scale.toFixed(2)}倍・開始 ${getHummingStartOffset()}）`;
+      if (hummingCapture?.startedAt != null) {
+        document.getElementById("humming-status").textContent =
+          `録音中: ${notes.length}音を検出・約${measureCount}小節`;
+      }
+      const hasPreview = notes.length > 0;
+      document.getElementById("piano-roll-hint").classList.toggle("hidden", hasPreview);
+      document.getElementById("humming-preview-legend").classList.toggle("hidden", !hasPreview);
+      if (hasPreview || !hummingCapture || hummingCapture.startedAt == null) renderPianoRoll();
+    }
+
+    function applyHummingMelody() {
+      if (!capturedHummingNotes.length) return;
+      stopHummingPreview();
+      const timing = getHummingTiming(capturedHummingNotes);
+      const targetMeasures = timing.measureCount;
+      const transpose = parseInt(document.getElementById("humming-transpose").value, 10) || 0;
+
+      const preparedNotes = shiftHummingPitches(capturedHummingNotes, transpose).map((note, index) => ({
+        midi: note.midi,
+        start: timing.notes[index]?.startStep,
+        end: timing.notes[index]?.endStep
+      })).filter(note => Number.isInteger(note.start) && Number.isInteger(note.end) && note.end > note.start);
+
+      if (!preparedNotes.length) {
+        alert("反映できる音符がありません。長さや開始位置を調整してください。");
+        return;
+      }
+
+      const firstMeasure = timing.firstMeasure;
+      const lastMeasure = timing.lastMeasure;
+      if (firstMeasure < 0) {
+        alert("開始位置が曲の先頭より前になります。開始位置のずらし量を調整してください。");
+        return;
+      }
+      if (songState.measures.slice(firstMeasure, lastMeasure + 1).some(measure => measure && measure.melody.length)) {
+        if (!confirm(`${firstMeasure + 1}〜${lastMeasure + 1}小節目の既存メロディを置き換えて、鼻歌を反映しますか？`)) return;
+      }
+
+      while (songState.measures.length <= lastMeasure) {
+        songState.measures.push({ chord: "C", bpm: songState.bpm, melody: [], drums: [] });
+      }
+      for (let i = firstMeasure; i <= lastMeasure; i++) songState.measures[i].melody = [];
+
+      preparedNotes.forEach(note => {
+        const pitch = PITCHES.find(item => item.midiNote === note.midi)?.name;
+        if (!pitch) return;
+        let cursor = note.start;
+        while (cursor < note.end) {
+          const measureIndex = Math.floor(cursor / 16);
+          const step = cursor - measureIndex * 16;
+          const duration = Math.min(note.end - cursor, 16 - step);
+          songState.measures[measureIndex].melody.push({ pitch, step, duration });
+          cursor += duration;
+        }
+      });
+
+      songState.currentMeasure = firstMeasure;
+      renderMeasureTabs();
+      renderGrid();
+      capturedHummingNotes = [];
+      updateHummingPreview();
+      document.getElementById("humming-status").textContent =
+        `${preparedNotes.length}音を${targetMeasures}小節に反映しました（${timing.scale.toFixed(2)}倍、開始位置 ${getHummingStartOffset()}）。`;
+      document.getElementById("btn-humming-listen").disabled = true;
+      document.getElementById("btn-humming-apply").disabled = true;
+    }
+
+    function previewHummingMelody() {
+      if (hummingPreviewOscillators.length) {
+        stopHummingPreview();
+        return;
+      }
+      if (!capturedHummingNotes.length) return;
+
+      stopPlayback();
+      const timing = getHummingTiming(capturedHummingNotes);
+      const transpose = parseInt(document.getElementById("humming-transpose").value, 10) || 0;
+      const notes = shiftHummingPitches(capturedHummingNotes, transpose);
+      const originStep = Math.min(
+        capturedHummingStartMeasure * 16,
+        ...timing.notes.map(note => note.startStep)
+      );
+      const secondsPerStep = 60 / songState.bpm / 4;
+      const ctx = getAudioContext();
+      const startTime = ctx.currentTime + 0.08;
+      const button = document.getElementById("btn-humming-listen");
+      button.innerHTML = '<i class="fa-solid fa-stop"></i> 停止';
+      button.setAttribute("aria-pressed", "true");
+
+      notes.forEach((note, index) => {
+        const pitch = PITCHES.find(item => item.midiNote === note.midi);
+        const timingNote = timing.notes[index];
+        if (!pitch || !timingNote) return;
+        const oscillator = synthNote(
+          ctx,
+          startTime + (timingNote.startStep - originStep) * secondsPerStep,
+          pitch.freq,
+          (timingNote.endStep - timingNote.startStep) * secondsPerStep,
+          songState.melodyInstrument
+        );
+        oscillator.onended = () => {
+          hummingPreviewOscillators = hummingPreviewOscillators.filter(item => item !== oscillator);
+          if (!hummingPreviewOscillators.length) {
+            button.innerHTML = '<i class="fa-solid fa-play"></i> 調整を再生';
+            button.setAttribute("aria-pressed", "false");
+          }
+        };
+        hummingPreviewOscillators.push(oscillator);
+      });
+
+      if (!hummingPreviewOscillators.length) {
+        button.innerHTML = '<i class="fa-solid fa-play"></i> 調整を再生';
+        button.setAttribute("aria-pressed", "false");
+      }
+    }
+
+    function stopHummingPreview() {
+      const oscillators = hummingPreviewOscillators;
+      hummingPreviewOscillators = [];
+      oscillators.forEach(oscillator => {
+        oscillator.onended = null;
+        try {
+          oscillator.stop();
+        } catch (error) {
+          if (error.name !== "InvalidStateError") throw error;
+        }
+      });
+      const button = document.getElementById("btn-humming-listen");
+      if (button) {
+        button.innerHTML = '<i class="fa-solid fa-play"></i> 調整を再生';
+        button.setAttribute("aria-pressed", "false");
+      }
+    }
+
     // RENDER FUNCTIONS
     function renderMeasureTabs() {
       const container = document.getElementById("measure-tabs-container");
@@ -944,6 +1483,14 @@
 
     function renderPianoRoll() {
       const container = document.getElementById("piano-roll-grid");
+      const previewNotes = hummingCapture ? finishHummingCapture(hummingCapture) : capturedHummingNotes;
+      if (previewNotes.length) {
+        renderHummingPianoRoll(container, previewNotes);
+        return;
+      }
+
+      container.style.overflowX = "";
+      container.style.overflowY = "";
       container.innerHTML = "";
       const currentM = songState.measures[songState.currentMeasure];
 
@@ -991,6 +1538,107 @@
         row.appendChild(gridArea);
         container.appendChild(row);
       });
+    }
+
+    function renderHummingPianoRoll(container, notes) {
+      const timing = getHummingTiming(notes, Boolean(hummingCapture?.startedAt != null));
+      const transpose = parseInt(document.getElementById("humming-transpose").value, 10) || 0;
+      const previewNotes = shiftHummingPitches(notes, transpose);
+      const stepWidth = 22;
+      const rowHeight = 22;
+      const labelWidth = 68;
+      const headerHeight = 24;
+      const stepCount = timing.measureCount * 16;
+      const width = labelWidth + stepCount * stepWidth;
+      const height = headerHeight + PITCHES.length * rowHeight;
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      canvas.setAttribute("aria-label", "未確定の鼻歌を重ねたメロディピアノロール");
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(0, 0, width, height);
+
+      for (let measureOffset = 0; measureOffset < timing.measureCount; measureOffset++) {
+        const measureIndex = timing.firstMeasure + measureOffset;
+        const measureX = labelWidth + measureOffset * 16 * stepWidth;
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "11px sans-serif";
+        ctx.fillText(`${measureIndex + 1}小節`, measureX + 4, 16);
+      }
+
+      PITCHES.forEach((pitch, rowIndex) => {
+        const y = headerHeight + rowIndex * rowHeight;
+        ctx.fillStyle = rowIndex % 2 === 0 ? "#0f172a" : "#111c30";
+        ctx.fillRect(0, y, width, rowHeight);
+        ctx.fillStyle = "#0b1220";
+        ctx.fillRect(0, y, labelWidth, rowHeight);
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "11px sans-serif";
+        ctx.fillText(pitch.label, 6, y + 15);
+        ctx.strokeStyle = "#263449";
+        ctx.beginPath();
+        ctx.moveTo(0, y + rowHeight);
+        ctx.lineTo(width, y + rowHeight);
+        ctx.stroke();
+      });
+
+      for (let step = 0; step <= stepCount; step++) {
+        const x = labelWidth + step * stepWidth;
+        ctx.strokeStyle = step % 16 === 0 ? "#64748b" : step % 4 === 0 ? "#475569" : "#263449";
+        ctx.lineWidth = step % 4 === 0 ? 1 : 0.6;
+        ctx.beginPath();
+        ctx.moveTo(x, headerHeight);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+
+      const drawNote = (pitchName, startStep, endStep, ghost) => {
+        const rowIndex = PITCHES.findIndex(pitch => pitch.name === pitchName);
+        if (rowIndex < 0) return;
+        const x = labelWidth + (startStep - timing.firstMeasure * 16) * stepWidth + 2;
+        const y = headerHeight + rowIndex * rowHeight + 3;
+        const noteWidth = Math.max(4, (endStep - startStep) * stepWidth - 4);
+        const noteHeight = rowHeight - 6;
+
+        if (ghost) {
+          ctx.fillStyle = "rgba(251, 191, 36, 0.2)";
+          ctx.strokeStyle = "#fbbf24";
+          ctx.setLineDash([5, 3]);
+          ctx.fillRect(x, y, noteWidth, noteHeight);
+          ctx.strokeRect(x, y, noteWidth, noteHeight);
+          ctx.setLineDash([]);
+        } else {
+          ctx.fillStyle = "#0891b2";
+          ctx.strokeStyle = "#38bdf8";
+          ctx.fillRect(x, y, noteWidth, noteHeight);
+          ctx.strokeRect(x, y, noteWidth, noteHeight);
+        }
+      };
+
+      for (let measureIndex = Math.max(0, timing.firstMeasure); measureIndex <= timing.lastMeasure; measureIndex++) {
+        const measure = songState.measures[measureIndex];
+        if (!measure) continue;
+        measure.melody.forEach(note => {
+          const startStep = measureIndex * 16 + note.step;
+          drawNote(note.pitch, startStep, startStep + note.duration, false);
+        });
+      }
+
+      previewNotes.forEach((note, index) => {
+        const timingNote = timing.notes[index];
+        const pitch = PITCHES.find(item => item.midiNote === note.midi);
+        if (pitch && timingNote) drawNote(pitch.name, timingNote.startStep, timingNote.endStep, true);
+      });
+
+      container.style.overflowX = "auto";
+      container.style.overflowY = "hidden";
+      container.innerHTML = "";
+      container.appendChild(canvas);
     }
 
     function renderDrumGrid() {
@@ -1276,6 +1924,7 @@
 
       osc.start(time);
       osc.stop(time + duration);
+      return osc;
     }
 
     function synthDrum(ctx, time, drumType, duration = 0.2) {
@@ -1479,6 +2128,7 @@
 
     function stopPlayback() {
       isPlaying = false;
+      stopHummingPreview();
       if (playbackTimeout) clearTimeout(playbackTimeout);
       if (bgmSourceNode) {
         try { bgmSourceNode.stop(); } catch(e){}
