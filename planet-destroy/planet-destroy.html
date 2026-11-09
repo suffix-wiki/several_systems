@@ -857,7 +857,7 @@
             const fitAreaHeight = Math.max(1, areaRect.bottom - fitAreaTop);
             const radius = type === 'saturn' ? 9.2 : type === 'sun' ? planetRadius + 0.65 : planetRadius + 0.38;
             const halfFovTangent = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-            const fitMargin = 0.88;
+            const fitMargin = 0.95;
             const distanceForWidth = radius / (halfFovTangent * aspect * fitMargin);
             const areaHeightRatio = Math.max(0.2, fitAreaHeight / window.innerHeight);
             const distanceForHeight = radius / (halfFovTangent * areaHeightRatio * fitMargin);
