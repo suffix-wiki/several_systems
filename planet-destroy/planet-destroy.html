@@ -16,12 +16,25 @@
             -webkit-user-select: none;
             user-select: none;
             overflow: hidden;
+            box-sizing: border-box;
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background-color: #020208;
             width: 100%;
             height: 100%;
             margin: 0;
             padding: 0;
+        }
+
+        *, *::before, *::after {
+            box-sizing: inherit;
+        }
+
+        body {
+            height: 100vh;
+            height: 100dvh;
+            min-height: 0;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
         .weapon-btn {
@@ -93,9 +106,20 @@
             pointer-events: auto;
             cursor: crosshair;
         }
+
+        @media (max-height: 520px) and (max-width: 900px) {
+            header {
+                padding-top: 0.25rem !important;
+                gap: 0.35rem !important;
+            }
+
+            footer {
+                padding-bottom: 0.25rem !important;
+            }
+        }
     </style>
 </head>
-<body class="text-slate-100 min-h-screen flex flex-col justify-between relative select-none">
+<body class="text-slate-100 flex flex-col justify-between relative select-none">
 
     <!-- 3D WebGL Canvas Container -->
     <div id="webgl-container" class="absolute inset-0 z-0 w-full h-full"></div>
@@ -134,7 +158,7 @@
                 <span class="text-slate-300 flex items-center gap-1.5 text-[11px] font-mono">
                     <i class="fa-solid fa-shield-halved text-rose-500"></i> PLANET INTEGRITY
                 </span>
-                <span id="hp-text" class="text-cyan-400 font-mono text-xs sm:text-sm font-bold">5000 / 5000 (100%)</span>
+                <span id="hp-text" class="text-cyan-400 font-mono text-xs sm:text-sm font-bold">6500 / 6500 (100%)</span>
             </div>
             <!-- HP Bar -->
             <div class="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800 relative p-0.5">
@@ -184,7 +208,7 @@
     </div>
 
     <!-- インタラクティブ空間ヒント -->
-    <main class="flex-1 w-full relative z-10 flex items-center justify-center pointer-events-none" id="interactive-area">
+    <main class="flex-1 min-h-0 w-full relative z-10 flex items-center justify-center pointer-events-none" id="interactive-area">
         <div id="tap-hint" class="text-slate-400/60 font-mono text-[11px] tracking-wider bg-slate-950/40 px-3 py-1 rounded-full border border-slate-800/40 backdrop-blur-sm transition-opacity duration-500 flex items-center gap-1.5">
             <i class="fa-solid fa-fingerprint text-cyan-400 animate-pulse"></i> 惑星をクリック/タップして攻撃
         </div>
@@ -226,10 +250,17 @@
         /**
          * PLANETARY DESTROYER 3D (v5.0 Ultra-Juicy & Realistic Edition)
          */
-        const MAX_HP = 5000;
+        const PLANET_MAX_HP = {
+            moon: 2800,
+            mars: 4200,
+            earth: 6500,
+            saturn: 14000,
+            sun: 30000
+        };
         let currentPlanetType = 'earth';
         let currentWeapon = 'nuke';
-        let planetHp = MAX_HP;
+        let maxPlanetHp = PLANET_MAX_HP[currentPlanetType];
+        let planetHp = maxPlanetHp;
         let totalDamage = 0;
         let comboCount = 0;
         let comboTimer = null;
@@ -810,8 +841,25 @@
         let ringsMesh = null;
         const planetRadius = 4.3;
 
+        function fitCameraToPlanet(type) {
+            const aspect = window.innerWidth / window.innerHeight;
+            const radius = type === 'saturn' ? 9.2 : type === 'sun' ? planetRadius + 0.65 : planetRadius + 0.38;
+            const halfFovTangent = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+            const fitMargin = 0.88;
+            const distanceForWidth = radius / (halfFovTangent * aspect * fitMargin);
+            const distanceForHeight = radius / (halfFovTangent * fitMargin);
+
+            camera.aspect = aspect;
+            cameraBasePos.z = Math.max(18, distanceForWidth, distanceForHeight);
+            camera.position.copy(cameraBasePos);
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
         // Build Planet Mesh
         function buildPlanet(type) {
+            fitCameraToPlanet(type);
+
             // Clean up existing meshes
             while (planetGroup.children.length > 0) {
                 const child = planetGroup.children[0];
@@ -894,7 +942,8 @@
             }
 
             planetGroup.visible = true;
-            planetHp = MAX_HP;
+            maxPlanetHp = PLANET_MAX_HP[type];
+            planetHp = maxPlanetHp;
             isDestroyed = false;
             updateHpUI();
         }
@@ -1228,10 +1277,10 @@
         }
 
         function updateHpUI() {
-            const pct = Math.max(0, (planetHp / MAX_HP) * 100);
+            const pct = Math.max(0, (planetHp / maxPlanetHp) * 100);
             const hpBar = document.getElementById('hp-bar');
             hpBar.style.width = `${pct}%`;
-            document.getElementById('hp-text').innerText = `${Math.ceil(planetHp)} / ${MAX_HP} (${Math.ceil(pct)}%)`;
+            document.getElementById('hp-text').innerText = `${Math.ceil(planetHp)} / ${maxPlanetHp} (${Math.ceil(pct)}%)`;
             document.getElementById('damage-count').innerText = totalDamage.toLocaleString();
         }
 
@@ -1426,9 +1475,7 @@
 
         // --- Window Resize & Responsive Touch/Pointer Controls ---
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            fitCameraToPlanet(currentPlanetType);
         });
 
         // Listen on the actual canvas so UI overlays cannot swallow gameplay input.
