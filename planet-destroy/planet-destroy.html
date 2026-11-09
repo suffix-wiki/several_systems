@@ -79,13 +79,20 @@
 
         /* Annihilation Banner */
         @keyframes bannerPop {
-            0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
-            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
-            70% { transform: translate(-50%, -50%) scale(1.0); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
+            0% { transform: scale(0.4); opacity: 0; }
+            50% { transform: scale(1.04); opacity: 1; }
+            70% { transform: scale(1.0); opacity: 1; }
+            100% { transform: scale(0.96); opacity: 0; }
         }
         .annihilation-banner {
             animation: bannerPop 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            width: min(42rem, calc(100vw - 2rem));
+            max-height: calc(100dvh - 2rem);
+            overflow-y: auto;
+        }
+
+        .annihilation-banner h2 {
+            overflow-wrap: anywhere;
         }
 
         canvas {
@@ -129,11 +136,11 @@
 
     <!-- Annihilation Victory Banner Overlay -->
     <div id="annihilation-overlay" class="absolute inset-0 z-40 pointer-events-none flex items-center justify-center hidden">
-        <div class="annihilation-banner text-center p-6 bg-slate-950/85 border-2 border-rose-500 rounded-3xl shadow-[0_0_80px_rgba(244,63,94,0.6)] backdrop-blur-xl">
+        <div class="annihilation-banner text-center p-4 sm:p-6 bg-slate-950/85 border-2 border-rose-500 rounded-3xl shadow-[0_0_80px_rgba(244,63,94,0.6)] backdrop-blur-xl">
             <div class="text-xs font-mono font-bold tracking-widest text-rose-400 uppercase flex items-center justify-center gap-2 mb-1">
                 <i class="fa-solid fa-skull-crossbones text-xl animate-pulse"></i> TARGET ANNIHILATED
             </div>
-            <h2 class="text-3xl sm:text-5xl font-black text-white tracking-wider drop-shadow-[0_0_25px_rgba(255,255,255,0.8)]">
+            <h2 class="text-2xl sm:text-5xl font-black text-white tracking-wider drop-shadow-[0_0_25px_rgba(255,255,255,0.8)]">
                 惑星完全破壊達成！
             </h2>
             <p class="text-xs sm:text-sm text-cyan-300 font-mono mt-2" id="annihilation-stats">次世代惑星を生成中...</p>
@@ -209,7 +216,7 @@
 
     <!-- インタラクティブ空間ヒント -->
     <main class="flex-1 min-h-0 w-full relative z-10 flex items-center justify-center pointer-events-none" id="interactive-area">
-        <div id="tap-hint" class="text-slate-400/60 font-mono text-[11px] tracking-wider bg-slate-950/40 px-3 py-1 rounded-full border border-slate-800/40 backdrop-blur-sm transition-opacity duration-500 flex items-center gap-1.5">
+        <div id="tap-hint" class="absolute top-2 left-1/2 -translate-x-1/2 max-w-[calc(100%-1rem)] text-center text-slate-400/60 font-mono text-[11px] tracking-wider bg-slate-950/40 px-3 py-1 rounded-full border border-slate-800/40 backdrop-blur-sm transition-opacity duration-500 flex items-center gap-1.5">
             <i class="fa-solid fa-fingerprint text-cyan-400 animate-pulse"></i> 惑星をクリック/タップして攻撃
         </div>
     </main>
@@ -843,15 +850,25 @@
 
         function fitCameraToPlanet(type) {
             const aspect = window.innerWidth / window.innerHeight;
+            const interactiveArea = document.getElementById('interactive-area');
+            const areaRect = interactiveArea.getBoundingClientRect();
+            const hintReserve = document.getElementById('tap-hint').offsetHeight + 12;
+            const fitAreaTop = Math.min(areaRect.bottom, areaRect.top + hintReserve);
+            const fitAreaHeight = Math.max(1, areaRect.bottom - fitAreaTop);
             const radius = type === 'saturn' ? 9.2 : type === 'sun' ? planetRadius + 0.65 : planetRadius + 0.38;
             const halfFovTangent = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
             const fitMargin = 0.88;
             const distanceForWidth = radius / (halfFovTangent * aspect * fitMargin);
-            const distanceForHeight = radius / (halfFovTangent * fitMargin);
+            const areaHeightRatio = Math.max(0.2, fitAreaHeight / window.innerHeight);
+            const distanceForHeight = radius / (halfFovTangent * areaHeightRatio * fitMargin);
+            const distance = Math.max(18, distanceForWidth, distanceForHeight);
+            const areaCenterY = fitAreaTop + fitAreaHeight / 2;
+            const worldUnitsPerPixel = (2 * distance * halfFovTangent) / window.innerHeight;
 
             camera.aspect = aspect;
-            cameraBasePos.z = Math.max(18, distanceForWidth, distanceForHeight);
+            cameraBasePos.z = distance;
             camera.position.copy(cameraBasePos);
+            camera.lookAt(0, (areaCenterY - window.innerHeight / 2) * worldUnitsPerPixel, 0);
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
