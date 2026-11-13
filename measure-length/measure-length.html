@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>物体サイズ計測 (3D Object Measurer)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Noto Sans JP -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans JP', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #090d16;
+            color: #f8fafc;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        canvas {
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen bg-[#090d16] text-slate-100 select-none">
+
+    <!-- Compact Top Header with Exact Tab Order: 計測 / 履歴 / 設定 -->
+    <header class="bg-slate-900/95 border-b border-slate-800 px-3 py-2 shrink-0 z-30 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
+            <!-- App Title -->
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="text-base sm:text-lg">📐</span>
+                <h1 class="text-xs sm:text-sm font-extrabold tracking-tight text-white">物体サイズ計測</h1>
+            </div>
+
+            <!-- 3-Tab Navigation: 1) 計測  2) 履歴  3) 設定 -->
+            <nav class="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 w-56 sm:w-72" role="tablist">
+                <button type="button" id="tabBtnMeasure" role="tab" aria-selected="true"
+                    class="nav-tab flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold bg-cyan-600 text-white shadow-sm transition-all">
+                    <span>📷</span>
+                    <span>計測</span>
+                </button>
+                <button type="button" id="tabBtnHistory" role="tab" aria-selected="false"
+                    class="nav-tab flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition-all relative">
+                    <span>🖼️</span>
+                    <span>履歴</span>
+                    <span id="historyBadgeDot" class="hidden w-1.5 h-1.5 rounded-full bg-emerald-400 absolute top-1.5 right-2"></span>
+                </button>
+                <button type="button" id="tabBtnSettings" role="tab" aria-selected="false"
+                    class="nav-tab flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
+                    <span>⚙️</span>
+                    <span>設定</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 relative overflow-hidden flex flex-col w-full">
+
+        <!-- =====================================================================
+             TAB 1: 計測 (MEASURE)
+             Maximized camera/canvas viewport + Compact 250px right panel on PC / compact bottom bar on mobile
+        ====================================================================== -->
+        <section id="viewMeasure" class="flex-1 flex flex-col md:flex-row h-full overflow-hidden">
+
+            <!-- Maximized Interactive Camera Viewport -->
+            <div id="viewportContainer" class="relative flex-1 bg-black overflow-hidden flex items-center justify-center min-h-[240px]">
+                <video id="cameraVideo" autoplay playsinline muted class="hidden"></video>
+                <canvas id="measureCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+                <!-- Subtle Alignment Tip Overlay (Shown only when Reference Object mode is active) -->
+                <div id="refAlignmentTip" class="pointer-events-none absolute top-2.5 left-1/2 -translate-x-1/2 z-10 bg-slate-950/80 border border-amber-500/40 text-amber-200 text-[10px] sm:text-xs font-medium px-3 py-1 rounded-full backdrop-blur-sm whitespace-nowrap shadow">
+                    💡 基準物は測りたい面と同じ距離に並べてください
+                </div>
+
+                <!-- Camera Permission / Non-HTTPS Fallback Overlay -->
+                <div id="cameraFallbackModal" class="hidden absolute inset-0 z-20 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+                    <div class="bg-slate-900 border border-slate-700 rounded-2xl p-5 max-w-sm w-full text-center shadow-2xl">
+                        <div class="text-3xl mb-2">📷</div>
+                        <h2 class="text-sm sm:text-base font-bold text-white mb-1.5">カメラ映像が起動していません</h2>
+                        <p id="cameraFallbackReason" class="text-xs text-slate-300 leading-relaxed mb-4">
+                            ブラウザのカメラ許可が未設定か、HTTPS以外の環境で開かれています。「カメラを有効にする」をタップしてください。
+                        </p>
+                        <button type="button" id="enableCameraBtn"
+                            class="w-full py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs sm:text-sm shadow-lg transition active:scale-95">
+                            📷 カメラを有効にする
+                        </button>
+                        <button type="button" id="dismissFallbackBtn"
+                            class="mt-3 block w-full text-[11px] text-slate-400 hover:text-slate-200 underline">
+                            グリッド背景のまま枠操作を試す
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compact Control & Readout Panel (250px right panel on PC, compact bottom bar on mobile) -->
+            <div class="bg-slate-900 border-t md:border-t-0 md:border-l border-slate-800 p-2.5 sm:p-3 shrink-0 md:w-[250px] flex flex-col justify-between gap-2 z-20">
+
+                <div class="space-y-2">
+                    <!-- Compact Dimension Readout Cards (No unit labels or mode badges) -->
+                    <div class="grid grid-cols-3 md:grid-cols-1 gap-1.5">
+                        <!-- Width (W) -->
+                        <div class="bg-slate-950/90 border border-emerald-500/30 rounded-xl px-2.5 py-1.5 md:py-2 flex flex-col md:flex-row md:items-center md:justify-between text-center md:text-left">
+                            <span class="text-[10px] sm:text-xs text-slate-400 font-semibold">横幅 (W)</span>
+                            <div id="readoutW" class="text-base sm:text-lg md:text-xl font-extrabold text-emerald-400 tabular-nums leading-tight">
+                                0.0
+                            </div>
+                        </div>
+
+                        <!-- Height (H) -->
+                        <div class="bg-slate-950/90 border border-emerald-500/30 rounded-xl px-2.5 py-1.5 md:py-2 flex flex-col md:flex-row md:items-center md:justify-between text-center md:text-left">
+                            <span class="text-[10px] sm:text-xs text-slate-400 font-semibold">縦・高さ (H)</span>
+                            <div id="readoutH" class="text-base sm:text-lg md:text-xl font-extrabold text-emerald-400 tabular-nums leading-tight">
+                                0.0
+                            </div>
+                        </div>
+
+                        <!-- Depth (D) -->
+                        <div class="bg-slate-950/90 border border-cyan-500/30 rounded-xl px-2.5 py-1.5 md:py-2 flex flex-col md:flex-row md:items-center md:justify-between text-center md:text-left">
+                            <span class="text-[10px] sm:text-xs text-slate-400 font-semibold">奥行 (D)</span>
+                            <div id="readoutD" class="text-base sm:text-lg md:text-xl font-extrabold text-cyan-400 tabular-nums leading-tight">
+                                0.0
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Compact 2-Step Controls (Visible ONLY when 2-Step Measurement is selected in Settings) -->
+                    <div id="measureTwoStepBar" class="hidden bg-slate-950 border border-slate-800 rounded-xl p-1.5 space-y-1">
+                        <div class="grid grid-cols-2 md:grid-cols-1 gap-1">
+                            <button type="button" id="quickStep1Btn"
+                                class="py-1.5 px-2 rounded-lg text-[11px] font-bold bg-emerald-600 text-white transition">
+                                ① 正面W・Hロック
+                            </button>
+                            <button type="button" id="quickStep2Btn"
+                                class="py-1.5 px-2 rounded-lg text-[11px] font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+                                ② 側面D計測・解除
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Compact Guidance Toast -->
+                    <p id="toastMessage" class="text-[10px] text-slate-400 text-center md:text-left truncate">
+                        緑枠で縦横・シアン枠で奥行を調整
+                    </p>
+                </div>
+
+                <!-- Two Compact Action Buttons -->
+                <div class="grid grid-cols-2 md:grid-cols-1 gap-2">
+                    <button type="button" id="autoFitBtn"
+                        class="py-2.5 px-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1 transition active:scale-95">
+                        <span>✨</span>
+                        <span class="truncate">枠を認識した物体に合わせる</span>
+                    </button>
+
+                    <button type="button" id="saveCaptureBtn"
+                        class="py-2.5 px-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md flex items-center justify-center gap-1 transition active:scale-95">
+                        <span>📸</span>
+                        <span>記録保存</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             TAB 2: 履歴 (HISTORY)
+             Clean gallery/list of captured measurements with individual PNG download & delete
+        ====================================================================== -->
+        <section id="viewHistory" class="hidden flex-1 overflow-y-auto p-3 sm:p-5">
+            <div class="max-w-2xl mx-auto space-y-3 pb-8">
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                            <span>🖼️</span>
+                            <span>計測履歴</span>
+                            <span id="historyCountTag" class="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">0件</span>
+                        </h2>
+                        <button type="button" id="clearAllHistoryBtn"
+                            class="hidden px-2.5 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900/70 border border-rose-500/40 text-xs text-rose-300 font-bold transition">
+                            すべて削除
+                        </button>
+                    </div>
+
+                    <div id="historyContainer" class="space-y-2.5">
+                        <div id="historyEmptyState" class="text-center py-8 px-3 border border-dashed border-slate-800 rounded-xl text-xs text-slate-400">
+                            「計測」タブの<strong>「📸 記録保存」</strong>を押すと、カメラ映像と枠・寸法を合成したPNG画像がここに記録されます。
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- =====================================================================
+             TAB 3: 設定 (SETTINGS)
+             Pure Settings Only - Automatic sensor-based inference, NO manual sliders
+        ====================================================================== -->
+        <section id="viewSettings" class="hidden flex-1 overflow-y-auto p-3 sm:p-5">
+            <div class="max-w-2xl mx-auto space-y-4 pb-8">
+
+                <!-- Section 1: サイズ類推方法 -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs font-extrabold">1</span>
+                        <span>サイズ類推方法</span>
+                    </h2>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button type="button" id="selectMode1Btn"
+                            class="p-3 rounded-xl border-2 border-cyan-500 bg-cyan-500/10 text-left transition">
+                            <div class="text-xs sm:text-sm font-bold text-white mb-0.5">💳 既知の基準物と比較する</div>
+                            <div class="text-[11px] text-slate-300">カード・紙幣・硬貨と並べて正確に算出</div>
+                        </button>
+                        <button type="button" id="selectMode2Btn"
+                            class="p-3 rounded-xl border border-slate-700 bg-slate-950/60 hover:border-slate-600 text-left transition">
+                            <div class="text-xs sm:text-sm font-bold text-white mb-0.5">📱 カメラ情報・センサーから自動類推</div>
+                            <div class="text-[11px] text-slate-400">傾きセンサーと標準画角(68°)から自動計算</div>
+                        </button>
+                    </div>
+
+                    <!-- Option A Sub-settings: Reference Object Dropdown ONLY -->
+                    <div id="mode1SettingsBox" class="pt-2 border-t border-slate-800 space-y-2.5">
+                        <div class="bg-amber-950/40 border border-amber-500/30 rounded-xl px-3 py-2 text-xs text-amber-200 flex items-center gap-2">
+                            <span>💡</span>
+                            <span>基準物は測りたい面と同じ距離に並べてください</span>
+                        </div>
+
+                        <div>
+                            <label for="refObjectSelect" class="block text-xs font-semibold text-slate-300 mb-1.5">
+                                基準物の選択:
+                            </label>
+                            <select id="refObjectSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-cyan-500">
+                                <optgroup label="カード・定期券">
+                                    <option value="credit" data-w="85.6" data-h="53.9" data-shape="rect">クレジットカード (85.6×53.9mm)</option>
+                                    <option value="ic" data-w="85.5" data-h="54.0" data-shape="rect">交通系ICカード Suica/PASMO (85.5×54.0mm)</option>
+                                </optgroup>
+                                <optgroup label="日本円紙幣">
+                                    <option value="yen10000" data-w="160.0" data-h="76.0" data-shape="rect">一万円札 (160×76mm)</option>
+                                    <option value="yen5000" data-w="156.0" data-h="76.0" data-shape="rect">五千円札 (156×76mm)</option>
+                                    <option value="yen1000" data-w="150.0" data-h="76.0" data-shape="rect">千円札 (150×76mm)</option>
+                                </optgroup>
+                                <optgroup label="日本円硬貨">
+                                    <option value="coin500" data-w="26.5" data-h="26.5" data-shape="circle">500円硬貨 (26.5mm)</option>
+                                    <option value="coin100" data-w="22.6" data-h="22.6" data-shape="circle">100円硬貨 (22.6mm)</option>
+                                    <option value="coin10" data-w="23.5" data-h="23.5" data-shape="circle">10円硬貨 (23.5mm)</option>
+                                    <option value="coin1" data-w="20.0" data-h="20.0" data-shape="circle">1円硬貨 (20.0mm)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Option B Sub-settings: Automatic DeviceOrientation Sensor & Standard Smartphone Trigonometry -->
+                    <div id="mode2SettingsBox" class="hidden pt-2 border-t border-slate-800 space-y-2.5">
+                        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2 text-xs">
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-400">傾きセンサー検出角度:</span>
+                                <strong id="sensorTiltDisplay" class="text-cyan-400 tabular-nums">自動検出待機中 (標準 35°)</strong>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-400">自動推定撮影距離 (標準手持ち 110cm基準):</span>
+                                <strong id="sensorDistDisplay" class="text-emerald-400 tabular-nums">約 134 cm</strong>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-400">カメラ標準画角 / 解像度:</span>
+                                <strong id="telemetryRes" class="text-slate-200 tabular-nums">68° / 自動検出中</strong>
+                            </div>
+                        </div>
+
+                        <button type="button" id="requestSensorPermBtn"
+                            class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-cyan-300 transition active:scale-95">
+                            🧭 端末の傾きセンサーを有効にする（iOS等）
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Section 2: 奥行計測スタイル (Simple 2-choice selector only) -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-extrabold">2</span>
+                        <span>奥行計測スタイル</span>
+                    </h2>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button type="button" id="styleOneShotBtn"
+                            class="p-3 rounded-xl border-2 border-emerald-500 bg-emerald-500/10 text-left transition">
+                            <div class="text-xs sm:text-sm font-bold text-white mb-0.5">🧊 ワンショット3D計測（センサー自動角度補正）</div>
+                            <div class="text-[11px] text-slate-300">端末の傾きから見下ろし角度を自動補正して3辺を同時計測</div>
+                        </button>
+                        <button type="button" id="styleTwoStepBtn"
+                            class="p-3 rounded-xl border border-slate-700 bg-slate-950/60 hover:border-slate-600 text-left transition">
+                            <div class="text-xs sm:text-sm font-bold text-white mb-0.5">📐 高精度2ステップ計測（正面W・Hロック → 側面D計測）</div>
+                            <div class="text-[11px] text-slate-400">正面でW・Hをロック後、側面から奥行Dを正確に計測</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Section 3: 表示単位 (Segmented buttons: mm, cm, inch) -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center text-xs font-extrabold">3</span>
+                        <span>表示単位</span>
+                    </h2>
+
+                    <div class="grid grid-cols-3 gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                        <button type="button" class="unit-btn py-2 text-xs sm:text-sm font-bold rounded-lg bg-cyan-500 text-slate-950 transition" data-unit="mm">mm</button>
+                        <button type="button" class="unit-btn py-2 text-xs sm:text-sm font-bold rounded-lg text-slate-400 hover:text-slate-200 transition" data-unit="cm">cm</button>
+                        <button type="button" class="unit-btn py-2 text-xs sm:text-sm font-bold rounded-lg text-slate-400 hover:text-slate-200 transition" data-unit="inch">inch</button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Offscreen Canvases for Auto Object Detection & PNG Snapshot Compositing -->
+    <canvas id="detectCanvas" class="hidden"></canvas>
+    <canvas id="snapshotCanvas" class="hidden"></canvas>
+
+    <script>
+        (() => {
+            // --- DOM Elements ---
+            const tabBtnMeasure = document.getElementById('tabBtnMeasure');
+            const tabBtnHistory = document.getElementById('tabBtnHistory');
+            const tabBtnSettings = document.getElementById('tabBtnSettings');
+            const historyBadgeDot = document.getElementById('historyBadgeDot');
+
+            const viewMeasure = document.getElementById('viewMeasure');
+            const viewHistory = document.getElementById('viewHistory');
+            const viewSettings = document.getElementById('viewSettings');
+
+            // Measure Tab Elements
+            const readoutW = document.getElementById('readoutW');
+            const readoutH = document.getElementById('readoutH');
+            const readoutD = document.getElementById('readoutD');
+            const refAlignmentTip = document.getElementById('refAlignmentTip');
+            const measureTwoStepBar = document.getElementById('measureTwoStepBar');
+            const quickStep1Btn = document.getElementById('quickStep1Btn');
+            const quickStep2Btn = document.getElementById('quickStep2Btn');
+
+            const cameraVideo = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('measureCanvas');
+            const ctx = canvas.getContext('2d');
+            const detectCanvas = document.getElementById('detectCanvas');
+            const detectCtx = detectCanvas.getContext('2d', { willReadFrequently: true });
+            const snapshotCanvas = document.getElementById('snapshotCanvas');
+            const snapshotCtx = snapshotCanvas.getContext('2d');
+
+            const cameraFallbackModal = document.getElementById('cameraFallbackModal');
+            const cameraFallbackReason = document.getElementById('cameraFallbackReason');
+            const enableCameraBtn = document.getElementById('enableCameraBtn');
+            const dismissFallbackBtn = document.getElementById('dismissFallbackBtn');
+            const toastMessage = document.getElementById('toastMessage');
+
+            const autoFitBtn = document.getElementById('autoFitBtn');
+            const saveCaptureBtn = document.getElementById('saveCaptureBtn');
+
+            // History Tab Elements
+            const historyCountTag = document.getElementById('historyCountTag');
+            const clearAllHistoryBtn = document.getElementById('clearAllHistoryBtn');
+            const historyContainer = document.getElementById('historyContainer');
+            const historyEmptyState = document.getElementById('historyEmptyState');
+
+            // Settings Tab Elements
+            const selectMode1Btn = document.getElementById('selectMode1Btn');
+            const selectMode2Btn = document.getElementById('selectMode2Btn');
+            const mode1SettingsBox = document.getElementById('mode1SettingsBox');
+            const mode2SettingsBox = document.getElementById('mode2SettingsBox');
+
+            const refObjectSelect = document.getElementById('refObjectSelect');
+            const sensorTiltDisplay = document.getElementById('sensorTiltDisplay');
+            const sensorDistDisplay = document.getElementById('sensorDistDisplay');
+            const telemetryRes = document.getElementById('telemetryRes');
+            const requestSensorPermBtn = document.getElementById('requestSensorPermBtn');
+
+            const styleOneShotBtn = document.getElementById('styleOneShotBtn');
+            const styleTwoStepBtn = document.getElementById('styleTwoStepBtn');
+            const unitBtns = document.querySelectorAll('.unit-btn');
+
+            // --- Application State ---
+            let activeTab = 'measure'; // 'measure' | 'history' | 'settings'
+            let cameraActive = false;
+            let mediaStream = null;
+            let autoDetectedOnce = false;
+
+            let unit = 'mm'; // 'mm' | 'cm' | 'inch'
+            let estimationMode = 'reference'; // 'reference' | 'camera'
+            let measureStyle = 'oneshot'; // 'oneshot' | 'twostep'
+            let twoStepStage = 1; // 1 = Front W & H, 2 = Side Depth D
+            let lockedFront = { w: 120, h: 90 };
+
+            let baseMmPerPx = 0.428;
+
+            // Smartphone Sensor & Optical Trigonometry State
+            const STANDARD_FOV_DEG = 68;
+            const HANDHELD_HEIGHT_MM = 1100; // 110cm average waist/chest handheld camera height
+            let detectedTiltDeg = 35; // Default 35 deg downward tilt when sensor hasn't fired yet
+            let sensorLive = false;
+
+            let cameraSpecs = {
+                width: 1280,
+                height: 720,
+                zoom: 1.0
+            };
+
+            // Yellow Dashed Reference Guide Box (Mode 1)
+            let refBox = {
+                x: 28,
+                y: 48,
+                w: 145,
+                h: 91.3,
+                realW: 85.6,
+                realH: 53.9,
+                shape: 'rect',
+                label: 'クレジットカード'
+            };
+
+            // Green/Cyan 3D Bounding Box for Target Object
+            let objBox = {
+                x: 195,
+                y: 84,
+                w: 185,
+                h: 155,
+                depthX: 46,
+                depthY: -46
+            };
+
+            // Pointer Dragging State
+            let activeDrag = null;
+            let dragStartOffset = { x: 0, y: 0 };
+
+            // Saved Measurements History
+            let savedRecords = [];
+
+            // --- Initialization ---
+            function init() {
+                syncCanvasSize();
+                initializeBoxPositions();
+                bindEvents();
+                initDeviceOrientationSensor();
+                updateUnitDisplay();
+                updateModeUI();
+                updateStyleUI();
+                updateSensorReadouts();
+                startCamera(true);
+                requestAnimationFrame(renderLoop);
+            }
+
+            function syncCanvasSize() {
+                if (activeTab !== 'measure') return;
+                const rect = canvas.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                    const w = Math.round(rect.width);
+                    const h = Math.round(rect.height);
+                    if (canvas.width !== w || canvas.height !== h) {
+                        canvas.width = w;
+                        canvas.height = h;
+                    }
+                }
+            }
+
+            function initializeBoxPositions() {
+                const cw = canvas.width || 640;
+                const ch = canvas.height || 480;
+
+                const ratio = refBox.realH / refBox.realW;
+                refBox.w = Math.min(cw * 0.28, 155);
+                refBox.h = refBox.w * ratio;
+                refBox.x = Math.max(16, cw * 0.06);
+                refBox.y = Math.max(44, (ch - refBox.h) * 0.50);
+                recalculateReferenceScale();
+
+                objBox.w = Math.min(cw * 0.38, 220);
+                objBox.h = Math.min(ch * 0.36, 190);
+                objBox.x = Math.max(refBox.x + refBox.w + 18, (cw - objBox.w) * 0.58);
+                if (objBox.x + objBox.w > cw - 20) {
+                    objBox.x = (cw - objBox.w) * 0.5;
+                }
+                objBox.y = (ch - objBox.h) * 0.52;
+                objBox.depthX = 46;
+                objBox.depthY = -46;
+            }
+
+            // --- Tab Switching (1: 計測 / 2: 履歴 / 3: 設定) ---
+            function switchTab(tabName) {
+                activeTab = tabName;
+                viewMeasure.classList.toggle('hidden', tabName !== 'measure');
+                viewHistory.classList.toggle('hidden', tabName !== 'history');
+                viewSettings.classList.toggle('hidden', tabName !== 'settings');
+
+                const tabs = [
+                    { btn: tabBtnMeasure, name: 'measure' },
+                    { btn: tabBtnHistory, name: 'history' },
+                    { btn: tabBtnSettings, name: 'settings' }
+                ];
+
+                tabs.forEach(t => {
+                    const isActive = t.name === tabName;
+                    t.btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                    if (isActive) {
+                        t.btn.className = 'nav-tab flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold bg-cyan-600 text-white shadow-sm transition-all relative';
+                    } else {
+                        t.btn.className = 'nav-tab flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition-all relative';
+                    }
+                });
+
+                if (tabName === 'measure') {
+                    requestAnimationFrame(syncCanvasSize);
+                } else if (tabName === 'history') {
+                    historyBadgeDot.classList.add('hidden');
+                }
+            }
+
+            // --- Automatic DeviceOrientation Sensor (Beta Tilt Angle) ---
+            function handleOrientationEvent(event) {
+                if (event && typeof event.beta === 'number') {
+                    // When holding a phone upright/tilted forward to shoot an object:
+                    // beta = 90° is vertical (0° downward tilt); beta = 0° is flat horizontal (90° downward tilt)
+                    const rawDownwardTilt = 90 - Math.abs(event.beta);
+                    const clamped = Math.max(10, Math.min(80, rawDownwardTilt));
+                    detectedTiltDeg = Math.round(clamped);
+                    sensorLive = true;
+                    updateSensorReadouts();
+                }
+            }
+
+            function initDeviceOrientationSensor() {
+                if (typeof window !== 'undefined' && 'DeviceOrientationEvent' in window) {
+                    if (typeof DeviceOrientationEvent.requestPermission !== 'function') {
+                        window.addEventListener('deviceorientation', handleOrientationEvent, true);
+                    }
+                }
+            }
+
+            async function requestOrientationPermission() {
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    try {
+                        const res = await DeviceOrientationEvent.requestPermission();
+                        if (res === 'granted') {
+                            window.addEventListener('deviceorientation', handleOrientationEvent, true);
+                            requestSensorPermBtn.textContent = '✅ 傾きセンサー連動中';
+                        } else {
+                            requestSensorPermBtn.textContent = '⚠️ センサー許可が拒否されました（標準値を使用）';
+                        }
+                    } catch (e) {
+                        requestSensorPermBtn.textContent = '⚠️ センサー取得不可（標準値を使用）';
+                    }
+                } else {
+                    window.addEventListener('deviceorientation', handleOrientationEvent, true);
+                    requestSensorPermBtn.textContent = sensorLive ? '✅ 傾きセンサー連動中' : 'ℹ️ PC環境のため標準角度(35°)を自動適用中';
+                }
+            }
+
+            function getAutoEstimatedDistanceMm() {
+                // Trigonometry: distance = handheldHeight / sin(downwardTiltAngle)
+                const tiltRad = (Math.max(15, detectedTiltDeg) * Math.PI) / 180;
+                const estDist = HANDHELD_HEIGHT_MM / Math.sin(tiltRad);
+                return Math.max(350, Math.min(3500, estDist));
+            }
+
+            function updateSensorReadouts() {
+                const distCm = Math.round(getAutoEstimatedDistanceMm() / 10);
+                sensorTiltDisplay.textContent = sensorLive ? `${detectedTiltDeg}° (センサー連動中)` : `${detectedTiltDeg}° (標準推定値)`;
+                sensorDistDisplay.textContent = `約 ${distCm} cm`;
+                telemetryRes.textContent = `${STANDARD_FOV_DEG}° / ${cameraSpecs.width}×${cameraSpecs.height}`;
+            }
+
+            // --- Camera Access & Fallback ---
+            async function startCamera(isInitial = false) {
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                    mediaStream = null;
+                }
+
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    handleCameraError('お使いのブラウザはカメラアクセスに対応していないか、HTTPS / localhost 以外の環境で実行されています。', isInitial);
+                    return;
+                }
+
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        },
+                        audio: false
+                    });
+                    cameraVideo.srcObject = mediaStream;
+                    await cameraVideo.play();
+
+                    cameraActive = true;
+                    autoDetectedOnce = false;
+                    cameraFallbackModal.classList.add('hidden');
+                    extractCameraTelemetry(mediaStream);
+                    setToast('緑枠で縦横・シアン枠で奥行を調整');
+                } catch (err) {
+                    let reason = 'カメラのアクセス権限が拒否されたか、利用可能なカメラが見つかりません。「カメラを有効にする」をタップしてください。';
+                    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                        reason = 'セキュリティ制限（非HTTPS環境）のためカメラがブロックされています。「カメラを有効にする」を押すか、グリッド背景でお試しください。';
+                    }
+                    handleCameraError(reason, isInitial);
+                }
+            }
+
+            function handleCameraError(reason, isInitial) {
+                cameraActive = false;
+                cameraFallbackReason.textContent = reason;
+                cameraFallbackModal.classList.remove('hidden');
+                if (isInitial) {
+                    setToast('「カメラを有効にする」を押してカメラを起動してください');
+                }
+            }
+
+            function extractCameraTelemetry(stream) {
+                try {
+                    const track = stream.getVideoTracks()[0];
+                    if (!track || !track.getSettings) return;
+                    const settings = track.getSettings();
+                    if (settings.width && settings.height) {
+                        cameraSpecs.width = settings.width;
+                        cameraSpecs.height = settings.height;
+                    }
+                    if (settings.zoom) {
+                        cameraSpecs.zoom = Number(settings.zoom);
+                    }
+                    updateSensorReadouts();
+                } catch (e) {
+                    // Ignore unsupported settings
+                }
+            }
+
+            // --- Edge / Contrast Luminance Grid Auto Object Detection ---
+            function autoDetectObject() {
+                const cw = canvas.width;
+                const ch = canvas.height;
+                if (cw <= 0 || ch <= 0) return;
+
+                const pw = 160;
+                const ph = Math.max(90, Math.round(pw * (ch / cw)));
+                detectCanvas.width = pw;
+                detectCanvas.height = ph;
+
+                drawBackgroundLayer(detectCtx, pw, ph);
+                const pixels = detectCtx.getImageData(0, 0, pw, ph).data;
+
+                const luma = new Float32Array(pw * ph);
+                for (let i = 0; i < pw * ph; i++) {
+                    const idx = i * 4;
+                    luma[i] = 0.299 * pixels[idx] + 0.587 * pixels[idx + 1] + 0.114 * pixels[idx + 2];
+                }
+
+                let weightSum = 0;
+                let weightedX = 0;
+                let weightedY = 0;
+                const salGrid = new Float32Array(pw * ph);
+
+                const padX = Math.floor(pw * 0.10);
+                const padY = Math.floor(ph * 0.10);
+
+                for (let y = padY; y < ph - padY; y++) {
+                    for (let x = padX; x < pw - padX; x++) {
+                        const i = y * pw + x;
+                        const dx = Math.abs(luma[i + 1] - luma[i - 1]);
+                        const dy = Math.abs(luma[i + pw] - luma[i - pw]);
+                        const grad = dx + dy;
+
+                        const nx = (x / pw) - 0.5;
+                        const ny = (y / ph) - 0.5;
+                        const centerBias = Math.exp(-(nx * nx + ny * ny) * 3.0);
+                        const sal = grad * centerBias;
+                        salGrid[i] = sal;
+
+                        if (sal > 16) {
+                            weightSum += sal;
+                            weightedX += x * sal;
+                            weightedY += y * sal;
+                        }
+                    }
+                }
+
+                if (weightSum > 85) {
+                    const cx = weightedX / weightSum;
+                    const cy = weightedY / weightSum;
+
+                    let varX = 0;
+                    let varY = 0;
+                    for (let y = padY; y < ph - padY; y++) {
+                        for (let x = padX; x < pw - padX; x++) {
+                            const s = salGrid[y * pw + x];
+                            if (s > 16) {
+                                varX += s * (x - cx) * (x - cx);
+                                varY += s * (y - cy) * (y - cy);
+                            }
+                        }
+                    }
+
+                    const stdX = Math.sqrt(varX / weightSum);
+                    const stdY = Math.sqrt(varY / weightSum);
+
+                    const scaleX = cw / pw;
+                    const scaleY = ch / ph;
+
+                    const detectedW = Math.min(cw * 0.80, Math.max(54, stdX * 3.6 * scaleX));
+                    const detectedH = Math.min(ch * 0.76, Math.max(54, stdY * 3.6 * scaleY));
+                    const detectedX = Math.max(14, Math.min(cw - detectedW - 14, cx * scaleX - detectedW / 2));
+                    const detectedY = Math.max(32, Math.min(ch - detectedH - 20, cy * scaleY - detectedH / 2));
+
+                    objBox.x = detectedX;
+                    objBox.y = detectedY;
+                    objBox.w = detectedW;
+                    objBox.h = detectedH;
+
+                    const dLen = Math.min(detectedW, detectedH) * 0.28;
+                    objBox.depthX = dLen * 0.707;
+                    objBox.depthY = -dLen * 0.707;
+
+                    setToast('認識した物体に枠を合わせました');
+                } else {
+                    initializeBoxPositions();
+                    setToast('中央に標準枠を配置しました');
+                }
+            }
+
+            // --- Scale & 3D Dimensions Calculation ---
+            function recalculateReferenceScale() {
+                if (refBox.w > 5) {
+                    baseMmPerPx = refBox.realW / refBox.w;
+                }
+            }
+
+            function getEffectiveMmPerPx() {
+                const cw = canvas.width || 640;
+
+                if (estimationMode === 'reference') {
+                    return baseMmPerPx;
+                } else {
+                    // Option B: Automatic Sensor + Standard Smartphone Lens (68° FOV) Trigonometry
+                    const distMm = getAutoEstimatedDistanceMm();
+                    const zoom = cameraSpecs.zoom || 1.0;
+                    const effFovRad = 2 * Math.atan(Math.tan((STANDARD_FOV_DEG * Math.PI / 180) / 2) / zoom);
+                    const horizontalSpanMm = 2 * distMm * Math.tan(effFovRad / 2);
+                    return horizontalSpanMm / cw;
+                }
+            }
+
+            function getCurrentDimensionsMm() {
+                const mmPerPx = getEffectiveMmPerPx();
+
+                if (measureStyle === 'twostep') {
+                    if (twoStepStage === 1) {
+                        const wMm = objBox.w * mmPerPx;
+                        const hMm = objBox.h * mmPerPx;
+                        lockedFront = { w: wMm, h: hMm };
+                        return { w: wMm, h: hMm, d: 0 };
+                    } else {
+                        return {
+                            w: lockedFront.w,
+                            h: lockedFront.h,
+                            d: objBox.w * mmPerPx
+                        };
+                    }
+                } else {
+                    // One-Shot 3D Mode with Automatic Sensor Tilt Angle Correction
+                    const wMm = objBox.w * mmPerPx;
+                    const hMm = objBox.h * mmPerPx;
+                    const projectedDepthPx = Math.hypot(objBox.depthX, objBox.depthY);
+                    const effectiveAngleDeg = Math.max(15, detectedTiltDeg);
+                    const sinFactor = Math.sin((effectiveAngleDeg * Math.PI) / 180);
+                    const dMm = (projectedDepthPx * mmPerPx) / sinFactor;
+                    return { w: wMm, h: hMm, d: dMm };
+                }
+            }
+
+            // --- Canvas Rendering ---
+            function drawBackgroundLayer(targetCtx, w, h) {
+                if (cameraActive && cameraVideo.readyState >= cameraVideo.HAVE_CURRENT_DATA) {
+                    const vw = cameraVideo.videoWidth || w;
+                    const vh = cameraVideo.videoHeight || h;
+                    const scale = Math.max(w / vw, h / vh);
+                    const dw = vw * scale;
+                    const dh = vh * scale;
+                    targetCtx.drawImage(cameraVideo, (w - dw) / 2, (h - dh) / 2, dw, dh);
+                } else {
+                    targetCtx.fillStyle = '#090d16';
+                    targetCtx.fillRect(0, 0, w, h);
+                    targetCtx.strokeStyle = '#182236';
+                    targetCtx.lineWidth = 1;
+                    const grid = 28;
+                    for (let x = 0; x < w; x += grid) {
+                        targetCtx.beginPath(); targetCtx.moveTo(x, 0); targetCtx.lineTo(x, h); targetCtx.stroke();
+                    }
+                    for (let y = 0; y < h; y += grid) {
+                        targetCtx.beginPath(); targetCtx.moveTo(0, y); targetCtx.lineTo(w, y); targetCtx.stroke();
+                    }
+                }
+            }
+
+            function renderCompositeFrame(targetCtx, w, h) {
+                targetCtx.clearRect(0, 0, w, h);
+                drawBackgroundLayer(targetCtx, w, h);
+
+                if (estimationMode === 'reference') {
+                    drawReferenceOverlay(targetCtx);
+                }
+
+                drawObjectOverlay(targetCtx);
+            }
+
+            function drawReferenceOverlay(targetCtx) {
+                const { x, y, w, h, shape, label, realW, realH } = refBox;
+                targetCtx.save();
+                targetCtx.strokeStyle = '#fbbf24';
+                targetCtx.fillStyle = 'rgba(251, 191, 36, 0.14)';
+                targetCtx.lineWidth = 2.4;
+                targetCtx.setLineDash([6, 4]);
+
+                if (shape === 'circle') {
+                    const r = w / 2;
+                    const cx = x + r;
+                    const cy = y + r;
+                    targetCtx.beginPath();
+                    targetCtx.arc(cx, cy, r, 0, Math.PI * 2);
+                    targetCtx.fill();
+                    targetCtx.stroke();
+                    targetCtx.setLineDash([]);
+
+                    drawHandle(targetCtx, x + w, cy, '#fbbf24', 8);
+                    drawBadge(targetCtx, `${label} (${realW}mm)`, cx, y - 14, '#fbbf24');
+                } else {
+                    targetCtx.beginPath();
+                    targetCtx.roundRect(x, y, w, h, 6);
+                    targetCtx.fill();
+                    targetCtx.stroke();
+                    targetCtx.setLineDash([]);
+
+                    drawHandle(targetCtx, x + w, y + h, '#fbbf24', 8);
+                    drawBadge(targetCtx, `${label} (${realW}×${realH}mm)`, x + w / 2, y - 14, '#fbbf24');
+                }
+                targetCtx.restore();
+            }
+
+            function drawObjectOverlay(targetCtx) {
+                const { x, y, w, h, depthX, depthY } = objBox;
+                const dims = getCurrentDimensionsMm();
+
+                targetCtx.save();
+
+                if (measureStyle === 'twostep') {
+                    const accent = twoStepStage === 1 ? '#10b981' : '#06b6d4';
+                    const fillTint = twoStepStage === 1 ? 'rgba(16, 185, 129, 0.14)' : 'rgba(6, 182, 212, 0.15)';
+
+                    targetCtx.fillStyle = fillTint;
+                    targetCtx.fillRect(x, y, w, h);
+
+                    targetCtx.strokeStyle = accent;
+                    targetCtx.lineWidth = 3;
+                    targetCtx.strokeRect(x, y, w, h);
+
+                    drawHandle(targetCtx, x, y, accent, 8);
+                    drawHandle(targetCtx, x + w, y, accent, 8);
+                    drawHandle(targetCtx, x + w, y + h, accent, 8);
+                    drawHandle(targetCtx, x, y + h, accent, 8);
+
+                    if (twoStepStage === 1) {
+                        drawBadge(targetCtx, `W: ${formatDim(dims.w)}`, x + w / 2, y - 14, '#10b981');
+                        drawBadge(targetCtx, `H: ${formatDim(dims.h)}`, x - 14, y + h / 2, '#10b981', true);
+                    } else {
+                        drawBadge(targetCtx, `D: ${formatDim(dims.d)}`, x + w / 2, y - 14, '#06b6d4');
+                        drawBadge(targetCtx, `W:${formatDim(dims.w)} / H:${formatDim(dims.h)} ロック`, x + w / 2, y + h + 15, '#94a3b8');
+                    }
+                } else {
+                    const fTL = { x, y };
+                    const fTR = { x: x + w, y };
+                    const fBR = { x: x + w, y: y + h };
+                    const fBL = { x, y: y + h };
+
+                    const bTL = { x: x + depthX, y: y + depthY };
+                    const bTR = { x: x + w + depthX, y: y + depthY };
+                    const bBR = { x: x + w + depthX, y: y + h + depthY };
+                    const bBL = { x: x + depthX, y: y + h + depthY };
+
+                    targetCtx.fillStyle = 'rgba(16, 185, 129, 0.10)';
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(fTL.x, fTL.y);
+                    targetCtx.lineTo(fTR.x, fTR.y);
+                    targetCtx.lineTo(bTR.x, bTR.y);
+                    targetCtx.lineTo(bBR.x, bBR.y);
+                    targetCtx.lineTo(fBR.x, fBR.y);
+                    targetCtx.lineTo(fBL.x, fBL.y);
+                    targetCtx.closePath();
+                    targetCtx.fill();
+
+                    targetCtx.strokeStyle = '#06b6d4';
+                    targetCtx.lineWidth = 1.8;
+                    targetCtx.setLineDash([5, 4]);
+
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(bTL.x, bTL.y);
+                    targetCtx.lineTo(bTR.x, bTR.y);
+                    targetCtx.lineTo(bBR.x, bBR.y);
+                    targetCtx.lineTo(bBL.x, bBL.y);
+                    targetCtx.closePath();
+                    targetCtx.stroke();
+
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(fTL.x, fTL.y); targetCtx.lineTo(bTL.x, bTL.y);
+                    targetCtx.moveTo(fTR.x, fTR.y); targetCtx.lineTo(bTR.x, bTR.y);
+                    targetCtx.moveTo(fBL.x, fBL.y); targetCtx.lineTo(bBL.x, bBL.y);
+                    targetCtx.stroke();
+                    targetCtx.setLineDash([]);
+
+                    targetCtx.strokeStyle = '#22d3ee';
+                    targetCtx.lineWidth = 3;
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(fBR.x, fBR.y);
+                    targetCtx.lineTo(bBR.x, bBR.y);
+                    targetCtx.stroke();
+
+                    targetCtx.strokeStyle = '#10b981';
+                    targetCtx.lineWidth = 2.8;
+                    targetCtx.strokeRect(x, y, w, h);
+
+                    drawHandle(targetCtx, fTL.x, fTL.y, '#10b981', 7.5);
+                    drawHandle(targetCtx, fTR.x, fTR.y, '#10b981', 7.5);
+                    drawHandle(targetCtx, fBR.x, fBR.y, '#10b981', 7.5);
+                    drawHandle(targetCtx, fBL.x, fBL.y, '#10b981', 7.5);
+                    drawHandle(targetCtx, bBR.x, bBR.y, '#06b6d4', 9);
+
+                    drawBadge(targetCtx, `W: ${formatDim(dims.w)}`, (fTL.x + fTR.x) / 2, fTL.y - 14, '#10b981');
+                    drawBadge(targetCtx, `H: ${formatDim(dims.h)}`, fTL.x - 14, (fTL.y + fBL.y) / 2, '#10b981', true);
+                    drawBadge(targetCtx, `D: ${formatDim(dims.d)}`, (fBR.x + bBR.x) / 2 + 14, (fBR.y + bBR.y) / 2, '#06b6d4');
+                }
+
+                targetCtx.restore();
+            }
+
+            function drawHandle(targetCtx, hx, hy, color, radius) {
+                targetCtx.fillStyle = color;
+                targetCtx.strokeStyle = '#ffffff';
+                targetCtx.lineWidth = 2;
+                targetCtx.beginPath();
+                targetCtx.arc(hx, hy, radius, 0, Math.PI * 2);
+                targetCtx.fill();
+                targetCtx.stroke();
+            }
+
+            function drawBadge(targetCtx, text, bx, by, borderColor, vertical = false) {
+                targetCtx.save();
+                targetCtx.font = 'bold 11px Inter, "Noto Sans JP", sans-serif';
+                const textW = targetCtx.measureText(text).width;
+                const boxW = textW + 12;
+                const boxH = 20;
+
+                targetCtx.translate(bx, by);
+                if (vertical) targetCtx.rotate(-Math.PI / 2);
+
+                targetCtx.fillStyle = 'rgba(9, 13, 22, 0.9)';
+                targetCtx.strokeStyle = borderColor;
+                targetCtx.lineWidth = 1.4;
+                targetCtx.beginPath();
+                targetCtx.roundRect(-boxW / 2, -boxH / 2, boxW, boxH, 6);
+                targetCtx.fill();
+                targetCtx.stroke();
+
+                targetCtx.fillStyle = '#f8fafc';
+                targetCtx.textAlign = 'center';
+                targetCtx.textBaseline = 'middle';
+                targetCtx.fillText(text, 0, 0.5);
+                targetCtx.restore();
+            }
+
+            function renderLoop() {
+                if (activeTab === 'measure') {
+                    syncCanvasSize();
+                    if (cameraActive && !autoDetectedOnce && cameraVideo.readyState >= cameraVideo.HAVE_CURRENT_DATA && canvas.width > 0) {
+                        autoDetectedOnce = true;
+                        autoDetectObject();
+                    }
+                    renderCompositeFrame(ctx, canvas.width, canvas.height);
+                }
+                updateReadoutBar();
+                requestAnimationFrame(renderLoop);
+            }
+
+            // --- Formatting ---
+            function toCurrentUnit(mm) {
+                if (unit === 'cm') return mm / 10;
+                if (unit === 'inch') return mm / 25.4;
+                return mm;
+            }
+
+            function formatDim(mm) {
+                const decimals = unit === 'mm' ? 1 : 2;
+                return `${toCurrentUnit(mm).toFixed(decimals)}${unit}`;
+            }
+
+            function updateReadoutBar() {
+                const dims = getCurrentDimensionsMm();
+                const decimals = unit === 'mm' ? 1 : 2;
+
+                // Clean numbers only (no unit labels or mode badges in the compact readout)
+                readoutW.textContent = toCurrentUnit(dims.w).toFixed(decimals);
+                readoutH.textContent = toCurrentUnit(dims.h).toFixed(decimals);
+                readoutD.textContent = (measureStyle === 'twostep' && twoStepStage === 1)
+                    ? '-'
+                    : toCurrentUnit(dims.d).toFixed(decimals);
+            }
+
+            // --- Pointer & Touch Dragging on Canvas ---
+            function getPointerCoords(e) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+            }
+
+            canvas.addEventListener('pointerdown', (e) => {
+                canvas.setPointerCapture(e.pointerId);
+                const pt = getPointerCoords(e);
+                const hitRadius = 28;
+
+                if (estimationMode === 'reference') {
+                    const rx = refBox.x + refBox.w;
+                    const ry = refBox.shape === 'circle' ? refBox.y + refBox.w / 2 : refBox.y + refBox.h;
+                    if (Math.hypot(pt.x - rx, pt.y - ry) <= hitRadius) {
+                        activeDrag = 'ref-resize';
+                        return;
+                    }
+                    if (pt.x >= refBox.x && pt.x <= refBox.x + refBox.w && pt.y >= refBox.y && pt.y <= refBox.y + refBox.h) {
+                        activeDrag = 'ref-move';
+                        dragStartOffset = { x: pt.x - refBox.x, y: pt.y - refBox.y };
+                        return;
+                    }
+                }
+
+                const { x, y, w, h, depthX, depthY } = objBox;
+
+                if (measureStyle === 'oneshot') {
+                    const depthHandleX = x + w + depthX;
+                    const depthHandleY = y + h + depthY;
+                    if (Math.hypot(pt.x - depthHandleX, pt.y - depthHandleY) <= hitRadius) {
+                        activeDrag = 'obj-depth';
+                        return;
+                    }
+                }
+
+                if (Math.hypot(pt.x - x, pt.y - y) <= hitRadius) {
+                    activeDrag = 'obj-tl';
+                } else if (Math.hypot(pt.x - (x + w), pt.y - y) <= hitRadius) {
+                    activeDrag = 'obj-tr';
+                } else if (Math.hypot(pt.x - (x + w), pt.y - (y + h)) <= hitRadius) {
+                    activeDrag = 'obj-br';
+                } else if (Math.hypot(pt.x - x, pt.y - (y + h)) <= hitRadius) {
+                    activeDrag = 'obj-bl';
+                } else if (pt.x >= x && pt.x <= x + w && pt.y >= y && pt.y <= y + h) {
+                    activeDrag = 'obj-move';
+                    dragStartOffset = { x: pt.x - x, y: pt.y - y };
+                }
+            });
+
+            canvas.addEventListener('pointermove', (e) => {
+                if (!activeDrag) return;
+                const pt = getPointerCoords(e);
+
+                if (activeDrag === 'ref-resize') {
+                    const newW = Math.max(22, pt.x - refBox.x);
+                    refBox.w = newW;
+                    refBox.h = newW * (refBox.realH / refBox.realW);
+                    recalculateReferenceScale();
+                } else if (activeDrag === 'ref-move') {
+                    refBox.x = pt.x - dragStartOffset.x;
+                    refBox.y = pt.y - dragStartOffset.y;
+                } else if (activeDrag === 'obj-tl') {
+                    const nw = objBox.x + objBox.w - pt.x;
+                    const nh = objBox.y + objBox.h - pt.y;
+                    if (nw > 18) { objBox.w = nw; objBox.x = pt.x; }
+                    if (nh > 18) { objBox.h = nh; objBox.y = pt.y; }
+                } else if (activeDrag === 'obj-tr') {
+                    const nw = pt.x - objBox.x;
+                    const nh = objBox.y + objBox.h - pt.y;
+                    if (nw > 18) objBox.w = nw;
+                    if (nh > 18) { objBox.h = nh; objBox.y = pt.y; }
+                } else if (activeDrag === 'obj-br') {
+                    const nw = pt.x - objBox.x;
+                    const nh = pt.y - objBox.y;
+                    if (nw > 18) objBox.w = nw;
+                    if (nh > 18) objBox.h = nh;
+                } else if (activeDrag === 'obj-bl') {
+                    const nw = objBox.x + objBox.w - pt.x;
+                    const nh = pt.y - objBox.y;
+                    if (nw > 18) { objBox.w = nw; objBox.x = pt.x; }
+                    if (nh > 18) objBox.h = nh;
+                } else if (activeDrag === 'obj-depth') {
+                    objBox.depthX = pt.x - (objBox.x + objBox.w);
+                    objBox.depthY = pt.y - (objBox.y + objBox.h);
+                } else if (activeDrag === 'obj-move') {
+                    objBox.x = pt.x - dragStartOffset.x;
+                    objBox.y = pt.y - dragStartOffset.y;
+                }
+            });
+
+            function endDrag() {
+                activeDrag = null;
+            }
+            canvas.addEventListener('pointerup', endDrag);
+            canvas.addEventListener('pointercancel', endDrag);
+
+            // --- Snapshot Capture, Valid PNG Download & Individual Delete ---
+            function captureAndSaveRecord() {
+                const w = canvas.width || 640;
+                const h = canvas.height || 480;
+                snapshotCanvas.width = w;
+                snapshotCanvas.height = h;
+
+                renderCompositeFrame(snapshotCtx, w, h);
+
+                const dims = getCurrentDimensionsMm();
+                const dLabel = (measureStyle === 'twostep' && twoStepStage === 1) ? '未計測' : formatDim(dims.d);
+                const summary = `W: ${formatDim(dims.w)} × H: ${formatDim(dims.h)} × D: ${dLabel}`;
+
+                snapshotCtx.fillStyle = 'rgba(9, 13, 22, 0.92)';
+                snapshotCtx.fillRect(0, h - 36, w, 36);
+                snapshotCtx.fillStyle = '#22d3ee';
+                snapshotCtx.font = 'bold 13px Inter, "Noto Sans JP", sans-serif';
+                snapshotCtx.textAlign = 'center';
+                snapshotCtx.textBaseline = 'middle';
+                snapshotCtx.fillText(summary, w / 2, h - 18);
+
+                const dataUrl = snapshotCanvas.toDataURL('image/png');
+                const timestamp = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                savedRecords.unshift({
+                    id: String(Date.now()) + '_' + Math.floor(Math.random() * 1000),
+                    imageUrl: dataUrl,
+                    summary: summary,
+                    time: timestamp
+                });
+
+                renderHistoryRecords();
+                if (activeTab !== 'history') {
+                    historyBadgeDot.classList.remove('hidden');
+                }
+                setToast('記録保存しました（「履歴」タブからPNG保存できます）');
+            }
+
+            function triggerPngDownload(dataUrl, filename) {
+                try {
+                    const parts = dataUrl.split(',');
+                    const mime = parts[0].match(/:(.*?);/)[1];
+                    const binary = atob(parts[1]);
+                    const array = new Uint8Array(binary.length);
+                    for (let i = 0; i < binary.length; i++) {
+                        array[i] = binary.charCodeAt(i);
+                    }
+                    const blob = new Blob([array], { type: mime });
+                    const blobUrl = URL.createObjectURL(blob);
+
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+                } catch (err) {
+                    const link = document.createElement('a');
+                    link.href = dataUrl;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }
+
+            function deleteHistoryItem(id) {
+                savedRecords = savedRecords.filter(rec => rec.id !== id);
+                renderHistoryRecords();
+            }
+
+            function renderHistoryRecords() {
+                historyCountTag.textContent = `${savedRecords.length}件`;
+                clearAllHistoryBtn.classList.toggle('hidden', savedRecords.length === 0);
+
+                historyContainer.querySelectorAll('.record-card').forEach(el => el.remove());
+
+                if (savedRecords.length === 0) {
+                    historyEmptyState.classList.remove('hidden');
+                    return;
+                }
+                historyEmptyState.classList.add('hidden');
+
+                savedRecords.forEach((rec, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'record-card bg-slate-950 border border-slate-800 rounded-xl p-2.5 flex items-center gap-3';
+
+                    const thumb = document.createElement('img');
+                    thumb.src = rec.imageUrl;
+                    thumb.alt = '計測スナップショット';
+                    thumb.className = 'w-16 h-14 object-cover rounded-lg border border-slate-700 bg-black shrink-0';
+
+                    const info = document.createElement('div');
+                    info.className = 'flex-1 min-w-0';
+                    info.innerHTML = `
+                        <div class="text-[11px] text-slate-400 mb-0.5">🕒 ${rec.time}</div>
+                        <div class="text-xs sm:text-sm font-extrabold text-white truncate">${rec.summary}</div>
+                    `;
+
+                    const btnGroup = document.createElement('div');
+                    btnGroup.className = 'flex items-center gap-1.5 shrink-0';
+
+                    const downloadBtn = document.createElement('button');
+                    downloadBtn.type = 'button';
+                    downloadBtn.className = 'px-2.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow transition active:scale-95';
+                    downloadBtn.textContent = 'PNG保存';
+                    downloadBtn.addEventListener('click', () => {
+                        triggerPngDownload(rec.imageUrl, `measure_${savedRecords.length - index}_${rec.time.replace(/:/g, '')}.png`);
+                    });
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.type = 'button';
+                    deleteBtn.className = 'px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-rose-900/80 border border-slate-700 hover:border-rose-500/50 text-slate-300 hover:text-rose-200 text-xs font-bold transition active:scale-95';
+                    deleteBtn.textContent = '削除';
+                    deleteBtn.addEventListener('click', () => {
+                        deleteHistoryItem(rec.id);
+                    });
+
+                    btnGroup.appendChild(downloadBtn);
+                    btnGroup.appendChild(deleteBtn);
+
+                    card.appendChild(thumb);
+                    card.appendChild(info);
+                    card.appendChild(btnGroup);
+                    historyContainer.appendChild(card);
+                });
+            }
+
+            // --- UI State Updaters ---
+            function updateUnitDisplay() {
+                unitBtns.forEach(btn => {
+                    const isSelected = btn.dataset.unit === unit;
+                    if (isSelected) {
+                        btn.classList.add('bg-cyan-500', 'text-slate-950');
+                        btn.classList.remove('text-slate-400');
+                    } else {
+                        btn.classList.remove('bg-cyan-500', 'text-slate-950');
+                        btn.classList.add('text-slate-400');
+                    }
+                });
+            }
+
+            function updateModeUI() {
+                const isRef = estimationMode === 'reference';
+                mode1SettingsBox.classList.toggle('hidden', !isRef);
+                mode2SettingsBox.classList.toggle('hidden', isRef);
+                refAlignmentTip.classList.toggle('hidden', !isRef);
+
+                if (isRef) {
+                    selectMode1Btn.className = 'p-3 rounded-xl border-2 border-cyan-500 bg-cyan-500/10 text-left transition';
+                    selectMode2Btn.className = 'p-3 rounded-xl border border-slate-700 bg-slate-950/60 hover:border-slate-600 text-left transition';
+                } else {
+                    selectMode2Btn.className = 'p-3 rounded-xl border-2 border-cyan-500 bg-cyan-500/10 text-left transition';
+                    selectMode1Btn.className = 'p-3 rounded-xl border border-slate-700 bg-slate-950/60 hover:border-slate-600 text-left transition';
+                }
+            }
+
+            function updateStyleUI() {
+                const isTwoStep = measureStyle === 'twostep';
+                measureTwoStepBar.classList.toggle('hidden', !isTwoStep);
+
+                if (isTwoStep) {
+                    styleTwoStepBtn.className = 'p-3 rounded-xl border-2 border-emerald-500 bg-emerald-500/10 text-left transition';
+                    styleOneShotBtn.className = 'p-3 rounded-xl border border-slate-700 bg-slate-950/60 hover:border-slate-600 text-left transition';
+
+                    if (twoStepStage === 1) {
+                        quickStep1Btn.className = 'py-1.5 px-2 rounded-lg text-[11px] font-bold bg-emerald-600 text-white transition';
+                        quickStep2Btn.className = 'py-1.5 px-2 rounded-lg text-[11px] font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+                    } else {
+                        quickStep1Btn.className = 'py-1.5 px-2 rounded-lg text-[11px] font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition';
+                        quickStep2Btn.className = 'py-1.5 px-2 rounded-lg text-[11px] font-bold bg-cyan-600 text-white transition';
+                    }
+                } else {
+                    styleOneShotBtn.className = 'p-3 rounded-xl border-2 border-emerald-500 bg-emerald-500/10 text-left transition';
+                    styleTwoStepBtn.className = 'p-3 rounded-xl border border-slate-700 bg-slate-950/60 hover:border-slate-600 text-left transition';
+                }
+            }
+
+            // --- Event Bindings ---
+            function bindEvents() {
+                // Navigation Tabs: 1) 計測  2) 履歴  3) 設定
+                tabBtnMeasure.addEventListener('click', () => switchTab('measure'));
+                tabBtnHistory.addEventListener('click', () => switchTab('history'));
+                tabBtnSettings.addEventListener('click', () => switchTab('settings'));
+
+                // Unit Selector (Settings Tab)
+                unitBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        unit = btn.dataset.unit;
+                        updateUnitDisplay();
+                    });
+                });
+
+                // Measure Tab: Action Buttons & Quick 2-Step Controls
+                autoFitBtn.addEventListener('click', autoDetectObject);
+                saveCaptureBtn.addEventListener('click', captureAndSaveRecord);
+
+                quickStep1Btn.addEventListener('click', () => {
+                    twoStepStage = 1;
+                    updateStyleUI();
+                    setToast('正面から幅(W)と高さ(H)を合わせてください');
+                });
+
+                quickStep2Btn.addEventListener('click', () => {
+                    const dims = getCurrentDimensionsMm();
+                    if (twoStepStage === 1) {
+                        lockedFront = { w: dims.w, h: dims.h };
+                    }
+                    twoStepStage = 2;
+                    updateStyleUI();
+                    setToast('W・Hをロックしました。側面から奥行(D)を合わせてください');
+                });
+
+                enableCameraBtn.addEventListener('click', () => startCamera(false));
+                dismissFallbackBtn.addEventListener('click', () => {
+                    cameraFallbackModal.classList.add('hidden');
+                    setToast('グリッド背景で枠の調整・計測を試せます');
+                });
+
+                // Settings Tab: Estimation Mode
+                selectMode1Btn.addEventListener('click', () => {
+                    estimationMode = 'reference';
+                    updateModeUI();
+                });
+
+                selectMode2Btn.addEventListener('click', () => {
+                    estimationMode = 'camera';
+                    updateModeUI();
+                });
+
+                refObjectSelect.addEventListener('change', (e) => {
+                    const opt = e.target.options[e.target.selectedIndex];
+                    refBox.realW = Number(opt.dataset.w);
+                    refBox.realH = Number(opt.dataset.h);
+                    refBox.shape = opt.dataset.shape || 'rect';
+                    refBox.label = opt.textContent.split('(')[0].trim();
+                    refBox.h = refBox.w * (refBox.realH / refBox.realW);
+                    recalculateReferenceScale();
+                });
+
+                requestSensorPermBtn.addEventListener('click', requestOrientationPermission);
+
+                // Settings Tab: Depth Measurement Style (Simple 2-choice selector)
+                styleOneShotBtn.addEventListener('click', () => {
+                    measureStyle = 'oneshot';
+                    updateStyleUI();
+                });
+
+                styleTwoStepBtn.addEventListener('click', () => {
+                    measureStyle = 'twostep';
+                    twoStepStage = 1;
+                    updateStyleUI();
+                });
+
+                // History Tab: Clear All
+                clearAllHistoryBtn.addEventListener('click', () => {
+                    savedRecords = [];
+                    renderHistoryRecords();
+                });
+
+                window.addEventListener('resize', syncCanvasSize);
+            }
+
+            function setToast(msg) {
+                toastMessage.textContent = msg;
+            }
+
+            // Boot Application
+            init();
+        })();
+    </script>
+</body>
+</html>
