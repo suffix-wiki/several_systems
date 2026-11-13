@@ -22,13 +22,47 @@
     </script>
     <style>
         html, body {
-            height: 100%;
+            height: 100vh;
+            height: 100dvh;
             margin: 0;
             padding: 0;
             background-color: #0f172a;
             color: #f8fafc;
             overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        .app-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            flex-shrink: 0;
+            width: 100%;
+            background-color: #1e293b;
+            border-bottom: 1px solid #334155;
+        }
+        .tab-bar {
+            display: flex;
+            width: 100%;
+        }
+        .tab-btn {
+            flex: 1;
+            text-align: center;
+            white-space: nowrap;
+            min-height: 44px;
+            font-size: 0.95rem;
+        }
+        @media (min-width: 768px) {
+            .tab-bar {
+                width: 19rem;
+            }
+            .tab-btn {
+                min-height: 36px;
+                font-size: 0.8125rem;
+            }
         }
         canvas {
             touch-action: none;
@@ -37,32 +71,32 @@
         }
     </style>
 </head>
-<body class="flex flex-col h-screen bg-[#0f172a] text-slate-100 select-none">
+<body class="flex flex-col bg-[#0f172a] text-slate-100 select-none">
 
     <!-- Header & 3-Tab Navigation (Strict Order: 1. 計測, 2. 履歴, 3. 設定) -->
-    <header class="bg-[#1e293b]/95 border-b border-slate-700/80 px-3 py-2 shrink-0 z-30 backdrop-blur-md">
-        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
-            <!-- App Title -->
-            <div class="flex items-center gap-2 shrink-0">
-                <span class="text-base sm:text-lg">📐</span>
-                <h1 class="text-xs sm:text-sm font-extrabold tracking-tight text-white">物体サイズ計測</h1>
+    <header class="app-header px-2.5 sm:px-4 py-1.5 sm:py-2 shadow-lg">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2 w-full">
+            <!-- App Title (Hidden on mobile <768px so 3 tabs span 100% width) -->
+            <div class="hidden md:flex items-center gap-2 shrink-0">
+                <span class="text-lg">📐</span>
+                <h1 class="text-sm font-extrabold tracking-tight text-white">物体サイズ計測</h1>
             </div>
 
             <!-- 3-Tab Navigation -->
-            <nav class="grid grid-cols-3 gap-1 bg-[#0f172a] p-1 rounded-xl border border-slate-700/80 w-56 sm:w-72" role="tablist">
+            <nav class="tab-bar gap-1.5 bg-[#0f172a] p-1 rounded-xl border border-slate-700" role="tablist">
                 <button type="button" id="tabBtnMeasure" role="tab" aria-selected="true"
-                    class="nav-tab flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold bg-[#38bdf8] text-slate-950 shadow-sm transition-all">
+                    class="tab-btn nav-tab flex items-center justify-center gap-1.5 px-2 rounded-lg font-extrabold bg-[#38bdf8] text-slate-950 shadow-sm transition-all">
                     <span>📷</span>
                     <span>計測</span>
                 </button>
                 <button type="button" id="tabBtnHistory" role="tab" aria-selected="false"
-                    class="nav-tab flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition-all relative">
+                    class="tab-btn nav-tab flex items-center justify-center gap-1.5 px-2 rounded-lg font-extrabold text-slate-300 hover:text-white transition-all relative">
                     <span>🖼️</span>
                     <span>履歴</span>
-                    <span id="historyBadgeDot" class="hidden w-1.5 h-1.5 rounded-full bg-[#22c55e] absolute top-1.5 right-2"></span>
+                    <span id="historyBadgeDot" class="hidden w-2 h-2 rounded-full bg-[#22c55e] absolute top-2 right-2.5"></span>
                 </button>
                 <button type="button" id="tabBtnSettings" role="tab" aria-selected="false"
-                    class="nav-tab flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition-all">
+                    class="tab-btn nav-tab flex items-center justify-center gap-1.5 px-2 rounded-lg font-extrabold text-slate-300 hover:text-white transition-all">
                     <span>⚙️</span>
                     <span>設定</span>
                 </button>
@@ -71,39 +105,36 @@
     </header>
 
     <!-- Main Content Area -->
-    <main class="flex-1 relative overflow-hidden flex flex-col w-full">
+    <main class="flex-1 relative overflow-hidden flex flex-col w-full min-h-0">
 
         <!-- =====================================================================
              TAB 1: 計測 (MEASURE)
         ====================================================================== -->
-        <section id="viewMeasure" class="flex-1 flex flex-col md:flex-row h-full overflow-hidden">
+        <section id="viewMeasure" class="flex-1 flex flex-col md:flex-row relative overflow-hidden w-full min-h-0">
 
-            <!-- Maximized Camera Viewport -->
-            <div id="viewportContainer" class="relative flex-1 bg-black overflow-hidden flex items-center justify-center min-h-[240px]">
-                <video id="camera-video" autoplay playsinline muted class="hidden"></video>
-                <canvas id="overlay-canvas" class="w-full h-full block cursor-crosshair"></canvas>
+            <!-- Camera & Overlay Viewport -->
+            <div id="viewportContainer" class="relative flex-1 bg-black overflow-hidden flex items-center justify-center min-h-0">
+                <video id="camera-video" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover"></video>
+                <canvas id="overlay-canvas" class="absolute inset-0 w-full h-full z-10"></canvas>
 
-                <!-- Alignment Notice Pill Badge -->
-                <div class="pointer-events-none absolute top-2.5 left-1/2 -translate-x-1/2 z-10 bg-[#0f172a]/85 border border-[#facc15]/50 text-[#facc15] text-[10px] sm:text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm whitespace-nowrap shadow-md">
-                    基準物は測りたい面と同じ距離に並べてください
-                </div>
-
-                <!-- Camera Fallback Overlay -->
-                <div id="cameraFallbackModal" class="hidden absolute inset-0 z-20 bg-[#0f172a]/90 backdrop-blur-md flex items-center justify-center p-4">
-                    <div class="bg-[#1e293b] border border-slate-700 rounded-2xl p-5 max-w-sm w-full text-center shadow-2xl">
-                        <div class="text-3xl mb-2">📷</div>
-                        <h2 class="text-sm sm:text-base font-bold text-white mb-1.5">カメラ映像が起動していません</h2>
-                        <p id="cameraFallbackReason" class="text-xs text-slate-300 leading-relaxed mb-4">
-                            ブラウザのカメラ許可が未設定か、HTTPS以外の環境で開かれています。「カメラを有効にする」をタップしてください。
+                <!-- Camera Fallback / Permission Modal -->
+                <div id="cameraFallbackModal" class="hidden absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div class="bg-[#1e293b] border border-slate-700 rounded-2xl p-5 max-w-sm w-full text-center space-y-4 shadow-2xl">
+                        <div class="text-3xl">📷</div>
+                        <h2 class="text-base font-extrabold text-white">カメラアクセスが必要です</h2>
+                        <p id="cameraFallbackReason" class="text-xs text-slate-300 leading-relaxed">
+                            カメラへのアクセスが許可されていないか、HTTPS/ローカル環境ではないため起動していません。
                         </p>
-                        <button type="button" id="enableCameraBtn"
-                            class="w-full py-2.5 px-4 rounded-xl bg-[#38bdf8] hover:bg-sky-300 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg transition active:scale-95">
-                            📷 カメラを有効にする
-                        </button>
-                        <button type="button" id="dismissFallbackBtn"
-                            class="mt-3 block w-full text-[11px] text-slate-400 hover:text-slate-200 underline">
-                            グリッド背景（デモモード）で枠操作を試す
-                        </button>
+                        <div class="space-y-2 pt-1">
+                            <button type="button" id="enableCameraBtn"
+                                class="w-full py-3 px-4 rounded-xl bg-[#38bdf8] hover:bg-sky-300 text-slate-950 font-extrabold text-sm shadow-lg transition active:scale-95">
+                                カメラを有効にする
+                            </button>
+                            <button type="button" id="dismissFallbackBtn"
+                                class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition">
+                                グリッド背景で操作を試す
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -523,9 +554,9 @@
                     const isActive = t.name === tabName;
                     t.btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
                     if (isActive) {
-                        t.btn.className = 'nav-tab flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold bg-[#38bdf8] text-slate-950 shadow-sm transition-all relative';
+                        t.btn.className = 'tab-btn nav-tab flex items-center justify-center gap-1.5 px-2 rounded-lg font-extrabold bg-[#38bdf8] text-slate-950 shadow-sm transition-all relative';
                     } else {
-                        t.btn.className = 'nav-tab flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition-all relative';
+                        t.btn.className = 'tab-btn nav-tab flex items-center justify-center gap-1.5 px-2 rounded-lg font-extrabold text-slate-300 hover:text-white transition-all relative';
                     }
                 });
 
