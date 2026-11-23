@@ -1,0 +1,1942 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>ARプラネタリウム - リアル星空カメラ</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Noto Sans JP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: #02040a;
+      font-family: 'Inter', 'Noto Sans JP', sans-serif;
+      color: #f8fafc;
+      touch-action: none;
+    }
+    #app-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(ellipse at bottom, #0b1736 0%, #040814 55%, #010206 100%);
+    }
+    #camera-feed {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    #camera-feed.active {
+      opacity: 1;
+    }
+    #sky-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      display: block;
+      cursor: grab;
+    }
+    #sky-canvas:active {
+      cursor: grabbing;
+    }
+    /* Safe area utilities */
+    .pt-safe {
+      padding-top: max(0.75rem, env(safe-area-inset-top));
+    }
+    .pb-safe {
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+    /* Glassmorphism panel */
+    .glass-panel {
+      background: rgba(10, 17, 34, 0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+    }
+    /* Custom range slider */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(148, 163, 184, 0.28);
+      height: 6px;
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 2px solid #f8fafc;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
+    }
+    /* Custom scrollbar for drawer */
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.35);
+      border-radius: 999px;
+    }
+    /* Datetime input dark theme fix */
+    input[type="datetime-local"] {
+      color-scheme: dark;
+    }
+  </style>
+</head>
+<body>
+  <div id="app-container">
+    <!-- Live Camera Background -->
+    <video id="camera-feed" autoplay playsinline muted></video>
+
+    <!-- Main Starfield & AR Overlay Canvas -->
+    <canvas id="sky-canvas"></canvas>
+
+    <!-- Top Status HUD -->
+    <header class="fixed top-0 left-0 right-0 z-20 pt-safe px-3 sm:px-5 pointer-events-none">
+      <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2">
+        <!-- App Title & Telemetry -->
+        <div class="glass-panel rounded-2xl px-3.5 py-2 flex items-center gap-3 pointer-events-auto">
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse shadow-[0_0_8px_#38bdf8]"></span>
+            <h1 class="text-sm sm:text-base font-bold tracking-wide text-white">ARプラネタリウム</h1>
+          </div>
+          <div class="h-4 w-px bg-slate-600/60"></div>
+          <div class="flex items-center gap-2.5 text-xs sm:text-sm font-mono text-sky-200">
+            <span id="hud-direction" class="font-bold text-amber-300">南 (180°)</span>
+            <span id="hud-altitude" class="text-slate-300">高度 +35°</span>
+            <span id="hud-fov" class="hidden sm:inline text-slate-400">視野 65°</span>
+          </div>
+        </div>
+
+        <!-- Primary Action Buttons (Camera & Sensor) -->
+        <div class="flex items-center gap-2 pointer-events-auto">
+          <button id="btn-camera" type="button" class="glass-panel hover:bg-slate-800/80 active:scale-95 transition px-3 py-2 rounded-2xl text-xs sm:text-sm font-medium flex items-center gap-1.5 text-slate-100 border border-slate-500/30">
+            <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+              <circle cx="12" cy="13" r="3"/>
+            </svg>
+            <span id="btn-camera-text">カメラ起動</span>
+          </button>
+
+          <button id="btn-sensor" type="button" class="glass-panel hover:bg-slate-800/80 active:scale-95 transition px-3 py-2 rounded-2xl text-xs sm:text-sm font-medium flex items-center gap-1.5 text-slate-100 border border-slate-500/30">
+            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+              <circle cx="12" cy="12" r="4"/>
+            </svg>
+            <span id="btn-sensor-text">センサー連動: OFF</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Current Simulated Date/Time & Location Pill -->
+      <div class="max-w-6xl mx-auto mt-2 flex items-center justify-between pointer-events-none">
+        <div class="glass-panel rounded-xl px-3 py-1 text-[11px] sm:text-xs text-slate-300 flex items-center gap-2 pointer-events-auto">
+          <span id="hud-datetime">2026/11/19 21:00</span>
+          <span class="text-slate-500">|</span>
+          <span id="hud-location" class="truncate max-w-[140px] sm:max-w-none">種子島宇宙センター (30.4°N, 131.0°E)</span>
+        </div>
+
+        <!-- Toast Notification Area -->
+        <div id="toast-box" class="hidden glass-panel border-sky-400/50 bg-sky-950/85 text-sky-100 text-xs px-3.5 py-1.5 rounded-xl shadow-lg transition-all duration-300 pointer-events-auto">
+          メッセージ
+        </div>
+      </div>
+    </header>
+
+    <!-- Selected Celestial Object Info Card -->
+    <div id="info-card" class="hidden fixed bottom-24 sm:bottom-24 left-3 right-3 sm:left-auto sm:right-5 sm:w-80 z-20 glass-panel rounded-2xl p-4 border-sky-400/40 transition-all duration-200">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <span id="info-type" class="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30 mb-1">恒星</span>
+          <h2 id="info-name" class="text-lg font-bold text-white leading-tight">シリウス</h2>
+          <p id="info-subname" class="text-xs text-slate-400">Sirius (α Canis Majoris)</p>
+        </div>
+        <button id="btn-close-info" type="button" class="p-1.5 rounded-lg hover:bg-slate-700/60 text-slate-400 hover:text-white">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="mt-3 grid grid-cols-2 gap-2 text-xs bg-slate-900/60 rounded-xl p-2.5 border border-slate-700/50">
+        <div>
+          <span class="text-slate-400 block text-[10px]">実視等級</span>
+          <span id="info-mag" class="font-semibold text-amber-300">-1.46 等</span>
+        </div>
+        <div>
+          <span class="text-slate-400 block text-[10px]">スペクトル / 距離</span>
+          <span id="info-spec" class="font-semibold text-slate-200">A1V / 8.6光年</span>
+        </div>
+        <div>
+          <span class="text-slate-400 block text-[10px]">現在の方位角</span>
+          <span id="info-az" class="font-mono text-sky-300">142.3° (南東)</span>
+        </div>
+        <div>
+          <span class="text-slate-400 block text-[10px]">現在の高度</span>
+          <span id="info-alt" class="font-mono text-emerald-300">+28.4°</span>
+        </div>
+      </div>
+      <p id="info-desc" class="mt-2.5 text-xs text-slate-300 leading-relaxed">
+        おおいぬ座の首星で、全天で最も明るい恒星です。
+      </p>
+    </div>
+
+    <!-- Bottom Floating Control Bar & Expandable Drawer -->
+    <div class="fixed bottom-0 left-0 right-0 z-30 pb-safe px-3 sm:px-5 pointer-events-none">
+      <div class="max-w-4xl mx-auto flex flex-col items-center">
+        
+        <!-- Expandable Settings Drawer -->
+        <div id="control-drawer" class="hidden w-full mb-2.5 glass-panel rounded-3xl p-4 sm:p-5 max-h-[62dvh] overflow-y-auto custom-scroll pointer-events-auto transition-all">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            
+            <!-- Left Column: Display Guides & Calibration -->
+            <div class="space-y-4">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                表示ガイド・視野設定
+              </h3>
+
+              <!-- Toggle Switches -->
+              <div class="grid grid-cols-2 gap-2">
+                <button id="toggle-lines" type="button" class="toggle-btn active flex items-center justify-between px-3 py-2.5 rounded-xl bg-sky-500/25 border border-sky-400/50 text-xs font-medium text-white transition">
+                  <span>星座線</span>
+                  <span class="status-dot w-2 h-2 rounded-full bg-sky-400"></span>
+                </button>
+                <button id="toggle-labels" type="button" class="toggle-btn active flex items-center justify-between px-3 py-2.5 rounded-xl bg-sky-500/25 border border-sky-400/50 text-xs font-medium text-white transition">
+                  <span>星座名・星名</span>
+                  <span class="status-dot w-2 h-2 rounded-full bg-sky-400"></span>
+                </button>
+                <button id="toggle-grid" type="button" class="toggle-btn active flex items-center justify-between px-3 py-2.5 rounded-xl bg-sky-500/25 border border-sky-400/50 text-xs font-medium text-white transition">
+                  <span>方位・高度線</span>
+                  <span class="status-dot w-2 h-2 rounded-full bg-sky-400"></span>
+                </button>
+                <button id="toggle-horizon" type="button" class="toggle-btn active flex items-center justify-between px-3 py-2.5 rounded-xl bg-sky-500/25 border border-sky-400/50 text-xs font-medium text-white transition">
+                  <span>地平線表示</span>
+                  <span class="status-dot w-2 h-2 rounded-full bg-sky-400"></span>
+                </button>
+              </div>
+
+              <!-- Zoom Slider -->
+              <div class="bg-slate-900/55 p-3 rounded-2xl border border-slate-700/50 space-y-2">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-300 font-medium">ズーム (視野角 FOV)</span>
+                  <span id="label-fov" class="font-mono text-sky-300">65° (1.0x)</span>
+                </div>
+                <input id="slider-fov" type="range" min="20" max="105" value="65" class="w-full" />
+              </div>
+
+              <!-- Azimuth Offset / Calibration -->
+              <div class="bg-slate-900/55 p-3 rounded-2xl border border-slate-700/50 space-y-2">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-300 font-medium">方位キャリブレーション補正</span>
+                  <span id="label-offset" class="font-mono text-amber-300">0°</span>
+                </div>
+                <input id="slider-offset" type="range" min="-180" max="180" value="0" class="w-full" />
+              </div>
+            </div>
+
+            <!-- Right Column: Date, Time & Seasons -->
+            <div class="space-y-4">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/>
+                </svg>
+                日時・季節シミュレーション
+              </h3>
+
+              <!-- Season Presets -->
+              <div>
+                <span class="block text-[11px] text-slate-400 mb-1.5">季節の星空プリセット (21:00の夜空)</span>
+                <div class="grid grid-cols-4 gap-2">
+                  <button type="button" data-season="spring" class="season-btn py-2 rounded-xl bg-pink-500/20 hover:bg-pink-500/35 border border-pink-400/40 text-xs font-semibold text-pink-200 transition active:scale-95">
+                    🌸 春
+                  </button>
+                  <button type="button" data-season="summer" class="season-btn py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-400/40 text-xs font-semibold text-emerald-200 transition active:scale-95">
+                    🌌 夏
+                  </button>
+                  <button type="button" data-season="autumn" class="season-btn py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/40 text-xs font-semibold text-amber-200 transition active:scale-95">
+                    🍁 秋
+                  </button>
+                  <button type="button" data-season="winter" class="season-btn py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/35 border border-sky-400/40 text-xs font-semibold text-sky-200 transition active:scale-95">
+                    ❄️ 冬
+                  </button>
+                </div>
+              </div>
+
+              <!-- DateTime Picker & Now Button -->
+              <div class="bg-slate-900/55 p-3 rounded-2xl border border-slate-700/50 space-y-2.5">
+                <div class="flex items-center gap-2">
+                  <input id="input-datetime" type="datetime-local" class="flex-1 bg-slate-800/90 border border-slate-600/60 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-sky-400" />
+                  <button id="btn-now" type="button" class="px-3 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs transition active:scale-95 whitespace-nowrap">
+                    現在時刻
+                  </button>
+                </div>
+
+                <!-- Time-lapse Speed Controls -->
+                <div class="flex items-center justify-between pt-1">
+                  <span class="text-[11px] text-slate-400">時間経過速度:</span>
+                  <div class="flex items-center gap-1.5">
+                    <button type="button" data-speed="0" class="speed-btn px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-600/50 text-[11px] font-medium text-slate-300 hover:bg-slate-700">停止</button>
+                    <button type="button" data-speed="1" class="speed-btn active px-2.5 py-1 rounded-lg bg-sky-500/30 border border-sky-400 text-[11px] font-bold text-sky-200">1x</button>
+                    <button type="button" data-speed="600" class="speed-btn px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-600/50 text-[11px] font-medium text-slate-300 hover:bg-slate-700">10分/秒</button>
+                    <button type="button" data-speed="3600" class="speed-btn px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-600/50 text-[11px] font-medium text-slate-300 hover:bg-slate-700">1時間/秒</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Location & Camera Opacity -->
+              <div class="flex items-center justify-between gap-2 text-xs">
+                <button id="btn-gps" type="button" class="flex-1 py-2 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-600/60 text-slate-200 font-medium flex items-center justify-center gap-1.5 transition">
+                  <svg class="w-3.5 h-3.5 text-rose-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                  現在地GPS取得
+                </button>
+                <div id="camera-opacity-wrap" class="hidden flex-1 items-center gap-2 bg-slate-900/55 px-3 py-1.5 rounded-xl border border-slate-700/50">
+                  <span class="text-[11px] text-slate-400 whitespace-nowrap">星空濃度</span>
+                  <input id="slider-sky-alpha" type="range" min="25" max="100" value="72" class="w-full" />
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Compact Bottom Pill Bar -->
+        <div class="glass-panel rounded-full px-3 py-2 flex items-center gap-2 sm:gap-3 pointer-events-auto shadow-2xl">
+          <!-- Quick Constellation Toggle -->
+          <button id="quick-constellation" type="button" class="px-3 py-1.5 rounded-full bg-sky-500/25 border border-sky-400/50 text-xs font-semibold text-sky-200 flex items-center gap-1.5 transition active:scale-95">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+            </svg>
+            <span>星座ガイド</span>
+          </button>
+
+          <!-- Quick Zoom Out / In -->
+          <div class="flex items-center bg-slate-900/70 rounded-full border border-slate-700/60 p-0.5">
+            <button id="btn-zoom-out" type="button" aria-label="縮小" class="w-8 h-8 rounded-full hover:bg-slate-700/70 flex items-center justify-center text-slate-200 font-bold text-base transition active:scale-90">−</button>
+            <span id="pill-zoom-val" class="px-2 text-xs font-mono text-slate-300">1.0x</span>
+            <button id="btn-zoom-in" type="button" aria-label="拡大" class="w-8 h-8 rounded-full hover:bg-slate-700/70 flex items-center justify-center text-slate-200 font-bold text-base transition active:scale-90">＋</button>
+          </div>
+
+          <!-- Toggle Drawer Button -->
+          <button id="btn-toggle-drawer" type="button" class="px-3.5 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-600/60 text-xs font-semibold text-white flex items-center gap-1.5 transition active:scale-95">
+            <svg id="drawer-chevron" class="w-4 h-4 text-sky-400 transition-transform duration-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/>
+            </svg>
+            <span>設定・季節</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * ARプラネタリウム - リアル星空カメラ (Single-File Application)
+     * ============================================================================
+     * 1. 天文計算エンジン (ユリウス日、地方恒星時、赤道座標→地平座標変換、太陽・月・惑星位置)
+     * 2. 主要恒星カタログ (J2000赤経・赤緯・等級・スペクトル型・和名) + 背景微光星生成
+     * 3. 星座線・星座名データ (四季の主要18星座)
+     * 4. センサー連動 (DeviceOrientation) & マウス/タッチ操作 & ピンチズーム
+     * 5. 高精細Canvasレンダリング (天の川、回折スパイク、大気散乱、地平線、HUD)
+     */
+
+    (function () {
+      'use strict';
+
+      // --------------------------------------------------------------------------
+      // 1. アプリケーション状態管理 (State)
+      // --------------------------------------------------------------------------
+      const state = {
+        // 観測地 (デフォルト: 種子島宇宙センター)
+        lat: 30.4006,
+        lon: 130.97765,
+        locationName: '種子島宇宙センター',
+
+        // 視線方向 (方位角 Azimuth: 0=北, 90=東, 180=南, 270=西 / 高度 Altitude: -90〜+90)
+        azimuth: 180.0,
+        altitude: 32.0,
+        roll: 0.0,
+        azimuthOffset: 0.0,
+
+        // センサー連動状態
+        sensorEnabled: false,
+        targetAzimuth: 180.0,
+        targetAltitude: 32.0,
+        targetRoll: 0.0,
+
+        // カメラ状態
+        cameraActive: false,
+        skyOpacity: 1.0, // カメラOFF時は1.0, ON時は0.72程度
+
+        // 視野角 (FOV in degrees: 20°〜105°)
+        fov: 65.0,
+
+        // 表示オプション
+        showLines: true,
+        showLabels: true,
+        showGrid: true,
+        showHorizon: true,
+
+        // 時刻シミュレーション
+        simTime: new Date(),
+        timeSpeed: 1, // 1 = リアルタイム, 0 = 停止, 600 = 10分/秒
+        lastFrameTime: performance.now(),
+
+        // インタラクション状態
+        isDragging: false,
+        dragStartX: 0,
+        dragStartY: 0,
+        dragStartAz: 180.0,
+        dragStartAlt: 32.0,
+        pinchStartDist: 0,
+        pinchStartFov: 65.0,
+
+        // 選択中の天体
+        selectedObject: null,
+        projectedObjects: [] // クリック判定用の画面座標キャッシュ
+      };
+
+      // --------------------------------------------------------------------------
+      // 2. リアル恒星カタログ (ID, 日本語名, 英語名/バイエル符号, 赤経RA[時], 赤緯Dec[度], 等級, スペクトル, 距離/解説)
+      // --------------------------------------------------------------------------
+      const BRIGHT_STARS = [
+        // おおいぬ座 (Canis Major)
+        { id: 'sirius', name: 'シリウス', en: 'Sirius (α CMa)', ra: 6.7525, dec: -16.7161, mag: -1.46, spec: 'A1V', dist: '8.6光年', desc: '全天で最も明るい恒星。冬の大三角の一つ。' },
+        { id: 'adhara', name: 'アダーラ', en: 'Adhara (ε CMa)', ra: 6.9771, dec: -28.9721, mag: 1.50, spec: 'B2II', dist: '430光年', desc: 'おおいぬ座の2等星。' },
+        { id: 'wezen', name: 'ウェズン', en: 'Wezen (δ CMa)', ra: 7.1398, dec: -26.3932, mag: 1.83, spec: 'F8Ia', dist: '1,600光年', desc: '黄色超巨星。' },
+        { id: 'mirzam', name: 'ミルザム', en: 'Mirzam (β CMa)', ra: 6.3783, dec: -17.9559, mag: 1.98, spec: 'B1II', dist: '500光年', desc: 'シリウスに先立って昇る星。' },
+        { id: 'aludra', name: 'アルドラ', en: 'Aludra (η CMa)', ra: 7.4015, dec: -29.3031, mag: 2.45, spec: 'B5Ia', dist: '2,000光年', desc: 'おおいぬ座の尻尾の星。' },
+
+        // オリオン座 (Orion)
+        { id: 'rigel', name: 'リゲル', en: 'Rigel (β Ori)', ra: 5.2423, dec: -8.2016, mag: 0.13, spec: 'B8Ia', dist: '860光年', desc: '青白く輝く超巨星。冬のダイヤモンドの一つ。' },
+        { id: 'betelgeuse', name: 'ベテルギウス', en: 'Betelgeuse (α Ori)', ra: 5.9195, dec: 7.4071, mag: 0.42, spec: 'M1Ia', dist: '550光年', desc: '赤色超巨星。冬の大三角の一つ。' },
+        { id: 'bellatrix', name: 'ベラトリクス', en: 'Bellatrix (γ Ori)', ra: 5.4188, dec: 6.3497, mag: 1.64, spec: 'B2III', dist: '250光年', desc: 'オリオンの左肩に輝く青白い星。' },
+        { id: 'alnilam', name: 'アルニラム', en: 'Alnilam (ε Ori)', ra: 5.6036, dec: -1.2019, mag: 1.69, spec: 'B0Ia', dist: '2,000光年', desc: 'オリオン座の三つ星の中央。' },
+        { id: 'alnitak', name: 'アルニタク', en: 'Alnitak (ζ Ori)', ra: 5.6793, dec: -1.9426, mag: 1.77, spec: 'O9.5Ib', dist: '1,260光年', desc: '三つ星の東端。近くに馬頭星雲がある。' },
+        { id: 'saiph', name: 'サイフ', en: 'Saiph (κ Ori)', ra: 5.7959, dec: -9.6696, mag: 2.09, spec: 'B0.5Ia', dist: '650光年', desc: 'オリオンの右足に位置する青白い巨星。' },
+        { id: 'mintaka', name: 'ミンタカ', en: 'Mintaka (δ Ori)', ra: 5.5334, dec: -0.2991, mag: 2.23, spec: 'O9.5II', dist: '1,200光年', desc: '三つ星の西端。ほぼ天の赤道上に位置する。' },
+        { id: 'meissa', name: 'メイサ', en: 'Meissa (λ Ori)', ra: 5.5856, dec: 9.9342, mag: 3.33, spec: 'O8III', dist: '1,100光年', desc: 'オリオンの頭部に位置する星。' },
+
+        // こいぬ座 (Canis Minor)
+        { id: 'procyon', name: 'プロキオン', en: 'Procyon (α CMi)', ra: 7.6550, dec: 5.2250, mag: 0.34, spec: 'F5IV', dist: '11.5光年', desc: 'こいぬ座の1等星。冬の大三角を形成する。' },
+        { id: 'gomeisa', name: 'ゴメイサ', en: 'Gomeisa (β CMi)', ra: 7.4525, dec: 8.2893, mag: 2.89, spec: 'B8Ve', dist: '162光年', desc: 'プロキオンの近くで輝く青白い星。' },
+
+        // おうし座 (Taurus)
+        { id: 'aldebaran', name: 'アルデバラン', en: 'Aldebaran (α Tau)', ra: 4.5987, dec: 16.5093, mag: 0.86, spec: 'K5III', dist: '65光年', desc: 'オレンジ色に輝くおうし座の眼。' },
+        { id: 'elnath', name: 'エルナト', en: 'Elnath (β Tau)', ra: 5.4382, dec: 28.6075, mag: 1.65, spec: 'B7III', dist: '134光年', desc: 'おうし座の北の角先にある星。' },
+        { id: 'alcyone', name: 'アルキオネ (すばる)', en: 'Alcyone (η Tau)', ra: 3.7914, dec: 24.1051, mag: 2.87, spec: 'B7III', dist: '440光年', desc: 'プレアデス星団（すばる）で最も明るい星。' },
+        { id: 'tianguan', name: '天関', en: 'Tianguan (ζ Tau)', ra: 5.6274, dec: 21.1425, mag: 3.00, spec: 'B4III', dist: '440光年', desc: 'おうし座の南の角先。近くにかに星雲がある。' },
+        { id: 'hyadum1', name: 'ヒアドゥムI', en: 'Prima Hyadum (γ Tau)', ra: 4.3299, dec: 15.6276, mag: 3.65, spec: 'G8III', dist: '154光年', desc: 'ヒアデス星団のV字の頂点。' },
+
+        // ぎょしゃ座 (Auriga)
+        { id: 'capella', name: 'カペラ', en: 'Capella (α Aur)', ra: 5.2782, dec: 45.9980, mag: 0.08, spec: 'G8III', dist: '43光年', desc: '黄金色に輝く1等星。冬のダイヤモンドの一つ。' },
+        { id: 'menkalinan', name: 'メンカリナン', en: 'Menkalinan (β Aur)', ra: 5.9921, dec: 44.9474, mag: 1.90, spec: 'A2IV', dist: '81光年', desc: 'ぎょしゃ座の五角形を形作る2等星。' },
+        { id: 'mahasim', name: 'マハシム', en: 'Mahasim (θ Aur)', ra: 5.9955, dec: 37.2126, mag: 2.62, spec: 'A0p', dist: '165光年', desc: 'ぎょしゃ座の五角形の一角。' },
+        { id: 'hassaleh', name: 'ハッサレー', en: 'Hassaleh (ι Aur)', ra: 4.9499, dec: 33.1661, mag: 2.69, spec: 'K3II', dist: '490光年', desc: 'オレンジ色の明るい巨星。' },
+
+        // ふたご座 (Gemini)
+        { id: 'pollux', name: 'ポルックス', en: 'Pollux (β Gem)', ra: 7.7553, dec: 28.0262, mag: 1.14, spec: 'K0III', dist: '34光年', desc: 'ふたご座の弟星。オレンジ色の1等星。' },
+        { id: 'castor', name: 'カストル', en: 'Castor (α Gem)', ra: 7.5767, dec: 31.8883, mag: 1.58, spec: 'A1V', dist: '51光年', desc: 'ふたご座の兄星。6重連星として知られる。' },
+        { id: 'alhena', name: 'アルヘナ', en: 'Alhena (γ Gem)', ra: 6.6285, dec: 16.3993, mag: 1.93, spec: 'A0IV', dist: '109光年', desc: 'ポルックスの足元に輝く白色星。' },
+        { id: 'tejat', name: 'テジャト', en: 'Tejat (μ Gem)', ra: 6.3827, dec: 22.5136, mag: 2.88, spec: 'M3III', dist: '230光年', desc: 'カストルの足元にある赤色巨星。' },
+        { id: 'mebsuta', name: 'メブスタ', en: 'Mebsuta (ε Gem)', ra: 6.7322, dec: 25.1311, mag: 2.98, spec: 'G8Ib', dist: '840光年', desc: 'ふたご座の胴体部分の星。' },
+
+        // おおぐま座 (Ursa Major - 北斗七星)
+        { id: 'alioth', name: 'アリオト', en: 'Alioth (ε UMa)', ra: 12.9005, dec: 55.9598, mag: 1.77, spec: 'A1III', dist: '83光年', desc: '北斗七星の中で最も明るい星。' },
+        { id: 'dubhe', name: 'ドゥーベ', en: 'Dubhe (α UMa)', ra: 11.0621, dec: 61.7510, mag: 1.79, spec: 'K0III', dist: '123光年', desc: '北極星を指し示す指極星の一つ。' },
+        { id: 'alkaid', name: 'アルカイド', en: 'Alkaid (η UMa)', ra: 13.7923, dec: 49.3133, mag: 1.86, spec: 'B3V', dist: '104光年', desc: '北斗七星の柄の先端の星。' },
+        { id: 'mizar', name: 'ミザール', en: 'Mizar (ζ UMa)', ra: 13.3988, dec: 54.9254, mag: 2.04, spec: 'A2V', dist: '83光年', desc: 'アルコルと並ぶ二重星として有名。' },
+        { id: 'merak', name: 'メラク', en: 'Merak (β UMa)', ra: 11.0307, dec: 56.3824, mag: 2.37, spec: 'A1V', dist: '80光年', desc: 'ドゥーベと共に北極星を指す星。' },
+        { id: 'phecda', name: 'フェクダ', en: 'Phecda (γ UMa)', ra: 11.8972, dec: 53.6948, mag: 2.44, spec: 'A0Ve', dist: '83光年', desc: '北斗七星の枡の底の星。' },
+        { id: 'megrez', name: 'メグレズ', en: 'Megrez (δ UMa)', ra: 12.2570, dec: 57.0326, mag: 3.31, spec: 'A3V', dist: '81光年', desc: '北斗七星の枡と柄のつなぎ目の星。' },
+
+        // こぐま座 (Ursa Minor)
+        { id: 'polaris', name: 'ポラリス (北極星)', en: 'Polaris (α UMi)', ra: 2.5303, dec: 89.2641, mag: 1.98, spec: 'F7Ib', dist: '433光年', desc: '天の北極に非常に近く、ほとんど動かない道しるべの星。' },
+        { id: 'kochab', name: 'コカブ', en: 'Kochab (β UMi)', ra: 14.8451, dec: 74.1555, mag: 2.08, spec: 'K4III', dist: '131光年', desc: '紀元前1000年頃には北極星だった明るい星。' },
+        { id: 'pherkad', name: 'フェルカド', en: 'Pherkad (γ UMi)', ra: 15.3455, dec: 71.8340, mag: 3.05, spec: 'A3II', dist: '480光年', desc: 'コカブと並ぶこぐま座の星。' },
+
+        // カシオペヤ座 (Cassiopeia)
+        { id: 'schedar', name: 'シェダル', en: 'Schedar (α Cas)', ra: 0.6751, dec: 56.5373, mag: 2.23, spec: 'K0III', dist: '228光年', desc: 'カシオペヤ座のW字の右から2番目の星。' },
+        { id: 'caph', name: 'カフ', en: 'Caph (β Cas)', ra: 0.1529, dec: 59.1498, mag: 2.27, spec: 'F2III', dist: '55光年', desc: 'W字の右端に位置する星。' },
+        { id: 'gamma_cas', name: 'ツィー', en: 'Navi (γ Cas)', ra: 0.9451, dec: 60.7167, mag: 2.47, spec: 'B0.5IV', dist: '550光年', desc: 'W字の中央で輝く青白い変光星。' },
+        { id: 'ruchbah', name: 'ルクバー', en: 'Ruchbah (δ Cas)', ra: 1.4303, dec: 60.2353, mag: 2.68, spec: 'A5V', dist: '99光年', desc: 'W字の左から2番目の星。' },
+        { id: 'segin', name: 'セギン', en: 'Segin (ε Cas)', ra: 1.9066, dec: 63.6701, mag: 3.37, spec: 'B3III', dist: '440光年', desc: 'W字の左端の星。' },
+
+        // しし座 (Leo)
+        { id: 'regulus', name: 'レグルス', en: 'Regulus (α Leo)', ra: 10.1395, dec: 11.9672, mag: 1.35, spec: 'B8IV', dist: '79光年', desc: 'しし座の心臓に位置する1等星。春の大三角の近く。' },
+        { id: 'denebola', name: 'デネボラ', en: 'Denebola (β Leo)', ra: 11.8177, dec: 14.5721, mag: 2.14, spec: 'A3V', dist: '36光年', desc: 'ししの尾の星。春の大三角の一つ。' },
+        { id: 'algieba', name: 'アルギエバ', en: 'Algieba (γ Leo)', ra: 10.3329, dec: 19.8415, mag: 2.08, spec: 'K1III', dist: '130光年', desc: '「ししの大鎌」を形作る美しい黄金色の二重星。' },
+        { id: 'zosma', name: 'ゾスマ', en: 'Zosma (δ Leo)', ra: 11.2351, dec: 20.5237, mag: 2.56, spec: 'A4V', dist: '58光年', desc: 'ししの腰にあたる星。' },
+        { id: 'rasalas', name: 'ラサラス', en: 'Rasalas (μ Leo)', ra: 9.8793, dec: 26.0070, mag: 3.88, spec: 'K2III', dist: '124光年', desc: 'ししの頭部の星。' },
+        { id: 'adhafera', name: 'アダフェラ', en: 'Adhafera (ζ Leo)', ra: 10.2782, dec: 23.4173, mag: 3.44, spec: 'F0III', dist: '274光年', desc: 'ししの大鎌のカーブの星。' },
+
+        // おとめ座 (Virgo)
+        { id: 'spica', name: 'スピカ', en: 'Spica (α Vir)', ra: 13.4199, dec: -11.1613, mag: 0.97, spec: 'B1III', dist: '250光年', desc: '真珠のように白く輝く1等星。春の大三角・春の大曲線。' },
+        { id: 'vindemiatrix', name: 'ヴィンデミアトリクス', en: 'Vindemiatrix (ε Vir)', ra: 13.0363, dec: 10.9591, mag: 2.83, spec: 'G8III', dist: '110光年', desc: '「ぶどう摘みの女」を意味する星。' },
+        { id: 'porrima', name: 'ポリマ', en: 'Porrima (γ Vir)', ra: 12.6943, dec: -1.4494, mag: 2.74, spec: 'F0V', dist: '38光年', desc: 'おとめ座の連星。' },
+        { id: 'zaniah', name: 'ザニア', en: 'Zaniah (η Vir)', ra: 12.3318, dec: -0.6668, mag: 3.89, spec: 'A2IV', dist: '265光年', desc: 'おとめ座のY字の中心付近の星。' },
+
+        // うしかい座 (Bootes)
+        { id: 'arcturus', name: 'アークトゥルス', en: 'Arcturus (α Boo)', ra: 14.2610, dec: 19.1824, mag: -0.05, spec: 'K1.5III', dist: '37光年', desc: '全天で3番目に明るい恒星。春の大三角の一つ。' },
+        { id: 'izar', name: 'イザール', en: 'Izar (ε Boo)', ra: 14.7498, dec: 27.0742, mag: 2.37, spec: 'K0II', dist: '203光年', desc: '美しい色の対比を見せる二重星。' },
+        { id: 'muphrid', name: 'ムフリッド', en: 'Muphrid (η Boo)', ra: 13.9114, dec: 18.3977, mag: 2.68, spec: 'G0IV', dist: '37光年', desc: 'アークトゥルスのすぐ隣に輝く星。' },
+        { id: 'seginus', name: 'セギヌス', en: 'Seginus (γ Boo)', ra: 14.5346, dec: 38.3083, mag: 3.03, spec: 'A7III', dist: '85光年', desc: 'うしかい座の肩の星。' },
+        { id: 'nekkar', name: 'ネカル', en: 'Nekkar (β Boo)', ra: 15.0323, dec: 40.3906, mag: 3.50, spec: 'G8III', dist: '225光年', desc: 'うしかい座の頭部の星。' },
+
+        // こと座 (Lyra)
+        { id: 'vega', name: 'ベガ (織姫星)', en: 'Vega (α Lyr)', ra: 18.6156, dec: 38.7837, mag: 0.03, spec: 'A0V', dist: '25光年', desc: '七夕の織姫星。夏の大三角の頂点。' },
+        { id: 'sheliak', name: 'シェリアク', en: 'Sheliak (β Lyr)', ra: 18.8347, dec: 33.3627, mag: 3.52, spec: 'B8II', dist: '960光年', desc: '食変光星として有名なこと座の星。' },
+        { id: 'sulafat', name: 'スラファト', en: 'Sulafat (γ Lyr)', ra: 18.9824, dec: 32.6896, mag: 3.24, spec: 'B9III', dist: '620光年', desc: '近くにリング星雲(M57)がある。' },
+
+        // はくちょう座 (Cygnus)
+        { id: 'deneb', name: 'デネブ', en: 'Deneb (α Cyg)', ra: 20.6905, dec: 45.2803, mag: 1.25, spec: 'A2Ia', dist: '2,600光年', desc: 'はくちょう座の尾。夏の大三角の一つ。' },
+        { id: 'sadr', name: 'サドル', en: 'Sadr (γ Cyg)', ra: 20.3705, dec: 40.2567, mag: 2.20, spec: 'F8Ib', dist: '1,800光年', desc: '北十字の交差点に位置する超巨星。' },
+        { id: 'gienah_cyg', name: 'ギェナー', en: 'Gienah (ε Cyg)', ra: 20.7702, dec: 33.9703, mag: 2.46, spec: 'K0III', dist: '73光年', desc: 'はくちょう座の右翼の星。' },
+        { id: 'fawaris', name: 'ファワリス', en: 'Fawaris (δ Cyg)', ra: 19.7496, dec: 45.1308, mag: 2.87, spec: 'B9.5III', dist: '165光年', desc: 'はくちょう座の左翼の星。' },
+        { id: 'albireo', name: 'アルビレオ', en: 'Albireo (β Cyg)', ra: 19.5120, dec: 27.9597, mag: 3.08, spec: 'K3II', dist: '430光年', desc: 'はくちょうのくちばし。金と青の美しい二重星。' },
+
+        // わし座 (Aquila)
+        { id: 'altair', name: 'アルタイル (彦星)', en: 'Altair (α Aql)', ra: 19.8464, dec: 8.8683, mag: 0.77, spec: 'A7V', dist: '16.7光年', desc: '七夕の彦星。夏の大三角の一つ。' },
+        { id: 'tarazed', name: 'タラゼド', en: 'Tarazed (γ Aql)', ra: 19.7710, dec: 10.6133, mag: 2.72, spec: 'K3II', dist: '395光年', desc: 'アルタイルのすぐ北側に並ぶオレンジ色の星。' },
+        { id: 'alshain', name: 'アルシャイン', en: 'Alshain (β Aql)', ra: 19.9219, dec: 6.4068, mag: 3.71, spec: 'G8IV', dist: '45光年', desc: 'アルタイルの南側に並ぶ星。' },
+        { id: 'okab', name: 'オカブ', en: 'Okab (ζ Aql)', ra: 19.0902, dec: 13.8635, mag: 2.99, spec: 'A0Vn', dist: '83光年', desc: 'わし座の翼の星。' },
+
+        // さそり座 (Scorpius)
+        { id: 'antares', name: 'アンタレス', en: 'Antares (α Sco)', ra: 16.4901, dec: -26.4320, mag: 1.09, spec: 'M1.5Iab', dist: '550光年', desc: '「火星に対抗するもの」の名を持つ赤色超巨星。' },
+        { id: 'shaula', name: 'シャウラ', en: 'Shaula (λ Sco)', ra: 17.5601, dec: -37.1038, mag: 1.63, spec: 'B2IV', dist: '570光年', desc: 'さそりの毒針の先端に輝く星。' },
+        { id: 'sargas', name: 'サルガス', en: 'Sargas (θ Sco)', ra: 17.6220, dec: -42.9978, mag: 1.87, spec: 'F1II', dist: '300光年', desc: 'さそり座のS字カーブの南端付近の星。' },
+        { id: 'dschubba', name: 'ジュバ', en: 'Dschubba (δ Sco)', ra: 16.0055, dec: -22.6217, mag: 2.32, spec: 'B0.3IV', dist: '490光年', desc: 'さそりの額にあたる星。' },
+        { id: 'larawag', name: 'ララワグ', en: 'Larawag (ε Sco)', ra: 16.8362, dec: -34.2932, mag: 2.29, spec: 'K2III', dist: '64光年', desc: 'さそりの胴体から尾へ向かう星。' },
+        { id: 'graffias', name: 'グラフィアス', en: 'Acrab (β Sco)', ra: 16.0906, dec: -19.8055, mag: 2.62, spec: 'B1V', dist: '400光年', desc: 'さそりの頭部の北側の星。' },
+
+        // いて座 (Sagittarius - 南斗六星)
+        { id: 'kaus_australis', name: 'カウス・アウストラリス', en: 'Kaus Australis (ε Sgr)', ra: 18.4029, dec: -34.3846, mag: 1.85, spec: 'B9.5III', dist: '143光年', desc: 'いて座で最も明るい星。天の川中心方向にある。' },
+        { id: 'nunki', name: 'ヌンキ', en: 'Nunki (σ Sgr)', ra: 18.9211, dec: -26.2967, mag: 2.02, spec: 'B2.5V', dist: '228光年', desc: '南斗六星を形作る明るい星。' },
+        { id: 'ascella', name: 'アスケラ', en: 'Ascella (ζ Sgr)', ra: 19.0435, dec: -29.8801, mag: 2.59, spec: 'A2III', dist: '88光年', desc: 'ティーポット（南斗六星）の取っ手側の星。' },
+        { id: 'kaus_media', name: 'カウス・メディア', en: 'Kaus Media (δ Sgr)', ra: 18.3499, dec: -29.8281, mag: 2.70, spec: 'K3III', dist: '350光年', desc: 'いて座の弓の中央の星。' },
+        { id: 'kaus_borealis', name: 'カウス・ボレアリス', en: 'Kaus Borealis (λ Sgr)', ra: 18.4660, dec: -25.4217, mag: 2.81, spec: 'K1III', dist: '78光年', desc: 'ティーポットの蓋の頂点の星。' },
+
+        // ペガスス座・アンドロメダ座 (秋の四辺形)
+        { id: 'markab', name: 'マルカブ', en: 'Markab (α Peg)', ra: 23.0793, dec: 15.2053, mag: 2.49, spec: 'B9III', dist: '133光年', desc: '秋の四辺形の南西の角の星。' },
+        { id: 'scheat', name: 'シェアト', en: 'Scheat (β Peg)', ra: 23.0629, dec: 28.0828, mag: 2.42, spec: 'M2.5II', dist: '196光年', desc: '秋の四辺形の北西の角にある赤色巨星。' },
+        { id: 'algenib', name: 'アルゲニブ', en: 'Algenib (γ Peg)', ra: 0.2206, dec: 15.1836, mag: 2.83, spec: 'B2IV', dist: '390光年', desc: '秋の四辺形の南東の角の星。' },
+        { id: 'alpheratz', name: 'アルフェラッツ', en: 'Alpheratz (α And)', ra: 0.1398, dec: 29.0908, mag: 2.06, spec: 'B8IV', dist: '97光年', desc: 'アンドロメダ座の頭であり、秋の四辺形の北東の角。' },
+        { id: 'enif', name: 'エニフ', en: 'Enif (ε Peg)', ra: 21.7364, dec: 9.8750, mag: 2.39, spec: 'K2Ib', dist: '690光年', desc: 'ペガススの鼻先に位置するオレンジ色の超巨星。' },
+        { id: 'mirach', name: 'ミラク', en: 'Mirach (β And)', ra: 1.1622, dec: 35.6206, mag: 2.05, spec: 'M0III', dist: '197光年', desc: 'アンドロメダ銀河(M31)を探す目印になる星。' },
+        { id: 'almach', name: 'アルマク', en: 'Almach (γ And)', ra: 2.0650, dec: 42.3297, mag: 2.17, spec: 'K3II', dist: '350光年', desc: '金と青の美しい二重星として知られる。' },
+
+        // ペルセウス座 (Perseus)
+        { id: 'mirfak', name: 'ミルファク', en: 'Mirfak (α Per)', ra: 3.4054, dec: 49.8612, mag: 1.80, spec: 'F5Ib', dist: '510光年', desc: 'ペルセウス座で最も明るい超巨星。' },
+        { id: 'algol', name: 'アルゴル', en: 'Algol (β Per)', ra: 3.1361, dec: 40.9556, mag: 2.12, spec: 'B8V', dist: '90光年', desc: '約2.87日周期で明るさが変わる有名な食変光星。' },
+
+        // みなみのうお座・エリダヌス座 (秋の1等星)
+        { id: 'fomalhaut', name: 'フォーマルハウト', en: 'Fomalhaut (α PsA)', ra: 22.9608, dec: -29.6222, mag: 1.16, spec: 'A3V', dist: '25光年', desc: '秋の夜空にぽつんと輝く「秋のひとつ星」。' },
+        { id: 'achernar', name: 'アケルナル', en: 'Achernar (α Eri)', ra: 1.6286, dec: -57.2367, mag: 0.46, spec: 'B6Vep', dist: '139光年', desc: 'エリダヌス座の終点にある非常に扁平な1等星。' },
+
+        // みなみじゅうじ座・ケンタウルス座
+        { id: 'acrux', name: 'アクルックス', en: 'Acrux (α Cru)', ra: 12.4433, dec: -63.0991, mag: 0.76, spec: 'B0.5IV', dist: '320光年', desc: '南十字星の最も明るい星。' },
+        { id: 'mimosa', name: 'ミモザ', en: 'Mimosa (β Cru)', ra: 12.7953, dec: -59.6888, mag: 1.25, spec: 'B0.5III', dist: '280光年', desc: '南十字星の東側の星。' },
+        { id: 'gacrux', name: 'ガクルックス', en: 'Gacrux (γ Cru)', ra: 12.5194, dec: -57.1132, mag: 1.63, spec: 'M3.5III', dist: '89光年', desc: '南十字星の北端の赤い巨星。' },
+        { id: 'rigil_kent', name: 'リギル・ケンタウルス', en: 'Alpha Centauri', ra: 14.6601, dec: -60.8351, mag: -0.01, spec: 'G2V', dist: '4.37光年', desc: '太陽系に最も近い恒星系。' },
+        { id: 'hadar', name: 'ハダル', en: 'Hadar (β Cen)', ra: 14.0637, dec: -60.3730, mag: 0.61, spec: 'B1III', dist: '390光年', desc: 'ケンタウルス座の青白い1等星。' },
+
+        // りゅうこつ座
+        { id: 'canopus', name: 'カノープス', en: 'Canopus (α Car)', ra: 6.3992, dec: -52.6957, mag: -0.74, spec: 'A9II', dist: '310光年', desc: 'シリウスに次いで全天で2番目に明るい恒星。日本では南の低空に見える。' }
+      ];
+
+      // ID検索用マップ
+      const STAR_MAP = {};
+      BRIGHT_STARS.forEach(s => { STAR_MAP[s.id] = s; });
+
+      // --------------------------------------------------------------------------
+      // 3. 星座データ (日本語名, 英語名, 中心表示用星ID, 線分ペア配列)
+      // --------------------------------------------------------------------------
+      const CONSTELLATIONS = [
+        {
+          name: 'オリオン座', en: 'Orion', anchor: 'alnilam',
+          lines: [
+            ['betelgeuse', 'bellatrix'], ['betelgeuse', 'alnitak'], ['bellatrix', 'mintaka'],
+            ['mintaka', 'alnilam'], ['alnilam', 'alnitak'],
+            ['mintaka', 'rigel'], ['alnitak', 'saiph'], ['rigel', 'saiph'],
+            ['betelgeuse', 'meissa'], ['bellatrix', 'meissa']
+          ]
+        },
+        {
+          name: 'おおいぬ座', en: 'Canis Major', anchor: 'sirius',
+          lines: [
+            ['sirius', 'mirzam'], ['sirius', 'wezen'], ['wezen', 'adhara'], ['wezen', 'aludra']
+          ]
+        },
+        {
+          name: 'こいぬ座', en: 'Canis Minor', anchor: 'procyon',
+          lines: [['procyon', 'gomeisa']]
+        },
+        {
+          name: 'おうし座', en: 'Taurus', anchor: 'aldebaran',
+          lines: [
+            ['aldebaran', 'hyadum1'], ['hyadum1', 'elnath'], ['aldebaran', 'tianguan']
+          ]
+        },
+        {
+          name: 'ぎょしゃ座', en: 'Auriga', anchor: 'capella',
+          lines: [
+            ['capella', 'menkalinan'], ['menkalinan', 'mahasim'], ['mahasim', 'elnath'],
+            ['elnath', 'hassaleh'], ['hassaleh', 'capella']
+          ]
+        },
+        {
+          name: 'ふたご座', en: 'Gemini', anchor: 'pollux',
+          lines: [
+            ['castor', 'pollux'], ['castor', 'mebsuta'], ['mebsuta', 'tejat'],
+            ['pollux', 'alhena']
+          ]
+        },
+        {
+          name: 'おおぐま座 (北斗七星)', en: 'Ursa Major', anchor: 'alioth',
+          lines: [
+            ['dubhe', 'merak'], ['merak', 'phecda'], ['phecda', 'megrez'],
+            ['megrez', 'dubhe'], ['megrez', 'alioth'], ['alioth', 'mizar'], ['mizar', 'alkaid']
+          ]
+        },
+        {
+          name: 'こぐま座', en: 'Ursa Minor', anchor: 'polaris',
+          lines: [
+            ['polaris', 'kochab'], ['kochab', 'pherkad']
+          ]
+        },
+        {
+          name: 'カシオペヤ座', en: 'Cassiopeia', anchor: 'gamma_cas',
+          lines: [
+            ['caph', 'schedar'], ['schedar', 'gamma_cas'], ['gamma_cas', 'ruchbah'], ['ruchbah', 'segin']
+          ]
+        },
+        {
+          name: 'しし座', en: 'Leo', anchor: 'regulus',
+          lines: [
+            ['regulus', 'algieba'], ['algieba', 'adhafera'], ['adhafera', 'rasalas'],
+            ['algieba', 'zosma'], ['zosma', 'denebola'], ['denebola', 'regulus']
+          ]
+        },
+        {
+          name: 'おとめ座', en: 'Virgo', anchor: 'spica',
+          lines: [
+            ['spica', 'porrima'], ['porrima', 'zaniah'], ['porrima', 'vindemiatrix']
+          ]
+        },
+        {
+          name: 'うしかい座', en: 'Boötes', anchor: 'arcturus',
+          lines: [
+            ['arcturus', 'muphrid'], ['arcturus', 'izar'], ['izar', 'nekkar'],
+            ['nekkar', 'seginus'], ['seginus', 'arcturus']
+          ]
+        },
+        {
+          name: 'こと座', en: 'Lyra', anchor: 'vega',
+          lines: [
+            ['vega', 'sheliak'], ['sheliak', 'sulafat'], ['sulafat', 'vega']
+          ]
+        },
+        {
+          name: 'はくちょう座', en: 'Cygnus', anchor: 'sadr',
+          lines: [
+            ['deneb', 'sadr'], ['sadr', 'albireo'], ['fawaris', 'sadr'], ['sadr', 'gienah_cyg']
+          ]
+        },
+        {
+          name: 'わし座', en: 'Aquila', anchor: 'altair',
+          lines: [
+            ['tarazed', 'altair'], ['altair', 'alshain'], ['altair', 'okab']
+          ]
+        },
+        {
+          name: 'さそり座', en: 'Scorpius', anchor: 'antares',
+          lines: [
+            ['graffias', 'dschubba'], ['dschubba', 'antares'], ['antares', 'larawag'],
+            ['larawag', 'sargas'], ['sargas', 'shaula']
+          ]
+        },
+        {
+          name: 'いて座 (南斗六星)', en: 'Sagittarius', anchor: 'kaus_media',
+          lines: [
+            ['kaus_borealis', 'kaus_media'], ['kaus_media', 'kaus_australis'],
+            ['kaus_borealis', 'nunki'], ['nunki', 'ascella'], ['ascella', 'kaus_media']
+          ]
+        },
+        {
+          name: 'ペガスス座 (秋の四辺形)', en: 'Pegasus', anchor: 'markab',
+          lines: [
+            ['markab', 'scheat'], ['scheat', 'alpheratz'], ['alpheratz', 'algenib'],
+            ['algenib', 'markab'], ['markab', 'enif']
+          ]
+        },
+        {
+          name: 'アンドロメダ座', en: 'Andromeda', anchor: 'mirach',
+          lines: [
+            ['alpheratz', 'mirach'], ['mirach', 'almach']
+          ]
+        },
+        {
+          name: 'ペルセウス座', en: 'Perseus', anchor: 'mirfak',
+          lines: [
+            ['mirfak', 'algol']
+          ]
+        }
+      ];
+
+      // --------------------------------------------------------------------------
+      // 4. 背景の微光星 (約1,200個) & 天の川帯のサンプル生成 (シード固定で再現性確保)
+      // --------------------------------------------------------------------------
+      function createSeededRandom(seed) {
+        let s = seed % 2147483647;
+        if (s <= 0) s += 2147483646;
+        return function () {
+          s = (s * 16807) % 2147483647;
+          return (s - 1) / 2147483646;
+        };
+      }
+
+      const rand = createSeededRandom(20261119);
+      const BACKGROUND_STARS = [];
+      const SPECTRAL_TYPES = ['O', 'B', 'A', 'F', 'G', 'K', 'M'];
+
+      for (let i = 0; i < 1100; i++) {
+        const ra = rand() * 24.0;
+        // 球面一様分布のためのasin
+        const dec = Math.asin(2 * rand() - 1) * (180 / Math.PI);
+        const mag = 3.2 + Math.pow(rand(), 0.7) * 3.3; // 3.2等〜6.5等
+        const spec = SPECTRAL_TYPES[Math.floor(rand() * SPECTRAL_TYPES.length)];
+        const twinklePhase = rand() * Math.PI * 2;
+        BACKGROUND_STARS.push({ ra, dec, mag, spec, twinklePhase });
+      }
+
+      // 天の川 (銀河赤道に沿った光の帯ポイント)
+      // 銀河北極: RA = 12h 51m (12.85h), Dec = +27.13°
+      const MILKY_WAY_NODES = [];
+      (function generateMilkyWay() {
+        const ngpRa = 12.85 * 15 * Math.PI / 180;
+        const ngpDec = 27.13 * Math.PI / 180;
+        for (let l = 0; l < 360; l += 4) {
+          const lRad = l * Math.PI / 180;
+          // 銀河緯度 b = 0° の赤道座標を計算
+          const sinDec = Math.cos(ngpDec) * Math.sin(lRad);
+          const dec = Math.asin(sinDec);
+          const y = Math.cos(lRad);
+          const x = -Math.sin(ngpDec) * Math.sin(lRad);
+          let ra = ngpRa + Math.atan2(y, x);
+          ra = ((ra * 180 / Math.PI) % 360 + 360) % 360 / 15.0;
+          // 銀河中心 (l ≈ 0° / 360°, いて座方向) ほど明るく太くする
+          const distFromCenter = Math.min(l, 360 - l);
+          const intensity = 0.35 + 0.65 * Math.exp(-(distFromCenter * distFromCenter) / (65 * 65));
+          MILKY_WAY_NODES.push({ ra, dec: dec * 180 / Math.PI, intensity });
+        }
+      })();
+
+      // --------------------------------------------------------------------------
+      // 5. 天文計算ユーティリティ
+      // --------------------------------------------------------------------------
+      const DEG2RAD = Math.PI / 180;
+      const RAD2DEG = 180 / Math.PI;
+
+      // Dateからユリウス日(JD)を算出
+      function getJulianDate(date) {
+        return date.getTime() / 86400000.0 + 2440587.5;
+      }
+
+      // 地方恒星時 (LST in hours, 0〜24)
+      function getLocalSiderealTime(date, lonDeg) {
+        const jd = getJulianDate(date);
+        const d = jd - 2451545.0;
+        // GMST in hours
+        let gmst = 18.697374558 + 24.06570982441908 * d;
+        gmst = ((gmst % 24) + 24) % 24;
+        let lst = gmst + lonDeg / 15.0;
+        return ((lst % 24) + 24) % 24;
+      }
+
+      // 赤道座標 (RA[時], Dec[度]) → 地平座標 (Azimuth[度], Altitude[度])
+      function raDecToAltAz(raHours, decDeg, lstHours, latDeg) {
+        const haRad = ((lstHours - raHours) * 15.0) * DEG2RAD;
+        const decRad = decDeg * DEG2RAD;
+        const latRad = latDeg * DEG2RAD;
+
+        const sinAlt = Math.sin(decRad) * Math.sin(latRad) +
+                       Math.cos(decRad) * Math.cos(latRad) * Math.cos(haRad);
+        const altRad = Math.asin(Math.max(-1, Math.min(1, sinAlt)));
+
+        const cosAlt = Math.cos(altRad);
+        if (Math.abs(cosAlt) < 1e-6) {
+          return { alt: altRad * RAD2DEG, az: 0 };
+        }
+
+        const cosAz = (Math.sin(decRad) - Math.sin(altRad) * Math.sin(latRad)) / (cosAlt * Math.cos(latRad));
+        const sinAz = -Math.cos(decRad) * Math.sin(haRad) / cosAlt;
+        let azDeg = Math.atan2(sinAz, cosAz) * RAD2DEG;
+        azDeg = (azDeg + 360) % 360;
+
+        return {
+          alt: altRad * RAD2DEG,
+          az: azDeg
+        };
+      }
+
+      // 太陽・月・主要惑星の簡易天体暦 (近似赤経・赤緯の計算)
+      function getSolarSystemBodies(date) {
+        const jd = getJulianDate(date);
+        const d = jd - 2451545.0;
+        const bodies = [];
+
+        // --- 太陽 (Sun) ---
+        const gSun = (357.529 + 0.98560028 * d) * DEG2RAD;
+        const qSun = (280.459 + 0.98564736 * d) % 360;
+        const LSun = (qSun + 1.915 * Math.sin(gSun) + 0.020 * Math.sin(2 * gSun)) * DEG2RAD;
+        const eObl = (23.439 - 0.00000036 * d) * DEG2RAD;
+        const sunRa = (Math.atan2(Math.cos(eObl) * Math.sin(LSun), Math.cos(LSun)) * RAD2DEG / 15 + 24) % 24;
+        const sunDec = Math.asin(Math.sin(eObl) * Math.sin(LSun)) * RAD2DEG;
+        bodies.push({
+          id: 'sun', name: '太陽', en: 'Sun', type: '恒星 (太陽系中心)',
+          ra: sunRa, dec: sunDec, mag: -26.7, spec: 'G2V', dist: '1.00 AU (約8光分)',
+          desc: '太陽系の中心に位置する恒星。日中は空を明るく照らします。',
+          color: '#fde047', radiusScale: 1.8
+        });
+
+        // --- 月 (Moon) ---
+        const lMoon = (218.316 + 13.176396 * d) * DEG2RAD;
+        const mMoon = (134.963 + 13.064993 * d) * DEG2RAD;
+        const fMoon = (93.272 + 13.229350 * d) * DEG2RAD;
+        const lonMoon = lMoon + (6.289 * Math.sin(mMoon)) * DEG2RAD;
+        const latMoon = (5.128 * Math.sin(fMoon)) * DEG2RAD;
+        const moonRa = (Math.atan2(
+          Math.sin(lonMoon) * Math.cos(eObl) - Math.tan(latMoon) * Math.sin(eObl),
+          Math.cos(lonMoon)
+        ) * RAD2DEG / 15 + 24) % 24;
+        const moonDec = Math.asin(
+          Math.sin(latMoon) * Math.cos(eObl) + Math.cos(latMoon) * Math.sin(eObl) * Math.sin(lonMoon)
+        ) * RAD2DEG;
+
+        // 月齢・輝面比計算
+        const elongation = ((lonMoon - LSun) * RAD2DEG % 360 + 360) % 360;
+        const moonPhase = (1 - Math.cos(elongation * DEG2RAD)) / 2;
+        const moonAge = (elongation / 360) * 29.53;
+        bodies.push({
+          id: 'moon', name: '月', en: 'Moon', type: '衛星',
+          ra: moonRa, dec: moonDec, mag: -12.7, spec: `月齢 ${moonAge.toFixed(1)}日`, dist: '約38.4万km',
+          desc: `地球唯一の自然衛星。現在の輝面率は約${Math.round(moonPhase * 100)}%です。`,
+          color: '#f8fafc', radiusScale: 1.6, phase: elongation
+        });
+
+        // --- 惑星 (金星・火星・木星・土星) ケプラー軌道近似 ---
+        const planetsData = [
+          {
+            id: 'venus', name: '金星 (宵の明星/明けの明星)', en: 'Venus', mag: -4.2, color: '#fef08a',
+            a: 0.72333, e: 0.00677, i: 3.3947, L0: 181.9798, dL: 1.60213034, w: 131.5637, O: 76.6799,
+            desc: '太陽と月に次いで夜空で最も明るく輝く惑星。'
+          },
+          {
+            id: 'mars', name: '火星', en: 'Mars', mag: -0.8, color: '#fb7185',
+            a: 1.52368, e: 0.09340, i: 1.8497, L0: 355.4330, dL: 0.52403295, w: 336.0602, O: 49.5581,
+            desc: '酸化鉄を多く含む赤い地表から赤く輝く惑星。'
+          },
+          {
+            id: 'jupiter', name: '木星', en: 'Jupiter', mag: -2.4, color: '#fed7aa',
+            a: 5.20260, e: 0.04849, i: 1.3033, L0: 34.3515, dL: 0.08309121, w: 14.3312, O: 100.4644,
+            desc: '太陽系最大の巨大ガス惑星。ガリレオ衛星を従えています。'
+          },
+          {
+            id: 'saturn', name: '土星', en: 'Saturn', mag: 0.6, color: '#fde68a',
+            a: 9.55491, e: 0.05551, i: 2.4889, L0: 50.0774, dL: 0.03345965, w: 93.0572, O: 113.6655,
+            desc: '氷と岩石の美しい環を持つ巨大惑星。'
+          }
+        ];
+
+        // 地球の日心座標
+        const aE = 1.00000, eE = 0.01671, LE = (100.4664 + 0.98564736 * d) % 360, wE = 102.9373;
+        const ME = ((LE - wE) % 360 + 360) % 360 * DEG2RAD;
+        const EE = ME + eE * Math.sin(ME);
+        const xvE = aE * (Math.cos(EE) - eE);
+        const yvE = aE * Math.sqrt(1 - eE * eE) * Math.sin(EE);
+        const vE = Math.atan2(yvE, xvE);
+        const rE = Math.sqrt(xvE * xvE + yvE * yvE);
+        const xE = rE * Math.cos(vE + wE * DEG2RAD);
+        const yE = rE * Math.sin(vE + wE * DEG2RAD);
+
+        planetsData.forEach(p => {
+          const L = (p.L0 + p.dL * d) % 360;
+          const M = ((L - p.w) % 360 + 360) % 360 * DEG2RAD;
+          const E = M + p.e * Math.sin(M);
+          const xv = p.a * (Math.cos(E) - p.e);
+          const yv = p.a * Math.sqrt(1 - p.e * p.e) * Math.sin(E);
+          const v = Math.atan2(yv, xv);
+          const r = Math.sqrt(xv * xv + yv * yv);
+
+          const oRad = p.O * DEG2RAD;
+          const iRad = p.i * DEG2RAD;
+          const u = v + (p.w - p.O) * DEG2RAD;
+
+          const xh = r * (Math.cos(oRad) * Math.cos(u) - Math.sin(oRad) * Math.sin(u) * Math.cos(iRad));
+          const yh = r * (Math.sin(oRad) * Math.cos(u) + Math.cos(oRad) * Math.sin(u) * Math.cos(iRad));
+          const zh = r * (Math.sin(u) * Math.sin(iRad));
+
+          // 地心黄道座標
+          const xg = xh - xE;
+          const yg = yh - yE;
+          const zg = zh;
+
+          // 地心赤道座標
+          const xeq = xg;
+          const yeq = yg * Math.cos(eObl) - zg * Math.sin(eObl);
+          const zeq = yg * Math.sin(eObl) + zg * Math.cos(eObl);
+
+          const distAU = Math.sqrt(xeq * xeq + yeq * yeq + zeq * zeq);
+          const ra = (Math.atan2(yeq, xeq) * RAD2DEG / 15 + 24) % 24;
+          const dec = Math.asin(zeq / distAU) * RAD2DEG;
+
+          bodies.push({
+            id: p.id, name: p.name, en: p.en, type: '太陽系惑星',
+            ra, dec, mag: p.mag, spec: '惑星', dist: `${distAU.toFixed(2)} AU`,
+            desc: p.desc, color: p.color, radiusScale: 1.25
+          });
+        });
+
+        return bodies;
+      }
+
+      // スペクトル型から星のRGB色を取得
+      function getStarColor(spec) {
+        const type = (spec || 'A')[0].toUpperCase();
+        switch (type) {
+          case 'O': return { r: 155, g: 185, b: 255, hex: '#9bb9ff' };
+          case 'B': return { r: 185, g: 210, b: 255, hex: '#b9d2ff' };
+          case 'A': return { r: 235, g: 242, b: 255, hex: '#ebf2ff' };
+          case 'F': return { r: 255, g: 250, b: 235, hex: '#fffaeb' };
+          case 'G': return { r: 255, g: 236, b: 179, hex: '#ffecb3' };
+          case 'K': return { r: 255, g: 198, b: 130, hex: '#ffc682' };
+          case 'M': return { r: 255, g: 155, b: 115, hex: '#ff9b73' };
+          default:  return { r: 240, g: 245, b: 255, hex: '#f0f5ff' };
+        }
+      }
+
+      // 方位角(度)を16方位の日本語文字列に変換
+      function getCompassLabel(azDeg) {
+        const dirs = ['北', '北北東', '北東', '東北東', '東', '東南東', '南東', '南南東',
+                      '南', '南南西', '南西', '西南西', '西', '西北西', '北西', '北北西'];
+        const idx = Math.round(((azDeg % 360) + 360) % 360 / 22.5) % 16;
+        return dirs[idx];
+      }
+
+      // --------------------------------------------------------------------------
+      // 6. 3D球面投影 (Gnomonic / Stereographic Hybrid Projection)
+      // --------------------------------------------------------------------------
+      function projectAltAzToScreen(azDeg, altDeg, viewAzDeg, viewAltDeg, rollDeg, width, height, fovDeg) {
+        const az = azDeg * DEG2RAD;
+        const alt = altDeg * DEG2RAD;
+        const vAz = viewAzDeg * DEG2RAD;
+        const vAlt = viewAltDeg * DEG2RAD;
+        const roll = rollDeg * DEG2RAD;
+
+        // 天体の3D単位ベクトル (北=X, 東=Y, 天頂=Z)
+        const cosAlt = Math.cos(alt);
+        const sx = cosAlt * Math.cos(az);
+        const sy = cosAlt * Math.sin(az);
+        const sz = Math.sin(alt);
+
+        // カメラ視線方向ベクトル (Forward)
+        const cosVAlt = Math.cos(vAlt);
+        const fx = cosVAlt * Math.cos(vAz);
+        const fy = cosVAlt * Math.sin(vAz);
+        const fz = Math.sin(vAlt);
+
+        // カメラ右方向ベクトル (Right = Forward x WorldUp)
+        let rx = -Math.sin(vAz);
+        let ry = Math.cos(vAz);
+        let rz = 0;
+
+        // カメラ上方向ベクトル (Up = Right x Forward)
+        const ux = ry * fz - rz * fy;
+        const uy = rz * fx - rx * fz;
+        const uz = rx * fy - ry * fx;
+
+        // カメラ座標系への内積
+        const zCam = sx * fx + sy * fy + sz * fz; // 奥行き (前方 > 0)
+        if (zCam <= 0.05) {
+          return null; // 背面カリング
+        }
+
+        let xCam = sx * rx + sy * ry + sz * rz;
+        let yCam = sx * ux + sy * uy + sz * uz;
+
+        // 端末ロール角の適用
+        if (Math.abs(roll) > 0.001) {
+          const cosR = Math.cos(roll);
+          const sinR = Math.sin(roll);
+          const xr = xCam * cosR - yCam * sinR;
+          const yr = xCam * sinR + yCam * cosR;
+          xCam = xr;
+          yCam = yr;
+        }
+
+        // ステレオ投影に近い滑らかな広角パースペクティブ (歪みを抑える)
+        const scaleDenom = (1 + zCam) * 0.5;
+        const diag = Math.min(width, height);
+        const focalLength = (diag * 0.5) / Math.tan((fovDeg * 0.5) * DEG2RAD);
+
+        const screenX = width * 0.5 + (xCam / scaleDenom) * focalLength;
+        const screenY = height * 0.5 - (yCam / scaleDenom) * focalLength;
+
+        return { x: screenX, y: screenY, z: zCam };
+      }
+
+      // --------------------------------------------------------------------------
+      // 7. DOM要素とCanvasセットアップ
+      // --------------------------------------------------------------------------
+      const canvas = document.getElementById('sky-canvas');
+      const ctx = canvas.getContext('2d');
+      const videoEl = document.getElementById('camera-feed');
+
+      let canvasWidth = window.innerWidth;
+      let canvasHeight = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      function resizeCanvas() {
+        canvasWidth = window.innerWidth;
+        canvasHeight = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = canvasWidth * dpr;
+        canvas.height = canvasHeight * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      // トースト表示ヘルパー
+      let toastTimer = null;
+      function showToast(msg, duration = 3000) {
+        const toastBox = document.getElementById('toast-box');
+        toastBox.textContent = msg;
+        toastBox.classList.remove('hidden');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          toastBox.classList.add('hidden');
+        }, duration);
+      }
+
+      // --------------------------------------------------------------------------
+      // 8. カメラ起動 & フォールバック処理
+      // --------------------------------------------------------------------------
+      const btnCamera = document.getElementById('btn-camera');
+      const btnCameraText = document.getElementById('btn-camera-text');
+      const cameraOpacityWrap = document.getElementById('camera-opacity-wrap');
+
+      async function toggleCamera() {
+        if (state.cameraActive) {
+          // カメラ停止
+          if (videoEl.srcObject) {
+            videoEl.srcObject.getTracks().forEach(track => track.stop());
+            videoEl.srcObject = null;
+          }
+          videoEl.classList.remove('active');
+          state.cameraActive = false;
+          state.skyOpacity = 1.0;
+          btnCameraText.textContent = 'カメラ起動';
+          btnCamera.classList.remove('border-sky-400', 'bg-sky-500/25');
+          cameraOpacityWrap.classList.add('hidden');
+          cameraOpacityWrap.classList.remove('flex');
+          showToast('カメラをオフにしました (夜空モード)');
+          return;
+        }
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          showToast('お使いのブラウザはカメラ機能に対応していません。夜空モードで動作します。');
+          return;
+        }
+
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            },
+            audio: false
+          });
+          videoEl.srcObject = stream;
+          await videoEl.play();
+          videoEl.classList.add('active');
+          state.cameraActive = true;
+          state.skyOpacity = parseInt(document.getElementById('slider-sky-alpha').value, 10) / 100;
+          btnCameraText.textContent = 'カメラ稼働中';
+          btnCamera.classList.add('border-sky-400', 'bg-sky-500/25');
+          cameraOpacityWrap.classList.remove('hidden');
+          cameraOpacityWrap.classList.add('flex');
+          showToast('背面カメラを起動しました！空に端末を向けてみてください。');
+        } catch (err) {
+          console.warn('Camera access failed:', err);
+          showToast('カメラを起動できませんでした（許可拒否またはPC環境）。夜空モードで動作します。', 4000);
+        }
+      }
+      btnCamera.addEventListener('click', toggleCamera);
+
+      // --------------------------------------------------------------------------
+      // 9. デバイス方位センサー連動 (DeviceOrientation API)
+      // --------------------------------------------------------------------------
+      const btnSensor = document.getElementById('btn-sensor');
+      const btnSensorText = document.getElementById('btn-sensor-text');
+
+      function handleDeviceOrientation(event) {
+        if (!state.sensorEnabled) return;
+
+        let compassHeading = null;
+        // iOS Safari: webkitCompassHeading (0 = 北, 90 = 東, 180 = 南, 270 = 西)
+        if (typeof event.webkitCompassHeading === 'number' && !isNaN(event.webkitCompassHeading)) {
+          compassHeading = event.webkitCompassHeading;
+        } else if (typeof event.alpha === 'number' && event.alpha !== null) {
+          // Android / 標準: alphaは反時計回りなので反転
+          compassHeading = (360 - event.alpha) % 360;
+        }
+
+        if (compassHeading === null) return;
+
+        // 端末の傾き (beta: 前後の傾き -180〜180, gamma: 左右の傾き -90〜90)
+        const beta = typeof event.beta === 'number' ? event.beta : 90;
+        const gamma = typeof event.gamma === 'number' ? event.gamma : 0;
+
+        // 画面の向き (縦持ち Portrait 前提で、垂直に立てた時 beta ≈ 90° -> 高度 0°)
+        // 上に向ける (beta > 90) と高度が上がり、下に向ける (beta < 90) と高度が下がる
+        const screenOrientation = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+        let altitude = 0;
+        let azimuth = compassHeading;
+
+        if (Math.abs(screenOrientation) === 90) {
+          // 横持ち (Landscape)
+          altitude = Math.max(-89, Math.min(89, (Math.abs(gamma) - 90) * (screenOrientation > 0 ? -1 : 1)));
+        } else {
+          // 縦持ち (Portrait)
+          altitude = Math.max(-89, Math.min(89, beta - 90));
+        }
+
+        state.targetAzimuth = (azimuth + state.azimuthOffset + 360) % 360;
+        state.targetAltitude = altitude;
+      }
+
+      async function toggleSensor() {
+        if (state.sensorEnabled) {
+          state.sensorEnabled = false;
+          window.removeEventListener('deviceorientation', handleDeviceOrientation);
+          window.removeEventListener('deviceorientationabsolute', handleDeviceOrientation);
+          btnSensorText.textContent = 'センサー連動: OFF';
+          btnSensor.classList.remove('border-emerald-400', 'bg-emerald-500/25');
+          showToast('センサー連動をオフにしました（ドラッグ操作モード）');
+          return;
+        }
+
+        // iOS 13+ センサー権限リクエスト
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+          try {
+            const response = await DeviceOrientationEvent.requestPermission();
+            if (response !== 'granted') {
+              showToast('モーションセンサーの許可が拒否されました。ドラッグで操作できます。');
+              return;
+            }
+          } catch (err) {
+            console.warn('Orientation permission error:', err);
+            showToast('センサー権限の取得に失敗しました。');
+            return;
+          }
+        }
+
+        if (!('DeviceOrientationEvent' in window)) {
+          showToast('この端末は方位センサーに対応していません。ドラッグ操作をご利用ください。');
+          return;
+        }
+
+        state.sensorEnabled = true;
+        window.addEventListener('deviceorientationabsolute', handleDeviceOrientation, true);
+        window.addEventListener('deviceorientation', handleDeviceOrientation, true);
+        btnSensorText.textContent = 'センサー連動: ON';
+        btnSensor.classList.add('border-emerald-400', 'bg-emerald-500/25');
+        showToast('センサー連動をオンにしました！端末を動かして星空を探索できます。');
+      }
+      btnSensor.addEventListener('click', toggleSensor);
+
+      // --------------------------------------------------------------------------
+      // 10. タッチ / マウスドラッグ & ピンチズーム操作
+      // --------------------------------------------------------------------------
+      function updateZoomUI() {
+        const zoomFactor = (65 / state.fov).toFixed(1);
+        document.getElementById('slider-fov').value = Math.round(state.fov);
+        document.getElementById('label-fov').textContent = `${Math.round(state.fov)}° (${zoomFactor}x)`;
+        document.getElementById('pill-zoom-val').textContent = `${zoomFactor}x`;
+      }
+
+      function setFov(newFov) {
+        state.fov = Math.max(20, Math.min(105, newFov));
+        updateZoomUI();
+      }
+
+      // マウス操作
+      canvas.addEventListener('mousedown', (e) => {
+        state.isDragging = true;
+        state.dragStartX = e.clientX;
+        state.dragStartY = e.clientY;
+        state.dragStartAz = state.azimuth;
+        state.dragStartAlt = state.altitude;
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!state.isDragging) return;
+        const dx = e.clientX - state.dragStartX;
+        const dy = e.clientY - state.dragStartY;
+        const sensitivity = state.fov / Math.min(canvasWidth, canvasHeight);
+        state.azimuth = (state.dragStartAz - dx * sensitivity + 360) % 360;
+        state.altitude = Math.max(-89, Math.min(89, state.dragStartAlt + dy * sensitivity));
+        state.targetAzimuth = state.azimuth;
+        state.targetAltitude = state.altitude;
+      });
+
+      window.addEventListener('mouseup', (e) => {
+        if (state.isDragging) {
+          const moveDist = Math.hypot(e.clientX - state.dragStartX, e.clientY - state.dragStartY);
+          if (moveDist < 6) {
+            handleCanvasTap(e.clientX, e.clientY);
+          }
+        }
+        state.isDragging = false;
+      });
+
+      // ホイールズーム (PC)
+      canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 4 : -4;
+        setFov(state.fov + delta);
+      }, { passive: false });
+
+      // タッチ操作 (1本指パン & 2本指ピンチイン・ピンチアウト)
+      let touchStartTime = 0;
+      let touchStartPos = { x: 0, y: 0 };
+
+      canvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          state.isDragging = true;
+          state.dragStartX = e.touches[0].clientX;
+          state.dragStartY = e.touches[0].clientY;
+          state.dragStartAz = state.azimuth;
+          state.dragStartAlt = state.altitude;
+          touchStartTime = performance.now();
+          touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        } else if (e.touches.length === 2) {
+          state.isDragging = false;
+          state.pinchStartDist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          state.pinchStartFov = state.fov;
+        }
+      }, { passive: true });
+
+      canvas.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 1 && state.isDragging) {
+          const dx = e.touches[0].clientX - state.dragStartX;
+          const dy = e.touches[0].clientY - state.dragStartY;
+          const sensitivity = state.fov / Math.min(canvasWidth, canvasHeight);
+          // センサー連動中でも一時的にオフセット感覚でパンできるようターゲットも更新
+          if (state.sensorEnabled) {
+            state.azimuthOffset = (state.azimuthOffset - dx * sensitivity * 0.25 + 360) % 360;
+            document.getElementById('slider-offset').value = Math.round(state.azimuthOffset > 180 ? state.azimuthOffset - 360 : state.azimuthOffset);
+            document.getElementById('label-offset').textContent = `${Math.round(state.azimuthOffset > 180 ? state.azimuthOffset - 360 : state.azimuthOffset)}°`;
+          } else {
+            state.azimuth = (state.dragStartAz - dx * sensitivity + 360) % 360;
+            state.altitude = Math.max(-89, Math.min(89, state.dragStartAlt + dy * sensitivity));
+            state.targetAzimuth = state.azimuth;
+            state.targetAltitude = state.altitude;
+          }
+        } else if (e.touches.length === 2 && state.pinchStartDist > 0) {
+          const currentDist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          const scale = state.pinchStartDist / currentDist;
+          setFov(state.pinchStartFov * scale);
+        }
+      }, { passive: true });
+
+      canvas.addEventListener('touchend', (e) => {
+        if (e.changedTouches.length === 1 && state.isDragging) {
+          const dt = performance.now() - touchStartTime;
+          const dist = Math.hypot(
+            e.changedTouches[0].clientX - touchStartPos.x,
+            e.changedTouches[0].clientY - touchStartPos.y
+          );
+          if (dt < 300 && dist < 10) {
+            handleCanvasTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+          }
+        }
+        state.isDragging = false;
+        state.pinchStartDist = 0;
+      });
+
+      // 天体タップ選択処理
+      function handleCanvasTap(tapX, tapY) {
+        let closest = null;
+        let minDist = 34; // タップ許容半径(px)
+
+        for (const item of state.projectedObjects) {
+          const d = Math.hypot(item.x - tapX, item.y - tapY);
+          if (d < minDist) {
+            minDist = d;
+            closest = item;
+          }
+        }
+
+        const infoCard = document.getElementById('info-card');
+        if (closest) {
+          state.selectedObject = closest.obj;
+          document.getElementById('info-type').textContent = closest.obj.type || '恒星';
+          document.getElementById('info-name').textContent = closest.obj.name;
+          document.getElementById('info-subname').textContent = closest.obj.en;
+          document.getElementById('info-mag').textContent = `${closest.obj.mag.toFixed(2)} 等`;
+          document.getElementById('info-spec').textContent = `${closest.obj.spec} / ${closest.obj.dist}`;
+          document.getElementById('info-az').textContent = `${closest.az.toFixed(1)}° (${getCompassLabel(closest.az)})`;
+          document.getElementById('info-alt').textContent = `${closest.alt >= 0 ? '+' : ''}${closest.alt.toFixed(1)}°`;
+          document.getElementById('info-desc').textContent = closest.obj.desc;
+          infoCard.classList.remove('hidden');
+        } else {
+          state.selectedObject = null;
+          infoCard.classList.add('hidden');
+        }
+      }
+
+      document.getElementById('btn-close-info').addEventListener('click', () => {
+        state.selectedObject = null;
+        document.getElementById('info-card').classList.add('hidden');
+      });
+
+      // --------------------------------------------------------------------------
+      // 11. UIコントロール・季節プリセット・日時イベント設定
+      // --------------------------------------------------------------------------
+      const drawer = document.getElementById('control-drawer');
+      const drawerChevron = document.getElementById('drawer-chevron');
+
+      document.getElementById('btn-toggle-drawer').addEventListener('click', () => {
+        const isHidden = drawer.classList.toggle('hidden');
+        drawerChevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+      });
+
+      // 表示トグルボタンの共通バインド
+      function bindToggleButton(btnId, stateKey, onAfterToggle) {
+        const btn = document.getElementById(btnId);
+        btn.addEventListener('click', () => {
+          state[stateKey] = !state[stateKey];
+          updateToggleVisual(btn, state[stateKey]);
+          if (onAfterToggle) onAfterToggle(state[stateKey]);
+        });
+      }
+
+      function updateToggleVisual(btn, isActive) {
+        const dot = btn.querySelector('.status-dot');
+        if (isActive) {
+          btn.classList.add('bg-sky-500/25', 'border-sky-400/50', 'text-white');
+          btn.classList.remove('bg-slate-800/70', 'border-slate-700', 'text-slate-400');
+          if (dot) dot.classList.replace('bg-slate-500', 'bg-sky-400');
+        } else {
+          btn.classList.remove('bg-sky-500/25', 'border-sky-400/50', 'text-white');
+          btn.classList.add('bg-slate-800/70', 'border-slate-700', 'text-slate-400');
+          if (dot) dot.classList.replace('bg-sky-400', 'bg-slate-500');
+        }
+      }
+
+      bindToggleButton('toggle-lines', 'showLines');
+      bindToggleButton('toggle-labels', 'showLabels');
+      bindToggleButton('toggle-grid', 'showGrid');
+      bindToggleButton('toggle-horizon', 'showHorizon');
+
+      // ボトムバーの「星座ガイド」クイック切替
+      const quickConstBtn = document.getElementById('quick-constellation');
+      quickConstBtn.addEventListener('click', () => {
+        const nextVal = !(state.showLines && state.showLabels);
+        state.showLines = nextVal;
+        state.showLabels = nextVal;
+        updateToggleVisual(document.getElementById('toggle-lines'), nextVal);
+        updateToggleVisual(document.getElementById('toggle-labels'), nextVal);
+        if (nextVal) {
+          quickConstBtn.classList.add('bg-sky-500/25', 'border-sky-400/50', 'text-sky-200');
+          quickConstBtn.classList.remove('bg-slate-800/80', 'border-slate-700', 'text-slate-400');
+        } else {
+          quickConstBtn.classList.remove('bg-sky-500/25', 'border-sky-400/50', 'text-sky-200');
+          quickConstBtn.classList.add('bg-slate-800/80', 'border-slate-700', 'text-slate-400');
+        }
+        showToast(nextVal ? '星座ガイド: ON' : '星座ガイド: OFF (純粋な星空表示)');
+      });
+
+      // ズームスライダー & 拡大縮小ボタン
+      document.getElementById('slider-fov').addEventListener('input', (e) => {
+        setFov(parseFloat(e.target.value));
+      });
+      document.getElementById('btn-zoom-in').addEventListener('click', () => setFov(state.fov - 10));
+      document.getElementById('btn-zoom-out').addEventListener('click', () => setFov(state.fov + 10));
+
+      // 方位キャリブレーションスライダー
+      document.getElementById('slider-offset').addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        const diff = val - state.azimuthOffset;
+        state.azimuthOffset = val;
+        document.getElementById('label-offset').textContent = `${val > 0 ? '+' : ''}${val}°`;
+        if (!state.sensorEnabled) {
+          state.azimuth = (state.azimuth + diff + 360) % 360;
+          state.targetAzimuth = state.azimuth;
+        }
+      });
+
+      // カメラ時の星空濃度スライダー
+      document.getElementById('slider-sky-alpha').addEventListener('input', (e) => {
+        if (state.cameraActive) {
+          state.skyOpacity = parseInt(e.target.value, 10) / 100;
+        }
+      });
+
+      // 日時入力フォーム同期
+      const inputDatetime = document.getElementById('input-datetime');
+      function formatDateTimeLocal(date) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+      }
+      function formatDisplayDateTime(date) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+      }
+
+      inputDatetime.value = formatDateTimeLocal(state.simTime);
+      inputDatetime.addEventListener('change', (e) => {
+        if (e.target.value) {
+          state.simTime = new Date(e.target.value);
+          state.timeSpeed = 0; // 手動指定時は一旦停止して見やすくする
+          updateSpeedButtons(0);
+        }
+      });
+
+      document.getElementById('btn-now').addEventListener('click', () => {
+        state.simTime = new Date();
+        state.timeSpeed = 1;
+        inputDatetime.value = formatDateTimeLocal(state.simTime);
+        updateSpeedButtons(1);
+        showToast('現在時刻に戻しました');
+      });
+
+      // 季節プリセット (春夏秋冬 21:00の代表的な夜空へジャンプ＆南の空へ視線誘導)
+      document.querySelectorAll('.season-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const season = btn.dataset.season;
+          const year = state.simTime.getFullYear();
+          const presets = {
+            spring: { month: 4, day: 15, label: '春の夜空 (しし座・おとめ座・春の大三角)', az: 180, alt: 38 },
+            summer: { month: 7, day: 15, label: '夏の夜空 (さそり座・天の川・夏の大三角)', az: 180, alt: 35 },
+            autumn: { month: 10, day: 15, label: '秋の夜空 (ペガススの四辺形・アンドロメダ座)', az: 180, alt: 42 },
+            winter: { month: 1, day: 15, label: '冬の夜空 (オリオン座・冬の大三角・すばる)', az: 180, alt: 34 }
+          };
+          const p = presets[season];
+          state.simTime = new Date(year, p.month - 1, p.day, 21, 0, 0);
+          state.timeSpeed = 0;
+          updateSpeedButtons(0);
+          inputDatetime.value = formatDateTimeLocal(state.simTime);
+
+          if (!state.sensorEnabled) {
+            state.azimuth = p.az;
+            state.altitude = p.alt;
+            state.targetAzimuth = p.az;
+            state.targetAltitude = p.alt;
+          }
+          showToast(`${p.label} に切り替えました`);
+        });
+      });
+
+      // 時間速度ボタン
+      function updateSpeedButtons(activeSpeed) {
+        document.querySelectorAll('.speed-btn').forEach(b => {
+          const s = parseInt(b.dataset.speed, 10);
+          if (s === activeSpeed) {
+            b.classList.add('active', 'bg-sky-500/30', 'border-sky-400', 'font-bold', 'text-sky-200');
+            b.classList.remove('bg-slate-800', 'border-slate-600/50', 'text-slate-300');
+          } else {
+            b.classList.remove('active', 'bg-sky-500/30', 'border-sky-400', 'font-bold', 'text-sky-200');
+            b.classList.add('bg-slate-800', 'border-slate-600/50', 'text-slate-300');
+          }
+        });
+      }
+
+      document.querySelectorAll('.speed-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const s = parseInt(btn.dataset.speed, 10);
+          state.timeSpeed = s;
+          updateSpeedButtons(s);
+        });
+      });
+
+      // GPS現在地取得
+      document.getElementById('btn-gps').addEventListener('click', () => {
+        if (!navigator.geolocation) {
+          showToast('お使いのブラウザはGPS位置情報に対応していません。');
+          return;
+        }
+        showToast('位置情報を取得中...');
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            state.lat = pos.coords.latitude;
+            state.lon = pos.coords.longitude;
+            state.locationName = '現在地';
+            document.getElementById('hud-location').textContent =
+              `現在地 (${state.lat.toFixed(1)}°${state.lat >= 0 ? 'N' : 'S'}, ${state.lon.toFixed(1)}°${state.lon >= 0 ? 'E' : 'W'})`;
+            showToast('現在地の緯度・経度に合わせて星空を更新しました！');
+          },
+          () => {
+            showToast('位置情報の取得が許可されませんでした（種子島宇宙センターの星空を表示中）。');
+          },
+          { timeout: 8000 }
+        );
+      });
+
+      // --------------------------------------------------------------------------
+      // 12. メイン描画ループ (Canvas Rendering)
+      // --------------------------------------------------------------------------
+      function render(now) {
+        const dt = (now - state.lastFrameTime) / 1000.0;
+        state.lastFrameTime = now;
+
+        // シミュレーション時刻を進める
+        if (state.timeSpeed !== 0) {
+          state.simTime = new Date(state.simTime.getTime() + dt * 1000 * state.timeSpeed);
+          if (state.timeSpeed > 1) {
+            inputDatetime.value = formatDateTimeLocal(state.simTime);
+          }
+        }
+
+        // センサー連動時の滑らかなローパスフィルタ補間
+        if (state.sensorEnabled) {
+          let diffAz = state.targetAzimuth - state.azimuth;
+          if (diffAz > 180) diffAz -= 360;
+          if (diffAz < -180) diffAz += 360;
+          state.azimuth = (state.azimuth + diffAz * 0.18 + 360) % 360;
+          state.altitude += (state.targetAltitude - state.altitude) * 0.18;
+        }
+
+        // HUDテキスト更新
+        document.getElementById('hud-direction').textContent =
+          `${getCompassLabel(state.azimuth)} (${Math.round(state.azimuth)}°)`;
+        document.getElementById('hud-altitude').textContent =
+          `高度 ${state.altitude >= 0 ? '+' : ''}${Math.round(state.altitude)}°`;
+        document.getElementById('hud-fov').textContent = `視野 ${Math.round(state.fov)}°`;
+        document.getElementById('hud-datetime').textContent = formatDisplayDateTime(state.simTime);
+
+        // キャンバスクリア & 背景グラデーション描画
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+        if (!state.cameraActive) {
+          // リアルな深い夜空のグラデーション (天頂は漆黒、地平線付近は淡い紺色の大気散乱)
+          const horizonY = projectAltAzToScreen(state.azimuth, 0, state.azimuth, state.altitude, 0, canvasWidth, canvasHeight, state.fov);
+          const grad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+          grad.addColorStop(0, '#01030a');
+          grad.addColorStop(0.55, '#050c1f');
+          grad.addColorStop(1, '#0d1d3d');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+          if (horizonY && horizonY.y > 0 && horizonY.y < canvasHeight) {
+            const airglow = ctx.createLinearGradient(0, horizonY.y - 120, 0, horizonY.y + 40);
+            airglow.addColorStop(0, 'rgba(30, 64, 135, 0)');
+            airglow.addColorStop(0.7, 'rgba(37, 84, 165, 0.22)');
+            airglow.addColorStop(1, 'rgba(15, 23, 42, 0.85)');
+            ctx.fillStyle = airglow;
+            ctx.fillRect(0, horizonY.y - 120, canvasWidth, 160);
+          }
+        } else {
+          // カメラ起動中は星空の視認性を高める半透明の暗幕を薄く重ねる
+          ctx.fillStyle = `rgba(2, 6, 18, ${state.skyOpacity * 0.48})`;
+          ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        }
+
+        const lst = getLocalSiderealTime(state.simTime, state.lon);
+        const globalAlpha = state.skyOpacity;
+
+        // 1) 天の川 (Milky Way) レンダリング
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        for (let i = 0; i < MILKY_WAY_NODES.length; i++) {
+          const node = MILKY_WAY_NODES[i];
+          const { alt, az } = raDecToAltAz(node.ra, node.dec, lst, state.lat);
+          if (alt < -15) continue;
+          const pt = projectAltAzToScreen(az, alt, state.azimuth, state.altitude, state.roll, canvasWidth, canvasHeight, state.fov);
+          if (!pt || pt.x < -150 || pt.x > canvasWidth + 150 || pt.y < -150 || pt.y > canvasHeight + 150) continue;
+
+          const bandRadius = (Math.min(canvasWidth, canvasHeight) * 0.16) * (65 / state.fov);
+          const mwGrad = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, bandRadius);
+          const alpha = 0.042 * node.intensity * globalAlpha;
+          mwGrad.addColorStop(0, `rgba(165, 195, 245, ${alpha})`);
+          mwGrad.addColorStop(0.5, `rgba(125, 155, 220, ${alpha * 0.55})`);
+          mwGrad.addColorStop(1, 'rgba(100, 130, 200, 0)');
+          ctx.fillStyle = mwGrad;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, bandRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        // 2) 方位・高度グリッド線 (Azimuth / Altitude Grid)
+        if (state.showGrid) {
+          drawCoordinateGrid(globalAlpha);
+        }
+
+        // 3) 背景の微光星 (Magnitude 3.2 〜 6.5)
+        const timeSec = now * 0.001;
+        for (let i = 0; i < BACKGROUND_STARS.length; i++) {
+          const s = BACKGROUND_STARS[i];
+          const { alt, az } = raDecToAltAz(s.ra, s.dec, lst, state.lat);
+          if (alt < -2) continue;
+          const pt = projectAltAzToScreen(az, alt, state.azimuth, state.altitude, state.roll, canvasWidth, canvasHeight, state.fov);
+          if (!pt || pt.x < 0 || pt.x > canvasWidth || pt.y < 0 || pt.y > canvasHeight) continue;
+
+          const twinkle = 0.78 + 0.22 * Math.sin(timeSec * 2.5 + s.twinklePhase);
+          const brightness = Math.max(0.18, (6.8 - s.mag) / 3.8) * twinkle * globalAlpha;
+          const radius = Math.max(0.6, (6.6 - s.mag) * 0.38) * Math.pow(65 / state.fov, 0.25);
+          const col = getStarColor(s.spec);
+
+          ctx.fillStyle = `rgba(${col.r}, ${col.g}, ${col.b}, ${brightness})`;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 4) 主要恒星の座標投影キャッシュ
+        const starScreenCache = {};
+        state.projectedObjects = [];
+
+        BRIGHT_STARS.forEach((star, idx) => {
+          const { alt, az } = raDecToAltAz(star.ra, star.dec, lst, state.lat);
+          const pt = projectAltAzToScreen(az, alt, state.azimuth, state.altitude, state.roll, canvasWidth, canvasHeight, state.fov);
+          starScreenCache[star.id] = { pt, alt, az, star };
+
+          if (pt && alt >= -5 && pt.x >= -30 && pt.x <= canvasWidth + 30 && pt.y >= -30 && pt.y <= canvasHeight + 30) {
+            state.projectedObjects.push({
+              x: pt.x,
+              y: pt.y,
+              alt,
+              az,
+              obj: { ...star, type: '恒星' }
+            });
+          }
+        });
+
+        // 5) 星座線 (Constellation Lines)
+        if (state.showLines) {
+          ctx.save();
+          ctx.strokeStyle = `rgba(96, 165, 250, ${0.42 * globalAlpha})`;
+          ctx.lineWidth = 1.25;
+          ctx.lineCap = 'round';
+
+          CONSTELLATIONS.forEach(c => {
+            c.lines.forEach(([idA, idB]) => {
+              const a = starScreenCache[idA];
+              const b = starScreenCache[idB];
+              if (!a || !b || !a.pt || !b.pt) return;
+              if (a.alt < -10 && b.alt < -10) return;
+
+              ctx.beginPath();
+              ctx.moveTo(a.pt.x, a.pt.y);
+              ctx.lineTo(b.pt.x, b.pt.y);
+              ctx.stroke();
+            });
+          });
+          ctx.restore();
+        }
+
+        // 6) 主要恒星の描画 (ハロー・回折スパイク・星名ラベル)
+        Object.values(starScreenCache).forEach(({ pt, alt, star }, idx) => {
+          if (!pt || alt < -5 || pt.x < -50 || pt.x > canvasWidth + 50 || pt.y < -50 || pt.y > canvasHeight + 50) return;
+
+          const col = getStarColor(star.spec);
+          const twinkle = 0.9 + 0.1 * Math.sin(timeSec * 3.1 + idx * 1.7);
+          const zoomBoost = Math.pow(65 / state.fov, 0.35);
+          // 等級に応じたサイズ計算
+          const coreRadius = Math.max(1.5, (4.3 - star.mag) * 0.95) * zoomBoost;
+          const haloRadius = coreRadius * (star.mag < 1.5 ? 5.2 : 3.2);
+
+          // ソフトな光輪 (Halo)
+          const haloGrad = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, haloRadius);
+          haloGrad.addColorStop(0, `rgba(${col.r}, ${col.g}, ${col.b}, ${0.85 * twinkle * globalAlpha})`);
+          haloGrad.addColorStop(0.35, `rgba(${col.r}, ${col.g}, ${col.b}, ${0.28 * twinkle * globalAlpha})`);
+          haloGrad.addColorStop(1, `rgba(${col.r}, ${col.g}, ${col.b}, 0)`);
+          ctx.fillStyle = haloGrad;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, haloRadius, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 1等星以上の明るい星には十字の光条 (Diffraction Spikes) を描画
+          if (star.mag <= 1.35) {
+            ctx.save();
+            ctx.strokeStyle = `rgba(${col.r}, ${col.g}, ${col.b}, ${0.55 * twinkle * globalAlpha})`;
+            ctx.lineWidth = 1.1;
+            const spikeLen = haloRadius * 1.35;
+            ctx.beginPath();
+            ctx.moveTo(pt.x - spikeLen, pt.y);
+            ctx.lineTo(pt.x + spikeLen, pt.y);
+            ctx.moveTo(pt.x, pt.y - spikeLen);
+            ctx.lineTo(pt.x, pt.y + spikeLen);
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          // 星のコア
+          ctx.fillStyle = `rgba(255, 255, 255, ${0.98 * globalAlpha})`;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, coreRadius * 0.65, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 選択リングハイライト
+          if (state.selectedObject && state.selectedObject.id === star.id) {
+            drawSelectionReticle(pt.x, pt.y, coreRadius + 10);
+          }
+
+          // 星名ラベル (明るい星、またはズームイン時に表示)
+          if (state.showLabels && (star.mag <= 2.1 || state.fov < 45)) {
+            ctx.font = star.mag <= 1.2 ? '600 12px "Noto Sans JP", sans-serif' : '400 10.5px "Noto Sans JP", sans-serif';
+            ctx.fillStyle = `rgba(226, 232, 240, ${0.88 * globalAlpha})`;
+            ctx.fillText(star.name, pt.x + coreRadius + 5, pt.y + 4);
+          }
+        });
+
+        // 7) 太陽・月・惑星の描画
+        const solarBodies = getSolarSystemBodies(state.simTime);
+        solarBodies.forEach(body => {
+          const { alt, az } = raDecToAltAz(body.ra, body.dec, lst, state.lat);
+          const pt = projectAltAzToScreen(az, alt, state.azimuth, state.altitude, state.roll, canvasWidth, canvasHeight, state.fov);
+          if (!pt || alt < -5 || pt.x < -50 || pt.x > canvasWidth + 50 || pt.y < -50 || pt.y > canvasHeight + 50) return;
+
+          state.projectedObjects.push({
+            x: pt.x,
+            y: pt.y,
+            alt,
+            az,
+            obj: body
+          });
+
+          const r = 6.5 * body.radiusScale * Math.pow(65 / state.fov, 0.3);
+
+          // 太陽・月・惑星のグロー
+          const glow = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, r * 3.5);
+          glow.addColorStop(0, body.color);
+          glow.addColorStop(0.3, body.id === 'sun' ? 'rgba(253, 224, 71, 0.5)' : 'rgba(255, 255, 255, 0.25)');
+          glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, r * 3.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 本体描画
+          ctx.fillStyle = body.color;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 土星の環の表現
+          if (body.id === 'saturn') {
+            ctx.save();
+            ctx.translate(pt.x, pt.y);
+            ctx.rotate(-0.35);
+            ctx.strokeStyle = 'rgba(253, 230, 138, 0.85)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, r * 2.2, r * 0.65, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          if (state.selectedObject && state.selectedObject.id === body.id) {
+            drawSelectionReticle(pt.x, pt.y, r + 10);
+          }
+
+          if (state.showLabels) {
+            ctx.font = '700 12px "Noto Sans JP", sans-serif';
+            ctx.fillStyle = body.color;
+            ctx.fillText(body.name, pt.x + r + 6, pt.y + 4);
+          }
+        });
+
+        // 8) 星座名ラベル (Constellation Names)
+        if (state.showLabels) {
+          ctx.save();
+          ctx.font = '600 13px "Noto Sans JP", sans-serif';
+          ctx.textAlign = 'center';
+          CONSTELLATIONS.forEach(c => {
+            const anchorData = starScreenCache[c.anchor];
+            if (!anchorData || !anchorData.pt || anchorData.alt < 0) return;
+            const { x, y } = anchorData.pt;
+            if (x < 20 || x > canvasWidth - 20 || y < 20 || y > canvasHeight - 20) return;
+
+            ctx.fillStyle = `rgba(125, 211, 252, ${0.82 * globalAlpha})`;
+            ctx.fillText(c.name, x, y - 16);
+          });
+          ctx.restore();
+        }
+
+        // 9) 地平線 (Horizon Line) & 方位マーカー (N / E / S / W)
+        if (state.showHorizon) {
+          drawHorizonAndCompass(globalAlpha);
+        }
+
+        requestAnimationFrame(render);
+      }
+
+      // 選択ターゲットレティクル描画
+      function drawSelectionReticle(x, y, radius) {
+        ctx.save();
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 方位・高度グリッド描画
+      function drawCoordinateGrid(alpha) {
+        ctx.save();
+        ctx.strokeStyle = `rgba(148, 163, 184, ${0.14 * alpha})`;
+        ctx.lineWidth = 1;
+
+        // 高度線 (Alt: 0°, 30°, 60°)
+        [30, 60].forEach(alt => {
+          ctx.beginPath();
+          let started = false;
+          for (let az = 0; az <= 360; az += 5) {
+            const pt = projectAltAzToScreen(az, alt, state.azimuth, state.altitude, state.roll, canvasWidth, canvasHeight, state.fov);
+            if (pt && pt.x >= -100 && pt.x <= canvasWidth + 100 && pt.y >= -100 && pt.y <= canvasHeight + 100) {
+              if (!started) {
+                ctx.moveTo(pt.x, pt.y);
+                started = true;
+              } else {
+                ctx.lineTo(pt.x, pt.y);
+              }
+            } else {
+              started = false;
+            }
+          }
+          ctx.stroke();
+        });
+
+        // 方位線 (Az: 45°刻み)
+        for (let az = 0; az < 360; az += 45) {
+          ctx.beginPath();
+          let started = false;
+          for (let alt = 0; alt <= 85; alt += 5) {
+            const pt = projectAltAzToScreen(az, alt, state.azimuth, state.altitude, state.roll, canvasWidth, canvasHeight, state.fov);
+            if (pt && pt.x >= -100 && pt.x <= canvasWidth + 100 && pt.y >= -100 && pt.y <= canvasHeight + 100) {
+              if (!started) {
+                ctx.moveTo(pt.x, pt.y);
+                started = true;
+              } else {
+                ctx.lineTo(pt.x, pt.y);
+              }
+            } else {
+              started = false;
+            }
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // 地平線と8方位マーカー描画
+      function drawHorizonAndCompass(alpha) {
+        ctx.save();
+        // 地平線ライン (Alt = 0°)
+        ctx.strokeStyle = `rgba(52, 211, 153, ${0.48 * alpha})`;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        let started = false;
+        for (let az = 0; az <= 360; az += 3) {
+          const pt = projectAltAzToScreen(az, 0, state.azimuth, state.altitude, state.roll, canvasWidth, canvasHeight, state.fov);
+          if (pt && pt.x >= -200 && pt.x <= canvasWidth + 200 && pt.y >= -200 && pt.y <= canvasHeight + 200) {
+            if (!started) {
+              ctx.moveTo(pt.x, pt.y);
+              started = true;
+            } else {
+              ctx.lineTo(pt.x, pt.y);
+            }
+          } else {
+            started = false;
+          }
+        }
+        ctx.stroke();
+
+        // 8方位ラベル
+        const cardinals = [
+          { az: 0, label: '北 (N)', main: true },
+          { az: 45, label: '北東', main: false },
+          { az: 90, label: '東 (E)', main: true },
+          { az: 135, label: '南東', main: false },
+          { az: 180, label: '南 (S)', main: true },
+          { az: 225, label: '南西', main: false },
+          { az: 270, label: '西 (W)', main: true },
+          { az: 315, label: '北西', main: false }
+        ];
+
+        ctx.textAlign = 'center';
+        cardinals.forEach(c => {
+          const pt = projectAltAzToScreen(c.az, 0, state.azimuth, state.altitude, state.roll, canvasWidth, canvasHeight, state.fov);
+          if (!pt || pt.x < 10 || pt.x > canvasWidth - 10 || pt.y < 10 || pt.y > canvasHeight - 10) return;
+
+          ctx.font = c.main ? '700 13px "Inter", "Noto Sans JP", sans-serif' : '500 11px "Noto Sans JP", sans-serif';
+          ctx.fillStyle = c.az === 0 ? '#fb7185' : (c.main ? '#34d399' : 'rgba(148, 163, 184, 0.85)');
+          ctx.fillText(c.label, pt.x, pt.y + 18);
+
+          // 目盛りティック
+          ctx.beginPath();
+          ctx.moveTo(pt.x, pt.y - 5);
+          ctx.lineTo(pt.x, pt.y + 5);
+          ctx.strokeStyle = c.az === 0 ? '#fb7185' : '#34d399';
+          ctx.stroke();
+        });
+
+        ctx.restore();
+      }
+
+      // 初期起動
+      updateZoomUI();
+      requestAnimationFrame(render);
+    })();
+  </script>
+</body>
+</html>
