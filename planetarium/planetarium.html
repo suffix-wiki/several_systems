@@ -403,6 +403,14 @@
         targetRoll: 0.0,
         lastSensorEventAt: 0,
         hasSensorSample: false,
+        sensorHeadingSamples: [],
+        sensorAltitudeSamples: [],
+        sensorAnchorAzimuth: 180.0,
+        sensorAnchorAltitude: 32.0,
+        sensorFilteredAzimuth: 180.0,
+        sensorFilteredAltitude: 32.0,
+        sensorFilterTime: 0,
+        sensorEventName: 'deviceorientation',
 
         // カメラ状態
         cameraActive: false,
@@ -1121,59 +1129,96 @@
       const btnSensor = document.getElementById('btn-sensor');
       const btnSensorText = document.getElementById('btn-sensor-text');
 
+      // 角度差を -180〜180 度に正規化（北をまたぐ場合の補間用）
+      function shortestAngleDiff(to, from) {
+        return ((to - from + 540) % 360) - 180;
+      }
+
+      // 方位角は 359° と 1° の平均が 180° にならないよう円平均する
+      function circularMeanDegrees(values) {
+        if (!values.length) return null;
+        let x = 0, y = 0;
+        for (const value of values) {
+          const rad = value * Math.PI / 180;
+          x += Math.cos(rad);
+          y += Math.sin(rad);
+        }
+        return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+      }
+
+      function median(values) {
+        if (!values.length) return null;
+        const sorted = [...values].sort((a, b) => a - b);
+        return sorted[Math.floor(sorted.length / 2)];
+      }
+
       function handleDeviceOrientation(event) {
         if (!state.sensorEnabled) return;
 
-        // センサーイベントを間引き、細かな揺れや重複イベントを表示に反映しすぎない
+        // センサーイベントは最大約25Hzだけ処理。描画自体は requestAnimationFrame で滑らかに補間。
         const now = performance.now();
-        if (now - state.lastSensorEventAt < 120) return; // 最大約8回/秒
+        if (now - state.lastSensorEventAt < 50) return;
         state.lastSensorEventAt = now;
 
         let compassHeading = null;
-        // iOS Safari: webkitCompassHeading (0 = 北, 90 = 東, 180 = 南, 270 = 西)
-        if (typeof event.webkitCompassHeading === 'number' && !isNaN(event.webkitCompassHeading)) {
+        // iOS Safari の絶対方位を優先
+        if (typeof event.webkitCompassHeading === 'number' && Number.isFinite(event.webkitCompassHeading)) {
           compassHeading = event.webkitCompassHeading;
-        } else if (typeof event.alpha === 'number' && event.alpha !== null) {
-          // Android / 標準: alphaは反時計回りなので反転
+        } else if (typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
           compassHeading = (360 - event.alpha) % 360;
         }
-
         if (compassHeading === null) return;
 
-        // 端末の傾き (beta: 前後の傾き -180〜180, gamma: 左右の傾き -90〜90)
-        const beta = typeof event.beta === 'number' ? event.beta : 90;
-        const gamma = typeof event.gamma === 'number' ? event.gamma : 0;
-
-        // 画面の向き (縦持ち Portrait 前提で、垂直に立てた時 beta ≈ 90° -> 高度 0°)
-        // 上に向ける (beta > 90) と高度が上がり、下に向ける (beta < 90) と高度が下がる
+        const beta = typeof event.beta === 'number' && Number.isFinite(event.beta) ? event.beta : 90;
+        const gamma = typeof event.gamma === 'number' && Number.isFinite(event.gamma) ? event.gamma : 0;
         const screenOrientation = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
-        let altitude = 0;
-        let azimuth = compassHeading;
-
+        let altitude;
         if (Math.abs(screenOrientation) === 90) {
-          // 横持ち (Landscape)
-          altitude = Math.max(-89, Math.min(89, (Math.abs(gamma) - 90) * (screenOrientation > 0 ? -1 : 1)));
+          altitude = Math.max(-89, Math.min(89,
+            (Math.abs(gamma) - 90) * (screenOrientation > 0 ? -1 : 1)));
         } else {
-          // 縦持ち (Portrait)
           altitude = Math.max(-89, Math.min(89, beta - 90));
         }
 
-        const nextAzimuth = (azimuth + state.azimuthOffset + 360) % 360;
-        // 1.2度未満の小さな変化は無視。ゆっくり動かした場合も差分が蓄積して反応する
-        const azDiff = ((nextAzimuth - state.targetAzimuth + 540) % 360) - 180;
-        const altDiff = altitude - state.targetAltitude;
-        if (!state.hasSensorSample || Math.abs(azDiff) >= 1.2 || Math.abs(altDiff) >= 1.2) {
-          state.targetAzimuth = nextAzimuth;
-          state.targetAltitude = altitude;
+        const nextAzimuth = (compassHeading + state.azimuthOffset + 360) % 360;
+        state.sensorHeadingSamples.push(nextAzimuth);
+        state.sensorAltitudeSamples.push(altitude);
+        // 短い移動中央値で瞬間的な飛び値・磁気ノイズを除去
+        if (state.sensorHeadingSamples.length > 9) state.sensorHeadingSamples.shift();
+        if (state.sensorAltitudeSamples.length > 9) state.sensorAltitudeSamples.shift();
+
+        const stableAzimuth = circularMeanDegrees(state.sensorHeadingSamples);
+        const stableAltitude = median(state.sensorAltitudeSamples);
+        if (stableAzimuth === null || stableAltitude === null) return;
+
+        if (!state.hasSensorSample) {
+          state.sensorAnchorAzimuth = stableAzimuth;
+          state.sensorAnchorAltitude = stableAltitude;
+          state.sensorFilteredAzimuth = stableAzimuth;
+          state.sensorFilteredAltitude = stableAltitude;
+          state.targetAzimuth = stableAzimuth;
+          state.targetAltitude = stableAltitude;
+          state.sensorFilterTime = now;
           state.hasSensorSample = true;
+          return;
+        }
+
+        // 静止時の微小な揺れを無視。基準値からの累積変化で判定するため、
+        // ゆっくり端末を回した場合も一定量動けば確実に追従する。
+        const headingFromAnchor = shortestAngleDiff(stableAzimuth, state.sensorAnchorAzimuth);
+        const altitudeFromAnchor = stableAltitude - state.sensorAnchorAltitude;
+        if (Math.abs(headingFromAnchor) >= 2.8 || Math.abs(altitudeFromAnchor) >= 2.2) {
+          state.sensorAnchorAzimuth = stableAzimuth;
+          state.sensorAnchorAltitude = stableAltitude;
+          state.targetAzimuth = stableAzimuth;
+          state.targetAltitude = stableAltitude;
         }
       }
 
       async function toggleSensor() {
         if (state.sensorEnabled) {
           state.sensorEnabled = false;
-          window.removeEventListener('deviceorientation', handleDeviceOrientation);
-          window.removeEventListener('deviceorientationabsolute', handleDeviceOrientation);
+          window.removeEventListener(state.sensorEventName || 'deviceorientation', handleDeviceOrientation);
           btnSensorText.textContent = 'センサー連動: OFF';
           btnSensor.classList.remove('border-emerald-400', 'bg-emerald-500/25');
           showToast('センサー連動をオフにしました（ドラッグ操作モード）');
@@ -1203,8 +1248,14 @@
         state.sensorEnabled = true;
         state.hasSensorSample = false;
         state.lastSensorEventAt = 0;
-        window.addEventListener('deviceorientationabsolute', handleDeviceOrientation, true);
-        window.addEventListener('deviceorientation', handleDeviceOrientation, true);
+        state.sensorHeadingSamples = [];
+        state.sensorAltitudeSamples = [];
+        state.sensorFilterTime = 0;
+        // 絶対方位イベントがある端末ではそちらを優先。イベントの二重購読はしない。
+        state.sensorEventName = ('ondeviceorientationabsolute' in window)
+          ? 'deviceorientationabsolute'
+          : 'deviceorientation';
+        window.addEventListener(state.sensorEventName, handleDeviceOrientation, { passive: true });
         btnSensorText.textContent = 'センサー連動: ON';
         btnSensor.classList.add('border-emerald-400', 'bg-emerald-500/25');
         showToast('センサー連動をオンにしました！端末を動かして星空を探索できます。');
@@ -1586,13 +1637,12 @@
           }
         }
 
-        // センサー連動時の滑らかなローパスフィルタ補間
-        if (state.sensorEnabled) {
-          let diffAz = state.targetAzimuth - state.azimuth;
-          if (diffAz > 180) diffAz -= 360;
-          if (diffAz < -180) diffAz += 360;
-          state.azimuth = (state.azimuth + diffAz * 0.10 + 360) % 360;
-          state.altitude += (state.targetAltitude - state.altitude) * 0.10;
+        // フレームレートに依存しない指数平滑化。端末の向きへ遅れすぎず滑らかに追従。
+        if (state.sensorEnabled && state.hasSensorSample) {
+          const smoothFactor = 1 - Math.exp(-Math.max(0, dt) / 0.28);
+          const diffAz = shortestAngleDiff(state.targetAzimuth, state.azimuth);
+          state.azimuth = (state.azimuth + diffAz * smoothFactor + 360) % 360;
+          state.altitude += (state.targetAltitude - state.altitude) * smoothFactor;
         }
 
         // HUDテキスト更新
