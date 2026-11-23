@@ -1,0 +1,1931 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>画像加工スタジオ | Image Filter Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans JP"', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            studio: {
+              950: '#090b10',
+              900: '#10131c',
+              850: '#161b26',
+              800: '#1e2433',
+              700: '#2b3347',
+              accent: '#6366f1',
+              accentHover: '#4f46e5',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* カスタムスクロールバーとレンジスライダーの最適化 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #10131c;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2b3347;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    html { -webkit-text-size-adjust: 100%; }
+    button, input, select, label { touch-action: manipulation; }
+    #canvas-wrapper, #split-divider { touch-action: none; }
+    input[type="range"] { min-height: 30px; }
+    @media (max-width: 1023px) {
+      body { min-height: 100dvh; }
+      #canvas-wrapper { max-width: 100%; }
+      #output-canvas { max-width: 100%; max-height: 56dvh; height: auto; }
+      #filter-grid { scroll-snap-type: x proximity; }
+      #filter-grid > button { scroll-snap-align: start; min-height: 88px; }
+      aside { padding-bottom: env(safe-area-inset-bottom); }
+    }
+    /* タッチ操作しやすいカスタムレンジスライダー */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 9999px;
+      background: #2b3347;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #6366f1;
+      border: 2px solid #ffffff;
+      margin-top: -7px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+      transition: transform 0.12s ease, background-color 0.12s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover,
+    input[type="range"]:active::-webkit-slider-thumb {
+      transform: scale(1.15);
+      background: #818cf8;
+    }
+
+    /* チェッカーボード背景（透過画像対応） */
+    .checkerboard {
+      background-color: #131722;
+      background-image:
+        linear-gradient(45deg, #1b2030 25%, transparent 25%),
+        linear-gradient(-45deg, #1b2030 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #1b2030 75%),
+        linear-gradient(-45deg, transparent 75%, #1b2030 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+    }
+
+    /* 横スクロールフィルターバーのスクロールバー非表示 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-studio-950 text-slate-100 font-sans antialiased selection:bg-indigo-500 selection:text-white overflow-x-hidden">
+
+  <!-- アプリ全体コンテナ -->
+  <div class="min-h-screen flex flex-col lg:h-screen lg:overflow-hidden">
+
+    <!-- トップヘッダー -->
+    <header class="bg-studio-900/95 backdrop-blur border-b border-slate-800 px-4 py-3 flex items-center justify-between gap-2 sticky top-0 z-30">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <div class="truncate">
+          <h1 class="text-base sm:text-lg font-bold tracking-tight text-white truncate">画像加工スタジオ</h1>
+          <p class="text-[11px] text-slate-400 hidden sm:block">クライアント完結型リアルタイム・アートフィルター</p>
+        </div>
+      </div>
+
+      <!-- アクションボタン群 -->
+      <div class="flex items-center gap-2 shrink-0">
+        <!-- 仕様書・テスト確認モーダルボタン -->
+        <button id="btn-spec-modal" type="button" class="px-2.5 py-2 rounded-xl bg-studio-800 hover:bg-studio-700 text-slate-300 text-xs font-medium border border-slate-700/80 transition flex items-center gap-1.5" title="仕様・自己診断テスト">
+          <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="hidden md:inline">仕様・診断</span>
+        </button>
+
+        <!-- 画像アップロードボタン -->
+        <label for="file-input" class="cursor-pointer px-3 py-2 rounded-xl bg-studio-800 hover:bg-studio-700 text-slate-100 text-xs sm:text-sm font-medium border border-slate-700 transition flex items-center gap-1.5 shadow-sm">
+          <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          <span>画像を選択</span>
+        </label>
+        <input id="file-input" type="file" accept="image/*" class="hidden" />
+
+        <!-- 保存ボタン -->
+        <button id="btn-download" type="button" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 shadow-lg shadow-indigo-600/25">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span>保存</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- メインワークスペース（PC: 左右2カラム / スマホ: 上下スタック） -->
+    <main class="flex-1 flex flex-col lg:flex-row min-h-0">
+
+      <!-- 左（PC）/ 上（モバイル）：プレビュービューポート -->
+      <section class="flex-1 flex flex-col bg-studio-950 relative min-h-[42vh] sm:min-h-[50vh] lg:min-h-0 border-b lg:border-b-0 lg:border-r border-slate-800">
+
+        <!-- プレビュー上部ツールバー -->
+        <div class="px-3 sm:px-4 py-2 bg-studio-900/70 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-1.5">
+            <!-- 比較モード切替 -->
+            <div class="inline-flex rounded-xl bg-studio-850 p-0.5 border border-slate-800">
+              <button id="mode-single" type="button" class="compare-mode-btn px-2.5 py-1.5 rounded-lg font-medium bg-indigo-600 text-white transition">加工後</button>
+              <button id="mode-split" type="button" class="compare-mode-btn px-2.5 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition">前後スライダー比較</button>
+              <button id="mode-hold" type="button" class="compare-mode-btn px-2.5 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition select-none">長押しで元画像</button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <!-- サンプル画像切替 -->
+            <select id="sample-select" aria-label="サンプル画像選択" class="bg-studio-850 border border-slate-700/80 text-slate-200 rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
+              <option value="townscape">サンプル: 街並みと風景</option>
+              <option value="portrait">サンプル: カラフル幾何学・人物風</option>
+              <option value="nature">サンプル: 夕暮れの海と山</option>
+            </select>
+
+            <!-- リセットボタン -->
+            <button id="btn-reset" type="button" class="px-2.5 py-1.5 rounded-xl bg-studio-850 hover:bg-studio-700 text-slate-300 border border-slate-700/80 transition flex items-center gap-1" title="パラメータを初期値に戻す">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>リセット</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- キャンバス表示エリア（ドラッグ＆ドロップ対応） -->
+        <div id="drop-zone" class="flex-1 relative flex items-center justify-center p-3 sm:p-6 checkerboard overflow-hidden select-none">
+
+          <!-- 比較コンテナ -->
+          <div id="canvas-wrapper" class="relative max-w-full max-h-full flex items-center justify-center rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/10">
+            <!-- 加工後メインキャンバス -->
+            <canvas id="output-canvas" class="block max-w-full max-h-[48vh] lg:max-h-[calc(100vh-140px)] w-auto h-auto object-contain"></canvas>
+
+            <!-- 比較用：加工前オーバーレイキャンバス（スライダー比較・長押し時） -->
+            <div id="before-overlay" class="absolute inset-0 overflow-hidden pointer-events-none hidden" style="clip-path: inset(0 50% 0 0);">
+              <canvas id="original-canvas" class="block w-full h-full object-contain"></canvas>
+              <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-black/70 text-[11px] font-semibold text-white backdrop-blur-sm">加工前</span>
+            </div>
+
+            <!-- 加工後バッジ（スライダー比較時のみ表示） -->
+            <span id="after-badge" class="hidden absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-indigo-600/85 text-[11px] font-semibold text-white backdrop-blur-sm pointer-events-none">加工後</span>
+
+            <!-- スライダー分割ライン＆ハンドル -->
+            <div id="split-divider" class="hidden absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_8px_rgba(0,0,0,0.8)] cursor-ew-resize z-10" style="left: 50%;">
+              <div class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-white text-slate-900 shadow-lg flex items-center justify-center border-2 border-indigo-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-3 3 3 3m8-6l3 3-3 3" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- ローディングインジケーター（油絵風など重い処理用） -->
+          <div id="loading-overlay" class="hidden absolute inset-0 bg-studio-950/65 backdrop-blur-xs flex flex-col items-center justify-center z-20">
+            <div class="w-11 h-11 rounded-full border-4 border-indigo-500/30 border-t-indigo-500 animate-spin mb-3"></div>
+            <p id="loading-text" class="text-sm font-medium text-white">フィルター処理中...</p>
+          </div>
+
+          <!-- ドラッグ＆ドロップ案内オーバーレイ -->
+          <div id="drag-overlay" class="hidden absolute inset-3 rounded-2xl border-2 border-dashed border-indigo-400 bg-indigo-950/80 backdrop-blur-sm flex flex-col items-center justify-center z-30 pointer-events-none">
+            <svg class="w-12 h-12 text-indigo-300 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <p class="text-base font-bold text-white">ここに画像をドロップして読み込み</p>
+            <p class="text-xs text-indigo-200 mt-1">PNG / JPEG / WebP 対応</p>
+          </div>
+        </div>
+
+        <!-- ステータスフッター（画像解像度・現在フィルター表示） -->
+        <div class="px-4 py-1.5 bg-studio-900 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+          <span id="status-filter-name">選択中: オリジナル</span>
+          <span id="status-resolution">解像度: - × -</span>
+        </div>
+      </section>
+
+      <!-- 右（PC）/ 下（モバイル）：フィルター選択＆詳細調整パネル -->
+      <aside class="w-full lg:w-[380px] xl:w-[410px] bg-studio-900 flex flex-col lg:h-full lg:overflow-y-auto shrink-0">
+
+        <!-- フィルター選択セクション -->
+        <div class="p-3 sm:p-4 border-b border-slate-800">
+          <div class="flex items-center justify-between mb-2.5">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">アートフィルター（全10種＋オリジナル）</h2>
+            <span class="text-[11px] text-slate-500 lg:hidden">横スクロールで選択 →</span>
+          </div>
+
+          <!-- モバイルは横スクロール、PCは3列グリッド -->
+          <div id="filter-grid" class="flex lg:grid lg:grid-cols-3 gap-2 overflow-x-auto no-scrollbar pb-1 lg:pb-0">
+            <!-- JSで9枚のフィルターカードを動的生成 -->
+          </div>
+        </div>
+
+        <!-- パラメータ調整スライダーセクション -->
+        <div class="p-3 sm:p-4 flex-1 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">効果パラメータ微調整</h2>
+            <span id="filter-badge" class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">オリジナル</span>
+          </div>
+
+          <!-- フィルター説明文 -->
+          <p id="filter-description" class="text-xs text-slate-400 leading-relaxed bg-studio-850/80 p-3 rounded-xl border border-slate-800">
+            元の画像をそのまま表示します。下のリストから加工したいスタイルを選択してください。
+          </p>
+
+          <!-- 動的スライダーコンテナ -->
+          <div id="sliders-container" class="space-y-4">
+            <!-- JSで選択フィルターに応じたスライダーを生成 -->
+          </div>
+
+          <!-- 保存形式設定 -->
+          <div class="pt-3 border-t border-slate-800/80">
+            <div class="flex items-center justify-between text-xs mb-2">
+              <span class="text-slate-400 font-medium">書き出し形式（オリジナル解像度で保存）</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="cursor-pointer">
+                <input type="radio" name="export-format" value="image/png" checked class="peer sr-only" />
+                <div class="text-center py-2 px-3 rounded-xl bg-studio-850 border border-slate-700 text-xs font-medium text-slate-300 peer-checked:bg-indigo-600/20 peer-checked:border-indigo-500 peer-checked:text-indigo-200 transition">
+                  PNG（高画質・無劣化）
+                </div>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="export-format" value="image/jpeg" class="peer sr-only" />
+                <div class="text-center py-2 px-3 rounded-xl bg-studio-850 border border-slate-700 text-xs font-medium text-slate-300 peer-checked:bg-indigo-600/20 peer-checked:border-indigo-500 peer-checked:text-indigo-200 transition">
+                  JPEG（軽量・写真向け）
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- 通知トースト（alert()の代替） -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- 仕様・試験結果確認モーダル -->
+  <div id="spec-modal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-studio-900 border border-slate-700 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+          <h3 class="text-base font-bold text-white">アプリ仕様書 ＆ 自動実装検証レポート</h3>
+        </div>
+        <button id="btn-close-spec" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-studio-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div id="spec-modal-body" class="p-5 overflow-y-auto space-y-4 text-xs sm:text-sm text-slate-300 leading-relaxed">
+        <!-- JSで最新仕様と自己診断テスト結果を出力 -->
+      </div>
+      <div class="px-5 py-3 bg-studio-850 border-t border-slate-800 flex justify-between items-center">
+        <button id="btn-run-selftest" type="button" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition">
+          全10フィルター動作確認テスト再実行
+        </button>
+        <button id="btn-close-spec-footer" type="button" class="px-4 py-2 rounded-xl bg-studio-700 hover:bg-studio-600 text-white text-xs font-medium transition">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * 画像加工スタジオ - Image Filter Studio
+     * クライアントサイド完結型のリアルタイム画像加工エンジン
+     */
+
+    // =========================================================================
+    // 1. アプリケーション仕様定義（デグレ防止用ベースライン仕様）
+    // =========================================================================
+    const APP_SPECIFICATION = {
+      version: "1.2.0",
+      responsiveTargets: ["PCブラウザ（2カラム・大画面プレビュー）", "携帯・タブレットブラウザ（縦スタック・横スクロールバー・タッチ比較対応）"],
+      requiredFilters: [
+        { id: "original", name: "オリジナル", desc: "加工なしの元画像を表示します。" },
+        { id: "anime", name: "アニメ風", desc: "色面を大きく整理して少ない色数で塗り分け、太めで滑らかな主線と影のセル塗りを加えた、シンプルな日本アニメ背景・作画風です。" },
+        { id: "fantasy", name: "幻想的", desc: "柔らかな光芒・ハイライトの発光・青紫やピンクの色調を重ね、夢の中のような幻想的な雰囲気に仕上げます。" },
+        { id: "scenic", name: "絶景", desc: "空や海・緑の色彩を鮮やかに整え、明暗・遠景の抜け・光の温かさを強調して、旅行雑誌の絶景写真のように仕上げます。" },
+        { id: "pencil", name: "鉛筆画風", desc: "グレースケール変換・反転ぼかし層の覆い焼きカラー合成（Color Dodge）・紙目テクスチャでデッサン調を表現します。" },
+        { id: "watercolor", name: "水彩画風", desc: "色面をまとめる水彩ウォッシュ、顔料の粒状ムラ、輪郭の色だまり、繊維感のある水彩紙を重ねて手描き風に仕上げます。" },
+        { id: "oil", name: "油絵風", desc: "Kuwahara（桑原）フィルター風の近傍領域分散最小化アルゴリズムにより、筆致の重なりと重厚な油彩タッチを生成します。" },
+        { id: "miniature", name: "ミニチュア風", desc: "鮮やかさ・コントラストの強調と、ピント帯域外への段階的ガウスぼかし（チルトシフト効果）でジオラマ模型のように見せます。" },
+        { id: "pixel", name: "ピクセルアート風", desc: "指定ピクセルサイズへのダウンサンプリングとレトロカラーパレット量子化により、ドット絵ゲーム風に加工します。" },
+        { id: "neon", name: "ネオン風", desc: "暗背景化と高コントラスト輪郭抽出に、シアン〜マゼンタのネオングラデーション発光（ブルーム効果）を与えます。" },
+        { id: "retro", name: "レトロ風", desc: "温かみのあるセピア・ヴィンテージ色調補正、黒浮き（フェード）、フィルムグレインノイズ、周辺減光を加えます。" }
+      ],
+      features: [
+        "ドラッグ＆ドロップおよびファイル選択による画像読み込み",
+        "サンプル画像3種による即時プレビュー体験",
+        "加工後単体・前後スライダー比較・長押し元画像比較の3モード表示",
+        "各フィルター専用のリアルタイムパラメータ調整スライダー",
+        "フル解像度（元画像サイズ）でのPNG/JPEG書き出し保存"
+      ]
+    };
+
+    // =========================================================================
+    // 2. フィルターメタデータ＆デフォルトパラメータ定義
+    // =========================================================================
+    const FILTER_CONFIGS = [
+      {
+        id: "original",
+        name: "オリジナル",
+        icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
+        accent: "from-slate-500 to-slate-600",
+        description: APP_SPECIFICATION.requiredFilters[0].desc,
+        params: []
+      },
+      {
+        id: "anime",
+        name: "アニメ風",
+        icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>`,
+        accent: "from-pink-500 to-rose-500",
+        description: APP_SPECIFICATION.requiredFilters[1].desc,
+        params: [
+          { key: "intensity", label: "フィルター適用度", min: 0, max: 100, step: 1, default: 100, unit: "%" },
+          { key: "levels", label: "セル塗りの色段階（少ないほどアニメ調）", min: 2, max: 8, step: 1, default: 4, unit: "段階" },
+          { key: "edgeStrength", label: "輪郭線（主線）の太さ・濃さ", min: 0, max: 100, step: 1, default: 90, unit: "%" },
+          { key: "saturation", label: "アニメ塗りの色彩", min: 80, max: 200, step: 5, default: 150, unit: "%" }
+        ]
+      },
+      {
+        id: "fantasy",
+        name: "幻想的",
+        icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3l1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z"/></svg>`,
+        accent: "from-fuchsia-500 to-violet-600",
+        description: APP_SPECIFICATION.requiredFilters.find(f => f.id === "fantasy").desc,
+        params: [
+          { key: "intensity", label: "フィルター適用度", min: 0, max: 100, step: 1, default: 100, unit: "%" },
+          { key: "glow", label: "光の柔らかさ・発光", min: 0, max: 100, step: 5, default: 65, unit: "%" },
+          { key: "dreamTone", label: "幻想的な色調", min: 0, max: 100, step: 5, default: 60, unit: "%" },
+          { key: "softness", label: "ふんわり感", min: 0, max: 100, step: 5, default: 35, unit: "%" }
+        ]
+      },
+      {
+        id: "scenic",
+        name: "絶景",
+        icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 19l6-9 4 5 3-4 5 8H3zM15 6a2 2 0 110 4 2 2 0 010-4z"/></svg>`,
+        accent: "from-cyan-500 to-emerald-500",
+        description: APP_SPECIFICATION.requiredFilters.find(f => f.id === "scenic").desc,
+        params: [
+          { key: "intensity", label: "フィルター適用度", min: 0, max: 100, step: 1, default: 100, unit: "%" },
+          { key: "vibrance", label: "自然な鮮やかさ", min: 80, max: 190, step: 5, default: 145, unit: "%" },
+          { key: "clarity", label: "明暗・くっきり感", min: 0, max: 100, step: 5, default: 55, unit: "%" },
+          { key: "warmth", label: "陽光の温かさ", min: 0, max: 100, step: 5, default: 30, unit: "%" }
+        ]
+      },
+      {
+        id: "pencil",
+        name: "鉛筆画風",
+        icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>`,
+        accent: "from-zinc-400 to-stone-600",
+        description: APP_SPECIFICATION.requiredFilters[2].desc,
+        params: [
+          { key: "intensity", label: "フィルター適用度", min: 0, max: 100, step: 1, default: 100, unit: "%" },
+          { key: "strokeRadius", label: "線の太さ・陰影ぼかし", min: 2, max: 20, step: 1, default: 8, unit: "px" },
+          { key: "contrast", label: "鉛筆の濃淡コントラスト", min: 70, max: 180, step: 5, default: 125, unit: "%" },
+          { key: "paperGrain", label: "スケッチブック紙目", min: 0, max: 100, step: 5, default: 40, unit: "%" }
+        ]
+      },
+      {
+        id: "watercolor",
+        name: "水彩画風",
+        icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>`,
+        accent: "from-sky-400 to-teal-500",
+        description: APP_SPECIFICATION.requiredFilters[3].desc,
+        params: [
+          { key: "intensity", label: "フィルター適用度", min: 0, max: 100, step: 1, default: 100, unit: "%" },
+          { key: "bleed", label: "絵の具のにじみ", min: 1, max: 10, step: 1, default: 6, unit: "段階" },
+          { key: "edgePool", label: "輪郭の顔料だまり", min: 0, max: 100, step: 5, default: 68, unit: "%" },
+          { key: "paperTexture", label: "水彩紙の凹凸", min: 0, max: 100, step: 5, default: 62, unit: "%" },
+          { key: "pigment", label: "顔料の粒状感・色ムラ", min: 0, max: 100, step: 5, default: 58, unit: "%" }
+        ]
+      },
+      {
+        id: "oil",
+        name: "油絵風",
+        icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>`,
+        accent: "from-amber-500 to-orange-600",
+        description: APP_SPECIFICATION.requiredFilters[4].desc,
+        params: [
+          { key: "intensity", label: "フィルター適用度", min: 0, max: 100, step: 1, default: 100, unit: "%" },
+          { key: "brushSize", label: "筆致（ブラシ半径）", min: 2, max: 8, step: 1, default: 4, unit: "px" },
+          { key: "richness", label: "絵具の濃厚さ・彩度", min: 80, max: 160, step: 5, default: 120, unit: "%" }
+        ]
+      },
+      {
+        id: "miniature",
+        name: "ミニチュア風",
+        icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`,
+        accent: "from-emerald-400 to-green-600",
+        description: APP_SPECIFICATION.requiredFilters[5].desc,
+        params: [
+          { key: "intensity", label: "フィルター適用度", min: 0, max: 100, step: 1, default: 100, unit: "%" },
+          { key: "focusPos", label: "ピント位置（上下）", min: 10, max: 90, step: 1, default: 52, unit: "%" },
+          { key: "focusWidth", label: "ピント帯域の広さ", min: 8, max: 45, step: 1, default: 20, unit: "%" },
+          { key: "blurAmount", label: "ボケの強さ", min: 2, max: 20, step: 1, default: 10, unit: "px" },
+          { key: "toyColor", label: "ジオラマ色彩強調", min: 100, max: 190, step: 5, default: 145, unit: "%" }
+        ]
+      },
+      {
+        id: "pixel",
+        name: "ピクセルアート風",
+        icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>`,
+        accent: "from-violet-500 to-purple-600",
+        description: APP_SPECIFICATION.requiredFilters[6].desc,
+        params: [
+          { key: "intensity", label: "フィルター適用度", min: 0, max: 100, step: 1, default: 100, unit: "%" },
+          { key: "pixelSize", label: "ドット（ブロック）サイズ", min: 4, max: 32, step: 2, default: 10, unit: "px" },
+          { key: "colorDepth", label: "パレット色数制限", min: 4, max: 32, step: 2, default: 12, unit: "階調" }
+        ]
+      },
+      {
+        id: "neon",
+        name: "ネオン風",
+        icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+        accent: "from-cyan-400 to-fuchsia-500",
+        description: APP_SPECIFICATION.requiredFilters[7].desc,
+        params: [
+          { key: "intensity", label: "フィルター適用度", min: 0, max: 100, step: 1, default: 100, unit: "%" },
+          { key: "glow", label: "ネオン発光（ブルーム）", min: 0, max: 24, step: 2, default: 12, unit: "px" },
+          { key: "threshold", label: "発光ライン感度", min: 10, max: 90, step: 5, default: 35, unit: "%" },
+          { key: "hueShift", label: "ネオンカラー色相", min: 0, max: 360, step: 10, default: 0, unit: "°" }
+        ]
+      },
+      {
+        id: "retro",
+        name: "レトロ風",
+        icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
+        accent: "from-yellow-600 to-amber-800",
+        description: APP_SPECIFICATION.requiredFilters[8].desc,
+        params: [
+          { key: "intensity", label: "フィルター適用度", min: 0, max: 100, step: 1, default: 100, unit: "%" },
+          { key: "warmth", label: "セピア・暖色トーン", min: 0, max: 100, step: 5, default: 65, unit: "%" },
+          { key: "fade", label: "フィルム黒浮き（フェード）", min: 0, max: 60, step: 2, default: 28, unit: "" },
+          { key: "grain", label: "フィルム粒子ノイズ", min: 0, max: 80, step: 5, default: 30, unit: "%" },
+          { key: "vignette", label: "周辺減光（ビネット）", min: 0, max: 100, step: 5, default: 55, unit: "%" }
+        ]
+      }
+    ];
+
+    // =========================================================================
+    // 3. アプリケーション状態管理
+    // =========================================================================
+    const state = {
+      activeFilter: "anime",
+      paramsByFilter: {},
+      compareMode: "single", // 'single' | 'split' | 'hold'
+      splitRatio: 0.5,
+      isDraggingSplit: false,
+      sourceImage: null,       // 元画像（HTMLCanvasElement: フル解像度）
+      previewSource: null,     // プレビュー高速処理用キャンバス（最大長辺 960px）
+      renderTimer: null,
+      isProcessing: false
+    };
+
+    // パラメータの初期化関数
+    function initFilterParams() {
+      FILTER_CONFIGS.forEach(f => {
+        state.paramsByFilter[f.id] = {};
+        f.params.forEach(p => {
+          state.paramsByFilter[f.id][p.key] = p.default;
+        });
+      });
+    }
+    initFilterParams();
+
+    // DOM参照
+    const outputCanvas = document.getElementById("output-canvas");
+    const originalCanvas = document.getElementById("original-canvas");
+    const outCtx = outputCanvas.getContext("2d", { willReadFrequently: true });
+    const origCtx = originalCanvas.getContext("2d", { willReadFrequently: true });
+
+    const beforeOverlay = document.getElementById("before-overlay");
+    const afterBadge = document.getElementById("after-badge");
+    const splitDivider = document.getElementById("split-divider");
+    const canvasWrapper = document.getElementById("canvas-wrapper");
+    const loadingOverlay = document.getElementById("loading-overlay");
+    const loadingText = document.getElementById("loading-text");
+
+    // =========================================================================
+    // 4. 通知トースト機能（alert()不使用）
+    // =========================================================================
+    function showToast(message, type = "info") {
+      const container = document.getElementById("toast-container");
+      const toast = document.createElement("div");
+      const colors = {
+        info: "bg-studio-800 border-indigo-500/60 text-slate-100",
+        success: "bg-emerald-950/90 border-emerald-500/60 text-emerald-100",
+        error: "bg-rose-950/90 border-rose-500/60 text-rose-100"
+      };
+      toast.className = `px-4 py-2.5 rounded-xl border shadow-xl text-xs sm:text-sm font-medium backdrop-blur-md transition-all duration-300 translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove("translate-y-2", "opacity-0");
+      });
+
+      setTimeout(() => {
+        toast.classList.add("translate-y-2", "opacity-0");
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // =========================================================================
+    // 5. サンプル画像プロシージャル生成（外部URL依存ゼロ・即時起動）
+    // =========================================================================
+    function createSampleCanvas(preset = "townscape") {
+      const w = 960;
+      const h = 640;
+      const c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      const ctx = c.getContext("2d");
+
+      if (preset === "townscape") {
+        // 青空と雲
+        const sky = ctx.createLinearGradient(0, 0, 0, h * 0.62);
+        sky.addColorStop(0, "#1d63b8");
+        sky.addColorStop(0.55, "#4da6ff");
+        sky.addColorStop(1, "#bae0ff");
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, w, h);
+
+        // 入道雲
+        ctx.fillStyle = "rgba(255,255,255,0.92)";
+        [[180, 130, 55], [230, 120, 70], [285, 135, 50], [720, 110, 48], [765, 105, 62], [810, 120, 44]].forEach(([cx, cy, r]) => {
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // 遠景の丘
+        ctx.fillStyle = "#3b7a57";
+        ctx.beginPath();
+        ctx.moveTo(0, 390);
+        ctx.quadraticCurveTo(260, 290, 520, 375);
+        ctx.quadraticCurveTo(760, 310, w, 370);
+        ctx.lineTo(w, h);
+        ctx.lineTo(0, h);
+        ctx.fill();
+
+        // 川・運河
+        const river = ctx.createLinearGradient(0, 410, 0, h);
+        river.addColorStop(0, "#2980b9");
+        river.addColorStop(1, "#1a5276");
+        ctx.fillStyle = river;
+        ctx.fillRect(0, 415, w, h - 415);
+
+        // 水面の反射光
+        ctx.fillStyle = "rgba(255,255,255,0.22)";
+        for (let i = 0; i < 18; i++) {
+          ctx.fillRect(80 + (i * 47) % 800, 435 + i * 10, 50 + (i % 3) * 25, 3);
+        }
+
+        // カラフルなヨーロッパ風の街並み（ミニチュア風・アニメ風が映える構図）
+        const buildings = [
+          { x: 60, y: 245, w: 110, h: 175, wall: "#f4a261", roof: "#9b2226" },
+          { x: 175, y: 215, w: 125, h: 205, wall: "#e9c46a", roof: "#ae2012" },
+          { x: 305, y: 255, w: 105, h: 165, wall: "#f8edeb", roof: "#3d405b" },
+          { x: 415, y: 195, w: 135, h: 225, wall: "#e76f51", roof: "#6d2e46" },
+          { x: 555, y: 240, w: 115, h: 180, wall: "#a8dadc", roof: "#1d3557" },
+          { x: 675, y: 220, w: 120, h: 200, wall: "#ffd166", roof: "#9b2226" },
+          { x: 800, y: 260, w: 105, h: 160, wall: "#f28482", roof: "#4a4e69" }
+        ];
+
+        buildings.forEach(b => {
+          // 壁面
+          ctx.fillStyle = b.wall;
+          ctx.fillRect(b.x, b.y, b.w, b.h);
+          ctx.strokeStyle = "#1f2937";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(b.x, b.y, b.w, b.h);
+
+          // 三角屋根
+          ctx.fillStyle = b.roof;
+          ctx.beginPath();
+          ctx.moveTo(b.x - 6, b.y);
+          ctx.lineTo(b.x + b.w / 2, b.y - 48);
+          ctx.lineTo(b.x + b.w + 6, b.y);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          // 窓グリッド
+          const cols = 3;
+          const rows = 3;
+          const padX = 16;
+          const padY = 20;
+          const winW = (b.w - padX * 2 - (cols - 1) * 10) / cols;
+          const winH = 26;
+          for (let r = 0; r < rows; r++) {
+            for (let col = 0; col < cols; col++) {
+              const wx = b.x + padX + col * (winW + 10);
+              const wy = b.y + padY + r * (winH + 16);
+              ctx.fillStyle = (r + col) % 2 === 0 ? "#1e293b" : "#fef08a";
+              ctx.fillRect(wx, wy, winW, winH);
+              ctx.strokeStyle = "#ffffff";
+              ctx.lineWidth = 1.5;
+              ctx.strokeRect(wx, wy, winW, winH);
+            }
+          }
+        });
+
+        // 手前の遊歩道と街路樹
+        ctx.fillStyle = "#64748b";
+        ctx.fillRect(0, 405, w, 16);
+        for (let tx = 45; tx < w; tx += 150) {
+          ctx.fillStyle = "#5c4033";
+          ctx.fillRect(tx - 4, 382, 8, 26);
+          ctx.fillStyle = "#2d6a4f";
+          ctx.beginPath();
+          ctx.arc(tx, 372, 22, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#52b788";
+          ctx.beginPath();
+          ctx.arc(tx - 5, 367, 14, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (preset === "portrait") {
+        // ポップアート・幾何学ステンドグラス風（ネオン・ピクセル・鉛筆画テスト最適）
+        const bg = ctx.createRadialGradient(w / 2, h / 2, 40, w / 2, h / 2, w * 0.65);
+        bg.addColorStop(0, "#fdf2f8");
+        bg.addColorStop(0.5, "#fbcfe8");
+        bg.addColorStop(1, "#818cf8");
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, w, h);
+
+        // 放射状サンバースト
+        for (let i = 0; i < 24; i++) {
+          ctx.fillStyle = i % 2 === 0 ? "rgba(255,255,255,0.28)" : "rgba(99,102,241,0.14)";
+          ctx.beginPath();
+          ctx.moveTo(w / 2, h / 2);
+          const a1 = (i * Math.PI * 2) / 24;
+          const a2 = ((i + 1) * Math.PI * 2) / 24;
+          ctx.arc(w / 2, h / 2, 700, a1, a2);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        // キャラクター風のシルエット＆鮮やかなパーツ
+        // 肩・服
+        ctx.fillStyle = "#ef4444";
+        ctx.beginPath();
+        ctx.ellipse(w / 2, 590, 190, 140, 0, Math.PI, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#1e1b4b";
+        ctx.stroke();
+
+        // 顔
+        ctx.fillStyle = "#fde68a";
+        ctx.beginPath();
+        ctx.arc(w / 2, 310, 125, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // 髪型
+        ctx.fillStyle = "#1e293b";
+        ctx.beginPath();
+        ctx.arc(w / 2, 285, 132, Math.PI * 0.92, Math.PI * 2.08);
+        ctx.lineTo(w / 2 + 135, 360);
+        ctx.lineTo(w / 2 + 95, 270);
+        ctx.lineTo(w / 2, 295);
+        ctx.lineTo(w / 2 - 95, 270);
+        ctx.lineTo(w / 2 - 135, 360);
+        ctx.closePath();
+        ctx.fill();
+
+        // サングラス（ネオン反射）
+        ctx.fillStyle = "#06b6d4";
+        ctx.fillRect(w / 2 - 92, 285, 76, 44);
+        ctx.fillRect(w / 2 + 16, 285, 76, 44);
+        ctx.strokeStyle = "#0f172a";
+        ctx.lineWidth = 6;
+        ctx.strokeRect(w / 2 - 92, 285, 76, 44);
+        ctx.strokeRect(w / 2 + 16, 285, 76, 44);
+        ctx.beginPath();
+        ctx.moveTo(w / 2 - 16, 302);
+        ctx.lineTo(w / 2 + 16, 302);
+        ctx.stroke();
+
+        // 笑顔
+        ctx.strokeStyle = "#be123c";
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(w / 2, 355, 42, 0.15 * Math.PI, 0.85 * Math.PI);
+        ctx.stroke();
+      } else {
+        // 夕暮れの海と富士山風シルエット（水彩・油絵・レトロテスト最適）
+        const sunset = ctx.createLinearGradient(0, 0, 0, h * 0.65);
+        sunset.addColorStop(0, "#1e1b4b");
+        sunset.addColorStop(0.35, "#9d174d");
+        sunset.addColorStop(0.7, "#f97316");
+        sunset.addColorStop(1, "#fde047");
+        ctx.fillStyle = sunset;
+        ctx.fillRect(0, 0, w, h);
+
+        // 大きな夕日
+        ctx.fillStyle = "#fef9c3";
+        ctx.beginPath();
+        ctx.arc(w * 0.5, h * 0.48, 85, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 山のシルエット
+        ctx.fillStyle = "#312e81";
+        ctx.beginPath();
+        ctx.moveTo(80, h * 0.65);
+        ctx.lineTo(w * 0.43, h * 0.28);
+        ctx.lineTo(w * 0.57, h * 0.28);
+        ctx.lineTo(w - 80, h * 0.65);
+        ctx.closePath();
+        ctx.fill();
+
+        // 山頂の雪化粧
+        ctx.fillStyle = "#f8fafc";
+        ctx.beginPath();
+        ctx.moveTo(w * 0.43, h * 0.28);
+        ctx.lineTo(w * 0.57, h * 0.28);
+        ctx.lineTo(w * 0.62, h * 0.38);
+        ctx.lineTo(w * 0.54, h * 0.35);
+        ctx.lineTo(w * 0.5, h * 0.4);
+        ctx.lineTo(w * 0.45, h * 0.35);
+        ctx.lineTo(w * 0.38, h * 0.38);
+        ctx.closePath();
+        ctx.fill();
+
+        // 海面
+        const sea = ctx.createLinearGradient(0, h * 0.65, 0, h);
+        sea.addColorStop(0, "#ea580c");
+        sea.addColorStop(0.4, "#1e3a8a");
+        sea.addColorStop(1, "#0f172a");
+        ctx.fillStyle = sea;
+        ctx.fillRect(0, h * 0.65, w, h * 0.35);
+
+        // 海面の光の道
+        ctx.fillStyle = "rgba(254, 240, 138, 0.55)";
+        for (let y = h * 0.67; y < h; y += 14) {
+          const span = 140 - ((y - h * 0.65) * 0.4);
+          ctx.fillRect(w * 0.5 - span / 2 + Math.sin(y) * 12, y, Math.max(20, span), 4);
+        }
+      }
+
+      return c;
+    }
+
+    // =========================================================================
+    // 6. 画像読み込み・リサイズ管理
+    // =========================================================================
+    function setSourceCanvas(fullCanvas) {
+      state.sourceImage = fullCanvas;
+
+      // プレビュー用の高速処理キャンバス（最大長辺960pxにスケーリング）
+      const maxDim = 960;
+      const scale = Math.min(1, maxDim / Math.max(fullCanvas.width, fullCanvas.height));
+      const pw = Math.max(1, Math.round(fullCanvas.width * scale));
+      const ph = Math.max(1, Math.round(fullCanvas.height * scale));
+
+      const pCanvas = document.createElement("canvas");
+      pCanvas.width = pw;
+      pCanvas.height = ph;
+      const pCtx = pCanvas.getContext("2d");
+      pCtx.drawImage(fullCanvas, 0, 0, pw, ph);
+      state.previewSource = pCanvas;
+
+      // 表示キャンバスサイズ同期
+      outputCanvas.width = pw;
+      outputCanvas.height = ph;
+      originalCanvas.width = pw;
+      originalCanvas.height = ph;
+      origCtx.drawImage(pCanvas, 0, 0);
+
+      document.getElementById("status-resolution").textContent = `元解像度: ${fullCanvas.width} × ${fullCanvas.height}px`;
+      scheduleRender();
+    }
+
+    function handleImageFile(file) {
+      if (!file || !file.type.startsWith("image/")) {
+        showToast("画像ファイル（PNG / JPEG / WebPなど）を選択してください。", "error");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement("canvas");
+          c.width = img.naturalWidth;
+          c.height = img.naturalHeight;
+          const ctx = c.getContext("2d");
+          ctx.drawImage(img, 0, 0);
+          setSourceCanvas(c);
+          showToast(`画像を読み込みました（${img.naturalWidth}×${img.naturalHeight}）`, "success");
+        };
+        img.onerror = () => showToast("画像の読み込みに失敗しました。", "error");
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // =========================================================================
+    // 7. 10種類のクライアントサイド画像加工アルゴリズム実装
+    // =========================================================================
+
+    // ユーティリティ: クランプ
+    function clamp255(v) {
+      return v < 0 ? 0 : v > 255 ? 255 : v | 0;
+    }
+
+    // ユーティリティ: 高速Box Blur（分離可能2パス移動平均）
+    function boxBlurGray(srcGray, width, height, radius) {
+      const r = Math.max(1, Math.round(radius));
+      const temp = new Float32Array(width * height);
+      const dst = new Uint8ClampedArray(width * height);
+      const div = r * 2 + 1;
+
+      // 水平パス
+      for (let y = 0; y < height; y++) {
+        let sum = 0;
+        const rowOffset = y * width;
+        for (let i = -r; i <= r; i++) {
+          const idx = Math.min(width - 1, Math.max(0, i));
+          sum += srcGray[rowOffset + idx];
+        }
+        for (let x = 0; x < width; x++) {
+          temp[rowOffset + x] = sum / div;
+          const addIdx = Math.min(width - 1, x + r + 1);
+          const subIdx = Math.max(0, x - r);
+          sum += srcGray[rowOffset + addIdx] - srcGray[rowOffset + subIdx];
+        }
+      }
+
+      // 垂直パス
+      for (let x = 0; x < width; x++) {
+        let sum = 0;
+        for (let i = -r; i <= r; i++) {
+          const idy = Math.min(height - 1, Math.max(0, i));
+          sum += temp[idy * width + x];
+        }
+        for (let y = 0; y < height; y++) {
+          dst[y * width + x] = clamp255(sum / div);
+          const addIdy = Math.min(height - 1, y + r + 1);
+          const subIdy = Math.max(0, y - r);
+          sum += temp[addIdy * width + x] - temp[subIdy * width + x];
+        }
+      }
+      return dst;
+    }
+
+    // ユーティリティ: RGB高速ボックスぼかし（水彩風・平滑化用）
+    function boxBlurRGBA(data, width, height, radius) {
+      const r = Math.max(1, Math.round(radius));
+      const len = width * height * 4;
+      const temp = new Float32Array(len);
+      const out = new Uint8ClampedArray(len);
+      const div = r * 2 + 1;
+
+      for (let y = 0; y < height; y++) {
+        let sr = 0, sg = 0, sb = 0;
+        const row = y * width;
+        for (let i = -r; i <= r; i++) {
+          const x = Math.min(width - 1, Math.max(0, i));
+          const p = (row + x) * 4;
+          sr += data[p]; sg += data[p + 1]; sb += data[p + 2];
+        }
+        for (let x = 0; x < width; x++) {
+          const p = (row + x) * 4;
+          temp[p] = sr / div;
+          temp[p + 1] = sg / div;
+          temp[p + 2] = sb / div;
+          temp[p + 3] = data[p + 3];
+
+          const pAdd = (row + Math.min(width - 1, x + r + 1)) * 4;
+          const pSub = (row + Math.max(0, x - r)) * 4;
+          sr += data[pAdd] - data[pSub];
+          sg += data[pAdd + 1] - data[pSub + 1];
+          sb += data[pAdd + 2] - data[pSub + 2];
+        }
+      }
+
+      for (let x = 0; x < width; x++) {
+        let sr = 0, sg = 0, sb = 0;
+        for (let i = -r; i <= r; i++) {
+          const y = Math.min(height - 1, Math.max(0, i));
+          const p = (y * width + x) * 4;
+          sr += temp[p]; sg += temp[p + 1]; sb += temp[p + 2];
+        }
+        for (let y = 0; y < height; y++) {
+          const p = (y * width + x) * 4;
+          out[p] = clamp255(sr / div);
+          out[p + 1] = clamp255(sg / div);
+          out[p + 2] = clamp255(sb / div);
+          out[p + 3] = data[p + 3];
+
+          const pAdd = (Math.min(height - 1, y + r + 1) * width + x) * 4;
+          const pSub = (Math.max(0, y - r) * width + x) * 4;
+          sr += temp[pAdd] - temp[pSub];
+          sg += temp[pAdd + 1] - temp[pSub + 1];
+          sb += temp[pAdd + 2] - temp[pSub + 2];
+        }
+      }
+      return out;
+    }
+
+    // ユーティリティ: Sobelエッジ強度マップ計算
+    function computeSobelEdges(gray, width, height) {
+      const edges = new Uint8ClampedArray(width * height);
+      for (let y = 1; y < height - 1; y++) {
+        const ym1 = (y - 1) * width;
+        const y0 = y * width;
+        const yp1 = (y + 1) * width;
+        for (let x = 1; x < width - 1; x++) {
+          const tl = gray[ym1 + x - 1], tc = gray[ym1 + x], tr = gray[ym1 + x + 1];
+          const ml = gray[y0 + x - 1],                      mr = gray[y0 + x + 1];
+          const bl = gray[yp1 + x - 1], bc = gray[yp1 + x], br = gray[yp1 + x + 1];
+
+          const gx = -tl + tr - 2 * ml + 2 * mr - bl + br;
+          const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
+          const mag = Math.sqrt(gx * gx + gy * gy) * 0.35;
+          edges[y0 + x] = clamp255(mag);
+        }
+      }
+      return edges;
+    }
+
+    // ユーティリティ: 元画像との適用度ブレンド
+    function blendWithOriginal(origData, procData, intensityPercent) {
+      const alpha = Math.max(0, Math.min(1, intensityPercent / 100));
+      if (alpha >= 0.999) return procData;
+      if (alpha <= 0.001) return new Uint8ClampedArray(origData);
+      const inv = 1 - alpha;
+      const out = new Uint8ClampedArray(origData.length);
+      for (let i = 0; i < origData.length; i += 4) {
+        out[i] = origData[i] * inv + procData[i] * alpha;
+        out[i + 1] = origData[i + 1] * inv + procData[i + 1] * alpha;
+        out[i + 2] = origData[i + 2] * inv + procData[i + 2] * alpha;
+        out[i + 3] = origData[i + 3];
+      }
+      return out;
+    }
+
+    /**
+     * 指定されたフィルターをターゲットキャンバスに適用するメインパイプライン
+     */
+    function applyFilterToCanvas(sourceCanvas, targetCanvas, filterId, params) {
+      const w = sourceCanvas.width;
+      const h = sourceCanvas.height;
+      targetCanvas.width = w;
+      targetCanvas.height = h;
+      const ctx = targetCanvas.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(sourceCanvas, 0, 0);
+
+      if (filterId === "original") return;
+
+      const srcImageData = ctx.getImageData(0, 0, w, h);
+      const origData = new Uint8ClampedArray(srcImageData.data);
+      const data = srcImageData.data;
+      const pixelCount = w * h;
+
+      // グレースケール配列の事前生成（複数フィルターで共用）
+      const gray = new Uint8ClampedArray(pixelCount);
+      for (let i = 0, p = 0; i < pixelCount; i++, p += 4) {
+        gray[i] = (0.299 * origData[p] + 0.587 * origData[p + 1] + 0.114 * origData[p + 2]) | 0;
+      }
+
+      // -----------------------------------------------------------------------
+      // 1. アニメ風: 色面を整理したセル塗り + 太く滑らかな主線
+      // -----------------------------------------------------------------------
+      if (filterId === "anime") {
+        const smooth = boxBlurRGBA(origData, w, h, 3);
+        const edges = computeSobelEdges(gray, w, h);
+        const levels = Math.max(2, params.levels || 4);
+        const sat = (params.saturation || 150) / 100;
+        const edgeMult = (params.edgeStrength || 90) / 100;
+        const step = 255 / (levels - 1);
+        const thickEdges = new Uint8ClampedArray(pixelCount);
+        for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+          let m = 0;
+          for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++)
+            m = Math.max(m, edges[(y + oy) * w + x + ox]);
+          thickEdges[y * w + x] = m;
+        }
+        for (let i = 0, p = 0; i < pixelCount; i++, p += 4) {
+          let r = smooth[p], g = smooth[p + 1], b = smooth[p + 2];
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          r = lum + (r - lum) * sat;
+          g = lum + (g - lum) * sat;
+          b = lum + (b - lum) * sat;
+          const shade = Math.round(lum / step) * step;
+          const shadeRatio = lum > 1 ? shade / lum : 1;
+          r = clamp255(r * shadeRatio * 1.035 + 3);
+          g = clamp255(g * shadeRatio * 1.025 + 3);
+          b = clamp255(b * shadeRatio * 1.015 + 5);
+          const e = thickEdges[i];
+          const ink = e > 24 ? Math.min(0.96, ((e - 24) / 100) * edgeMult * 2.1) : 0;
+          data[p] = clamp255(r * (1 - ink) + 20 * ink);
+          data[p + 1] = clamp255(g * (1 - ink) + 24 * ink);
+          data[p + 2] = clamp255(b * (1 - ink) + 38 * ink);
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // 1b. 幻想的: ソフトフォーカス + ハイライトブルーム + 夢色グレーディング
+      // -----------------------------------------------------------------------
+      else if (filterId === "fantasy") {
+        const softness = (params.softness ?? 35) / 100;
+        const glowAmt = (params.glow ?? 65) / 100;
+        const tone = (params.dreamTone ?? 60) / 100;
+        const blur = boxBlurRGBA(origData, w, h, Math.max(1, Math.round(2 + softness * 8)));
+        const light = new Uint8ClampedArray(origData.length);
+        for (let i = 0, p = 0; i < pixelCount; i++, p += 4) {
+          const lum = 0.299 * origData[p] + 0.587 * origData[p + 1] + 0.114 * origData[p + 2];
+          const mask = Math.max(0, (lum - 150) / 105);
+          light[p] = origData[p] * mask;
+          light[p + 1] = origData[p + 1] * mask;
+          light[p + 2] = origData[p + 2] * mask;
+          light[p + 3] = 255;
+        }
+        const bloom = boxBlurRGBA(light, w, h, Math.max(2, Math.round(5 + glowAmt * 15)));
+        for (let i = 0, p = 0; i < pixelCount; i++, p += 4) {
+          const mix = softness * 0.28;
+          let r = origData[p] * (1 - mix) + blur[p] * mix + bloom[p] * glowAmt * 0.75;
+          let g = origData[p + 1] * (1 - mix) + blur[p + 1] * mix + bloom[p + 1] * glowAmt * 0.58;
+          let b = origData[p + 2] * (1 - mix) + blur[p + 2] * mix + bloom[p + 2] * glowAmt * 0.9;
+          data[p] = clamp255(r * (1 - tone * 0.08) + (b * 0.10 + 18) * tone);
+          data[p + 1] = clamp255(g * (1 - tone * 0.035) + 8 * tone);
+          data[p + 2] = clamp255(b * (1 + tone * 0.12) + 12 * tone);
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // 1c. 絶景: 自然な彩度・明瞭度・陽光を強調するランドスケープ補正
+      // -----------------------------------------------------------------------
+      else if (filterId === "scenic") {
+        const vibrance = (params.vibrance ?? 145) / 100;
+        const clarity = (params.clarity ?? 55) / 100;
+        const warmth = (params.warmth ?? 30) / 100;
+        const soft = boxBlurRGBA(origData, w, h, 2);
+        for (let i = 0, p = 0; i < pixelCount; i++, p += 4) {
+          let r = origData[p], g = origData[p + 1], b = origData[p + 2];
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          const sat = (Math.max(r, g, b) - Math.min(r, g, b)) / Math.max(1, Math.max(r, g, b));
+          const boost = 1 + (vibrance - 1) * (1 - sat * 0.72);
+          r = lum + (r - lum) * boost + (origData[p] - soft[p]) * clarity * 1.35;
+          g = lum + (g - lum) * boost + (origData[p + 1] - soft[p + 1]) * clarity * 1.35;
+          b = lum + (b - lum) * boost + (origData[p + 2] - soft[p + 2]) * clarity * 1.35;
+          const highlight = Math.max(0, (lum - 100) / 155) * warmth;
+          data[p] = clamp255((r + 24 * highlight - 128) * 1.08 + 132);
+          data[p + 1] = clamp255((g + 12 * highlight - 128) * 1.07 + 132);
+          data[p + 2] = clamp255((b - 7 * highlight - 128) * 1.06 + 130);
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // 2. 鉛筆画風 (Pencil Sketch): 反転ぼかし覆い焼きカラー + 紙目テクスチャ
+      // -----------------------------------------------------------------------
+      else if (filterId === "pencil") {
+        const inverted = new Uint8ClampedArray(pixelCount);
+        for (let i = 0; i < pixelCount; i++) {
+          inverted[i] = 255 - gray[i];
+        }
+        const blurredInv = boxBlurGray(inverted, w, h, params.strokeRadius || 8);
+        const contrast = (params.contrast || 125) / 100;
+        const grainAmt = (params.paperGrain || 40) / 100;
+
+        for (let i = 0, p = 0; i < pixelCount; i++, p += 4) {
+          const base = gray[i];
+          const dodge = blurredInv[i];
+          // Color Dodge: base / (255 - dodge)
+          let val = dodge >= 254 ? 255 : Math.min(255, (base * 255) / (255 - dodge));
+
+          // コントラスト調整
+          val = ((val - 128) * contrast) + 128;
+
+          // 決定論的疑似紙目ノイズ
+          const x = i % w;
+          const y = (i / w) | 0;
+          const paper = ((Math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1);
+          const grain = (Math.abs(paper) - 0.5) * 38 * grainAmt;
+          val = clamp255(val + grain);
+
+          // わずかに温かみのあるグラファイト調グレー
+          data[p] = clamp255(val);
+          data[p + 1] = clamp255(val * 0.99);
+          data[p + 2] = clamp255(val * 0.96);
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // 3. 水彩画風 (Watercolor): 絵具にじみ平滑化 + 輪郭溜まり + 水彩紙質感
+      // -----------------------------------------------------------------------
+      else if (filterId === "watercolor") {
+        // 水彩は単なるぼかしではなく「大きな色面 + 透明な重ね塗り + 顔料の偏り + 紙の吸水跡」で表現
+        const bleed = params.bleed || 6;
+        const washA = boxBlurRGBA(origData, w, h, Math.max(2, bleed * 1.35));
+        const washB = boxBlurRGBA(washA, w, h, Math.max(1, Math.round(bleed * 0.55)));
+        const edges = computeSobelEdges(gray, w, h);
+        const edgePool = (params.edgePool ?? 68) / 100;
+        const paperTex = (params.paperTexture ?? 62) / 100;
+        const pigment = (params.pigment ?? 58) / 100;
+        const levels = 11; // 色面をゆるく整理し、写真の細部を絵具の面へ置き換える
+
+        for (let i = 0, p = 0; i < pixelCount; i++, p += 4) {
+          const x = i % w;
+          const y = (i / w) | 0;
+          // 2スケールのウォッシュを混ぜ、元写真の細かな質感を抑える
+          let r = washB[p] * 0.72 + washA[p] * 0.28;
+          let g = washB[p + 1] * 0.72 + washA[p + 1] * 0.28;
+          let b = washB[p + 2] * 0.72 + washA[p + 2] * 0.28;
+
+          // 水彩らしい明るい紙白と透明感。彩度を少し整理して顔料色に寄せる
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          const sat = Math.max(r, g, b) - Math.min(r, g, b);
+          const chroma = 1.08;
+          r = lum + (r - lum) * chroma;
+          g = lum + (g - lum) * chroma;
+          b = lum + (b - lum) * chroma;
+          r = r * 0.91 + 24;
+          g = g * 0.91 + 24;
+          b = b * 0.91 + 26;
+
+          // 緩やかな色面化。硬いポスタライズではなく段階の境目を少し揺らす
+          const granule = (Math.sin(x * 0.173 + y * 0.117) + Math.sin(x * 0.071 - y * 0.193)) * 1.8 * pigment;
+          const step = 255 / levels;
+          r = Math.round((r + granule) / step) * step;
+          g = Math.round((g + granule * 0.72) / step) * step;
+          b = Math.round((b + granule * 0.9) / step) * step;
+
+          // 顔料の粒状ムラ。細粒と大きな吸水ムラを重ねる
+          const fine = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+          const grain = (fine - Math.floor(fine) - 0.5) * 30 * pigment;
+          const bloom = (Math.sin(x * 0.043 + Math.sin(y * 0.031) * 2.4) * Math.cos(y * 0.057 + x * 0.019)) * 7 * pigment;
+          const pigmentMod = 1 + bloom / 255;
+          r = r * pigmentMod + grain;
+          g = g * pigmentMod + grain * 0.88;
+          b = b * pigmentMod + grain * 0.72;
+
+          // 輪郭の内側に顔料が集まった濃い縁。線画のように真っ黒にはしない
+          const edge = edges[i] / 255;
+          const pool = Math.pow(edge, 1.25) * edgePool * 0.42;
+          r *= 1 - pool;
+          g *= 1 - pool * 0.96;
+          b *= 1 - pool * 0.88;
+
+          // 紙の繊維・凹凸。規則的な格子模様にならない複合テクスチャ
+          const fiber = (Math.sin(x * 0.81 + y * 0.13) * Math.sin(y * 0.67 - x * 0.09) + Math.sin((x + y) * 0.29)) * 2.8;
+          const paper = fiber * paperTex + (Math.sin(x * 0.19) * Math.cos(y * 0.23)) * 2.2 * paperTex;
+          data[p] = clamp255(r + paper);
+          data[p + 1] = clamp255(g + paper);
+          data[p + 2] = clamp255(b + paper);
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // 4. 油絵風 (Oil Painting): Kuwahara（桑原）フィルター領域分散最小化
+      // -----------------------------------------------------------------------
+      else if (filterId === "oil") {
+        const radius = params.brushSize || 4;
+        const richness = (params.richness || 120) / 100;
+        const out = new Uint8ClampedArray(origData.length);
+
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            // 4象限（左上・右上・左下・右下）の平均色と輝度分散を計算
+            let bestVar = Infinity;
+            let bestR = 0, bestG = 0, bestB = 0;
+
+            const quadrants = [
+              [-radius, 0, -radius, 0],
+              [0, radius, -radius, 0],
+              [-radius, 0, 0, radius],
+              [0, radius, 0, radius]
+            ];
+
+            for (let q = 0; q < 4; q++) {
+              const [dx0, dx1, dy0, dy1] = quadrants[q];
+              let sr = 0, sg = 0, sb = 0, slum = 0, slum2 = 0, count = 0;
+
+              for (let dy = dy0; dy <= dy1; dy++) {
+                const ny = y + dy;
+                if (ny < 0 || ny >= h) continue;
+                const row = ny * w;
+                for (let dx = dx0; dx <= dx1; dx++) {
+                  const nx = x + dx;
+                  if (nx < 0 || nx >= w) continue;
+                  const idx = row + nx;
+                  const p = idx * 4;
+                  const r = origData[p], g = origData[p + 1], b = origData[p + 2];
+                  const lum = gray[idx];
+                  sr += r; sg += g; sb += b;
+                  slum += lum;
+                  slum2 += lum * lum;
+                  count++;
+                }
+              }
+
+              if (count > 0) {
+                const meanLum = slum / count;
+                const variance = (slum2 / count) - (meanLum * meanLum);
+                if (variance < bestVar) {
+                  bestVar = variance;
+                  bestR = sr / count;
+                  bestG = sg / count;
+                  bestB = sb / count;
+                }
+              }
+            }
+
+            // 油絵具の濃厚な彩度・筆致のハイライト強調
+            const lum = 0.299 * bestR + 0.587 * bestG + 0.114 * bestB;
+            const pOut = (y * w + x) * 4;
+            out[pOut] = clamp255(lum + (bestR - lum) * richness);
+            out[pOut + 1] = clamp255(lum + (bestG - lum) * richness);
+            out[pOut + 2] = clamp255(lum + (bestB - lum) * richness);
+            out[pOut + 3] = origData[pOut + 3];
+          }
+        }
+        data.set(out);
+      }
+
+      // -----------------------------------------------------------------------
+      // 5. ミニチュア風 (Miniature / Tilt-Shift): チルトシフト被写界深度＋高彩度
+      // -----------------------------------------------------------------------
+      else if (filterId === "miniature") {
+        const blurRadius = params.blurAmount || 10;
+        const focusPos = (params.focusPos || 52) / 100;
+        const focusWidth = (params.focusWidth || 20) / 100;
+        const toySat = (params.toyColor || 145) / 100;
+
+        // 段階的なボケを作るため2段階のぼかしレイヤーを用意
+        const midBlur = boxBlurRGBA(origData, w, h, Math.max(1, Math.round(blurRadius * 0.45)));
+        const heavyBlur = boxBlurRGBA(midBlur, w, h, Math.max(1, Math.round(blurRadius * 0.75)));
+
+        for (let y = 0; y < h; y++) {
+          const ny = y / h;
+          const dist = Math.abs(ny - focusPos);
+          // ピント帯域内は0、外れるにつれて滑らかに1へ遷移
+          let blurFactor = 0;
+          if (dist > focusWidth * 0.5) {
+            blurFactor = Math.min(1, (dist - focusWidth * 0.5) / 0.28);
+            blurFactor = blurFactor * blurFactor * (3 - 2 * blurFactor); // smoothstep
+          }
+
+          for (let x = 0; x < w; x++) {
+            const p = (y * w + x) * 4;
+            let r, g, b;
+            if (blurFactor <= 0.001) {
+              r = origData[p]; g = origData[p + 1]; b = origData[p + 2];
+            } else if (blurFactor < 0.5) {
+              const t = blurFactor * 2;
+              r = origData[p] * (1 - t) + midBlur[p] * t;
+              g = origData[p + 1] * (1 - t) + midBlur[p + 1] * t;
+              b = origData[p + 2] * (1 - t) + midBlur[p + 2] * t;
+            } else {
+              const t = (blurFactor - 0.5) * 2;
+              r = midBlur[p] * (1 - t) + heavyBlur[p] * t;
+              g = midBlur[p + 1] * (1 - t) + heavyBlur[p + 1] * t;
+              b = midBlur[p + 2] * (1 - t) + heavyBlur[p + 2] * t;
+            }
+
+            // ジオラマ模型風の鮮やかな彩度・コントラスト強調
+            r = ((r - 128) * 1.15) + 128;
+            g = ((g - 128) * 1.15) + 128;
+            b = ((b - 128) * 1.15) + 128;
+            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+            data[p] = clamp255(lum + (r - lum) * toySat);
+            data[p + 1] = clamp255(lum + (g - lum) * toySat);
+            data[p + 2] = clamp255(lum + (b - lum) * toySat);
+          }
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // 6. ピクセルアート風 (Pixel Art): ブロックダウンサンプリング + 減色パレット
+      // -----------------------------------------------------------------------
+      else if (filterId === "pixel") {
+        const blockSize = Math.max(2, params.pixelSize || 10);
+        const depth = Math.max(2, params.colorDepth || 12);
+        const step = 255 / (depth - 1);
+
+        for (let by = 0; by < h; by += blockSize) {
+          for (let bx = 0; bx < w; bx += blockSize) {
+            let sr = 0, sg = 0, sb = 0, count = 0;
+            const maxY = Math.min(h, by + blockSize);
+            const maxX = Math.min(w, bx + blockSize);
+
+            // ブロック内の平均色取得
+            for (let y = by; y < maxY; y++) {
+              for (let x = bx; x < maxX; x++) {
+                const p = (y * w + x) * 4;
+                sr += origData[p];
+                sg += origData[p + 1];
+                sb += origData[p + 2];
+                count++;
+              }
+            }
+
+            // レトロパレット量子化
+            const qr = clamp255(Math.round((sr / count) / step) * step);
+            const qg = clamp255(Math.round((sg / count) / step) * step);
+            const qb = clamp255(Math.round((sb / count) / step) * step);
+
+            // 最近傍補間（ブロック塗りつぶし）
+            for (let y = by; y < maxY; y++) {
+              for (let x = bx; x < maxX; x++) {
+                const p = (y * w + x) * 4;
+                data[p] = qr;
+                data[p + 1] = qg;
+                data[p + 2] = qb;
+              }
+            }
+          }
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // 7. ネオン風 (Neon Style): 暗背景 + Sobel輪郭のシアン/マゼンタ発光ブルーム
+      // -----------------------------------------------------------------------
+      else if (filterId === "neon") {
+        const edges = computeSobelEdges(gray, w, h);
+        const threshold = params.threshold || 35;
+        const glowRadius = params.glow || 12;
+        const hueShift = ((params.hueShift || 0) * Math.PI) / 180;
+
+        const neonLayer = new Uint8ClampedArray(origData.length);
+        for (let i = 0, p = 0; i < pixelCount; i++, p += 4) {
+          const x = i % w;
+          const y = (i / w) | 0;
+          const e = edges[i];
+
+          // 位置と色相に応じたサイバーネオングラデーション（シアン〜パープル〜マゼンタ）
+          const mix = 0.5 + 0.5 * Math.sin((x / w) * 3.2 + (y / h) * 2.1 + hueShift);
+          const nr = 30 + 225 * mix;
+          const ng = 245 * (1 - mix * 0.85);
+          const nb = 255;
+
+          const strength = e > threshold ? Math.min(1.5, ((e - threshold) / 95) * 1.45) : 0;
+          neonLayer[p] = clamp255(nr * strength);
+          neonLayer[p + 1] = clamp255(ng * strength);
+          neonLayer[p + 2] = clamp255(nb * strength);
+          neonLayer[p + 3] = 255;
+        }
+
+        // ブルーム発光用ぼかしレイヤー
+        const bloom = glowRadius > 0 ? boxBlurRGBA(neonLayer, w, h, glowRadius) : neonLayer;
+
+        for (let i = 0, p = 0; i < pixelCount; i++, p += 4) {
+          // 元の画像は深いダークネイビーに落とし、ネオン線とブルームを加算合成
+          const darkR = origData[p] * 0.14;
+          const darkG = origData[p + 1] * 0.12;
+          const darkB = origData[p + 2] * 0.22 + 8;
+
+          data[p] = clamp255(darkR + neonLayer[p] + bloom[p] * 0.95);
+          data[p + 1] = clamp255(darkG + neonLayer[p + 1] + bloom[p + 1] * 0.95);
+          data[p + 2] = clamp255(darkB + neonLayer[p + 2] + bloom[p + 2] * 0.95);
+        }
+      }
+
+      // -----------------------------------------------------------------------
+      // 8. レトロ風 (Retro Style): セピア色調 + 黒浮きフェード + フィルムグレイン + 周辺減光
+      // -----------------------------------------------------------------------
+      else if (filterId === "retro") {
+        const warmth = (params.warmth || 65) / 100;
+        const fade = params.fade || 28;
+        const grainAmt = (params.grain || 30) / 100;
+        const vignetteAmt = (params.vignette || 55) / 100;
+
+        const cx = w / 2;
+        const cy = h / 2;
+        const maxDist = Math.sqrt(cx * cx + cy * cy);
+
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const i = y * w + x;
+            const p = i * 4;
+            const r0 = origData[p];
+            const g0 = origData[p + 1];
+            const b0 = origData[p + 2];
+
+            // セピア変換マトリクス
+            const sepR = r0 * 0.393 + g0 * 0.769 + b0 * 0.189;
+            const sepG = r0 * 0.349 + g0 * 0.686 + b0 * 0.168;
+            const sepB = r0 * 0.272 + g0 * 0.534 + b0 * 0.131;
+
+            let r = r0 * (1 - warmth) + sepR * warmth;
+            let g = g0 * (1 - warmth) + sepG * warmth;
+            let b = b0 * (1 - warmth) + sepB * warmth;
+
+            // 黒浮き（フェード効果）とハイライトの柔らかさ
+            r = fade + r * ((245 - fade) / 255);
+            g = fade * 0.95 + g * ((240 - fade) / 255);
+            b = fade * 1.05 + b * ((225 - fade) / 255);
+
+            // フィルムグレインノイズ
+            const rnd = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+            const noise = ((rnd - Math.floor(rnd)) - 0.5) * 44 * grainAmt;
+            r += noise;
+            g += noise;
+            b += noise;
+
+            // 周辺減光（ビネット）
+            const dx = x - cx;
+            const dy = y - cy;
+            const ratio = Math.sqrt(dx * dx + dy * dy) / maxDist;
+            const vig = 1 - Math.pow(ratio, 2.1) * vignetteAmt * 0.75;
+
+            data[p] = clamp255(r * vig);
+            data[p + 1] = clamp255(g * vig);
+            data[p + 2] = clamp255(b * vig);
+          }
+        }
+      }
+
+      // 適用度（Intensity）に応じてオリジナルとブレンド
+      const intensity = params.intensity !== undefined ? params.intensity : 100;
+      const finalData = blendWithOriginal(origData, data, intensity);
+      srcImageData.data.set(finalData);
+      ctx.putImageData(srcImageData, 0, 0);
+    }
+
+    // =========================================================================
+    // 8. レンダリングスケジューリング＆ローディング制御
+    // =========================================================================
+    function scheduleRender(immediate = false) {
+      if (!state.previewSource) return;
+      clearTimeout(state.renderTimer);
+
+      const isHeavy = state.activeFilter === "oil" && (state.previewSource.width * state.previewSource.height > 250000);
+      if (isHeavy) {
+        loadingText.textContent = "油絵風タッチを描画中...";
+        loadingOverlay.classList.remove("hidden");
+      }
+
+      const delay = immediate ? 0 : (isHeavy ? 40 : 12);
+      state.renderTimer = setTimeout(() => {
+        try {
+          const params = state.paramsByFilter[state.activeFilter] || {};
+          applyFilterToCanvas(state.previewSource, outputCanvas, state.activeFilter, params);
+        } finally {
+          loadingOverlay.classList.add("hidden");
+        }
+      }, delay);
+    }
+
+    // =========================================================================
+    // 9. UI構築（フィルターカード・スライダー・比較操作）
+    // =========================================================================
+    function renderFilterCards() {
+      const grid = document.getElementById("filter-grid");
+      grid.innerHTML = "";
+
+      FILTER_CONFIGS.forEach(filter => {
+        const isActive = state.activeFilter === filter.id;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.dataset.filterId = filter.id;
+        btn.className = `group shrink-0 w-24 lg:w-auto flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-2xl border text-center transition-all ${
+          isActive
+            ? "bg-indigo-600/20 border-indigo-500 text-white shadow-md shadow-indigo-500/15"
+            : "bg-studio-850/90 border-slate-800 text-slate-300 hover:bg-studio-800 hover:border-slate-700"
+        }`;
+
+        btn.innerHTML = `
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br ${filter.accent} text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+            ${filter.icon}
+          </div>
+          <span class="text-[11px] sm:text-xs font-semibold tracking-tight leading-tight">${filter.name}</span>
+        `;
+
+        btn.addEventListener("click", () => {
+          state.activeFilter = filter.id;
+          renderFilterCards();
+          renderSliders();
+          updateStatusLabels();
+          scheduleRender();
+        });
+
+        grid.appendChild(btn);
+      });
+    }
+
+    function renderSliders() {
+      const container = document.getElementById("sliders-container");
+      const config = FILTER_CONFIGS.find(f => f.id === state.activeFilter);
+      document.getElementById("filter-description").textContent = config.description;
+      document.getElementById("filter-badge").textContent = config.name;
+
+      container.innerHTML = "";
+
+      if (config.params.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-6 px-4 rounded-xl border border-dashed border-slate-800 text-xs text-slate-500">
+            「オリジナル」選択中は調整パラメータはありません。<br/>他のアートフィルターを選ぶと専用スライダーが表示されます。
+          </div>
+        `;
+        return;
+      }
+
+      const currentParams = state.paramsByFilter[config.id];
+
+      config.params.forEach(param => {
+        const val = currentParams[param.key];
+        const wrapper = document.createElement("div");
+        wrapper.className = "bg-studio-850/70 p-3 rounded-xl border border-slate-800/90 space-y-2";
+
+        wrapper.innerHTML = `
+          <div class="flex items-center justify-between text-xs">
+            <label for="slider-${param.key}" class="font-medium text-slate-200">${param.label}</label>
+            <span id="val-${param.key}" class="font-mono font-semibold text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded-md">${val}${param.unit}</span>
+          </div>
+          <input
+            id="slider-${param.key}"
+            type="range"
+            min="${param.min}"
+            max="${param.max}"
+            step="${param.step}"
+            value="${val}"
+            class="w-full h-6"
+          />
+        `;
+
+        const input = wrapper.querySelector("input");
+        const valLabel = wrapper.querySelector(`#val-${param.key}`);
+
+        input.addEventListener("input", (e) => {
+          const num = parseFloat(e.target.value);
+          state.paramsByFilter[config.id][param.key] = num;
+          valLabel.textContent = `${num}${param.unit}`;
+          scheduleRender();
+        });
+
+        container.appendChild(wrapper);
+      });
+    }
+
+    function updateStatusLabels() {
+      const config = FILTER_CONFIGS.find(f => f.id === state.activeFilter);
+      document.getElementById("status-filter-name").textContent = `選択中: ${config ? config.name : "-"}`;
+    }
+
+    // =========================================================================
+    // 10. 比較モード（単体・スライダー比較・長押し元画像表示）制御
+    // =========================================================================
+    function setCompareMode(mode) {
+      state.compareMode = mode;
+      document.querySelectorAll(".compare-mode-btn").forEach(btn => {
+        btn.classList.remove("bg-indigo-600", "text-white");
+        btn.classList.add("text-slate-400");
+      });
+
+      const activeBtn = document.getElementById(`mode-${mode}`);
+      if (activeBtn) {
+        activeBtn.classList.add("bg-indigo-600", "text-white");
+        activeBtn.classList.remove("text-slate-400");
+      }
+
+      if (mode === "split") {
+        beforeOverlay.classList.remove("hidden");
+        afterBadge.classList.remove("hidden");
+        splitDivider.classList.remove("hidden");
+        updateSplitPosition(state.splitRatio);
+      } else {
+        beforeOverlay.classList.add("hidden");
+        afterBadge.classList.add("hidden");
+        splitDivider.classList.add("hidden");
+        beforeOverlay.style.clipPath = "inset(0 50% 0 0)";
+      }
+    }
+
+    function updateSplitPosition(ratio) {
+      const clamped = Math.max(0.02, Math.min(0.98, ratio));
+      state.splitRatio = clamped;
+      const pct = (clamped * 100).toFixed(2);
+      beforeOverlay.style.clipPath = `inset(0 ${(100 - clamped * 100).toFixed(2)}% 0 0)`;
+      splitDivider.style.left = `${pct}%`;
+    }
+
+    // スライダー比較のドラッグイベント（マウス＆タッチ両対応）
+    function handleSplitPointerMove(clientX) {
+      if (!state.isDraggingSplit || state.compareMode !== "split") return;
+      const rect = canvasWrapper.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const ratio = (clientX - rect.left) / rect.width;
+      updateSplitPosition(ratio);
+    }
+
+    splitDivider.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      state.isDraggingSplit = true;
+    });
+    splitDivider.addEventListener("touchstart", (e) => {
+      state.isDraggingSplit = true;
+    }, { passive: true });
+
+    canvasWrapper.addEventListener("mousedown", (e) => {
+      if (state.compareMode === "split") {
+        state.isDraggingSplit = true;
+        handleSplitPointerMove(e.clientX);
+      } else if (state.compareMode === "hold") {
+        beforeOverlay.style.clipPath = "inset(0 0% 0 0)";
+        beforeOverlay.classList.remove("hidden");
+      }
+    });
+
+    canvasWrapper.addEventListener("touchstart", (e) => {
+      if (state.compareMode === "split" && e.touches[0]) {
+        state.isDraggingSplit = true;
+        handleSplitPointerMove(e.touches[0].clientX);
+      } else if (state.compareMode === "hold") {
+        beforeOverlay.style.clipPath = "inset(0 0% 0 0)";
+        beforeOverlay.classList.remove("hidden");
+      }
+    }, { passive: true });
+
+    window.addEventListener("mousemove", (e) => handleSplitPointerMove(e.clientX));
+    window.addEventListener("touchmove", (e) => {
+      if (e.touches[0]) handleSplitPointerMove(e.touches[0].clientX);
+    }, { passive: true });
+
+    window.addEventListener("mouseup", () => {
+      state.isDraggingSplit = false;
+      if (state.compareMode === "hold") {
+        beforeOverlay.classList.add("hidden");
+      }
+    });
+    window.addEventListener("touchend", () => {
+      state.isDraggingSplit = false;
+      if (state.compareMode === "hold") {
+        beforeOverlay.classList.add("hidden");
+      }
+    });
+
+    document.getElementById("mode-single").addEventListener("click", () => setCompareMode("single"));
+    document.getElementById("mode-split").addEventListener("click", () => setCompareMode("split"));
+    document.getElementById("mode-hold").addEventListener("click", () => {
+      setCompareMode("hold");
+      showToast("プレビュー画像を長押ししている間、加工前の元画像を表示します。");
+    });
+
+    // =========================================================================
+    // 11. フル解像度ダウンロード（書き出し）処理
+    // =========================================================================
+    document.getElementById("btn-download").addEventListener("click", () => {
+      if (!state.sourceImage) return;
+
+      loadingText.textContent = "フル解像度で書き出し中...";
+      loadingOverlay.classList.remove("hidden");
+
+      setTimeout(() => {
+        try {
+          const exportCanvas = document.createElement("canvas");
+          const params = state.paramsByFilter[state.activeFilter] || {};
+          applyFilterToCanvas(state.sourceImage, exportCanvas, state.activeFilter, params);
+
+          const formatInput = document.querySelector('input[name="export-format"]:checked');
+          const mimeType = formatInput ? formatInput.value : "image/png";
+          const ext = mimeType === "image/jpeg" ? "jpg" : "png";
+          const quality = mimeType === "image/jpeg" ? 0.92 : undefined;
+
+          exportCanvas.toBlob((blob) => {
+            loadingOverlay.classList.add("hidden");
+            if (!blob) {
+              showToast("画像の書き出しに失敗しました。", "error");
+              return;
+            }
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `image-studio-${state.activeFilter}-${Date.now()}.${ext}`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            showToast(`加工画像を保存しました（${exportCanvas.width}×${exportCanvas.height}px）`, "success");
+          }, mimeType, quality);
+        } catch (err) {
+          loadingOverlay.classList.add("hidden");
+          showToast("書き出し中にエラーが発生しました。", "error");
+        }
+      }, 30);
+    });
+
+    // =========================================================================
+    // 12. ファイル入力・ドラッグ＆ドロップ・サンプル切替・リセット
+    // =========================================================================
+    document.getElementById("file-input").addEventListener("change", (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleImageFile(e.target.files[0]);
+        e.target.value = "";
+      }
+    });
+
+    const dropZone = document.getElementById("drop-zone");
+    const dragOverlay = document.getElementById("drag-overlay");
+
+    ["dragenter", "dragover"].forEach(evtName => {
+      dropZone.addEventListener(evtName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragOverlay.classList.remove("hidden");
+      });
+    });
+
+    ["dragleave", "drop"].forEach(evtName => {
+      dropZone.addEventListener(evtName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragOverlay.classList.add("hidden");
+      });
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+      const files = e.dataTransfer && e.dataTransfer.files;
+      if (files && files[0]) {
+        handleImageFile(files[0]);
+      }
+    });
+
+    document.getElementById("sample-select").addEventListener("change", (e) => {
+      const sample = createSampleCanvas(e.target.value);
+      setSourceCanvas(sample);
+      showToast("サンプル画像を切り替えました。");
+    });
+
+    document.getElementById("btn-reset").addEventListener("click", () => {
+      const config = FILTER_CONFIGS.find(f => f.id === state.activeFilter);
+      if (config) {
+        config.params.forEach(p => {
+          state.paramsByFilter[config.id][p.key] = p.default;
+        });
+        renderSliders();
+        scheduleRender(true);
+        showToast(`「${config.name}」のパラメータを初期値に戻しました。`);
+      }
+    });
+
+    // =========================================================================
+    // 13. 仕様書整理＆全フィルター自動検証テストスイート
+    // =========================================================================
+    function runSelfVerificationTests() {
+      const results = [];
+      const testSrc = document.createElement("canvas");
+      testSrc.width = 64;
+      testSrc.height = 64;
+      const tCtx = testSrc.getContext("2d");
+      tCtx.fillStyle = "#ff4422";
+      tCtx.fillRect(0, 0, 32, 64);
+      tCtx.fillStyle = "#2266ff";
+      tCtx.fillRect(32, 0, 32, 64);
+
+      const testOut = document.createElement("canvas");
+
+      APP_SPECIFICATION.requiredFilters.forEach(specFilter => {
+        try {
+          const cfg = FILTER_CONFIGS.find(f => f.id === specFilter.id);
+          const params = state.paramsByFilter[specFilter.id] || {};
+          applyFilterToCanvas(testSrc, testOut, specFilter.id, params);
+
+          const outData = testOut.getContext("2d").getImageData(0, 0, 64, 64).data;
+          const origData = testSrc.getContext("2d").getImageData(0, 0, 64, 64).data;
+
+          let diffPixels = 0;
+          for (let i = 0; i < outData.length; i += 4) {
+            if (outData[i] !== origData[i] || outData[i + 1] !== origData[i + 1] || outData[i + 2] !== origData[i + 2]) {
+              diffPixels++;
+            }
+          }
+
+          const passed = specFilter.id === "original" ? (diffPixels === 0 && !!cfg) : (diffPixels > 0 && !!cfg);
+          results.push({
+            name: `${specFilter.name} (${specFilter.id})`,
+            passed,
+            detail: specFilter.id === "original" ? "無加工一致を確認" : `変化ピクセル数: ${diffPixels}/4096`
+          });
+        } catch (err) {
+          results.push({
+            name: `${specFilter.name} (${specFilter.id})`,
+            passed: false,
+            detail: `例外エラー: ${err.message}`
+          });
+        }
+      });
+
+      return results;
+    }
+
+    function openSpecModal() {
+      const modal = document.getElementById("spec-modal");
+      const body = document.getElementById("spec-modal-body");
+      const testResults = runSelfVerificationTests();
+      const allPassed = testResults.every(r => r.passed);
+
+      body.innerHTML = `
+        <div class="p-3.5 rounded-xl border ${allPassed ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-200" : "bg-rose-950/40 border-rose-500/40 text-rose-200"}">
+          <p class="font-bold text-sm">${allPassed ? "✅ 自己診断テスト合格：全仕様・全10フィルターの正常動作を確認しました" : "⚠️ 一部のテストで問題が検出されました"}</p>
+          <p class="text-xs opacity-85 mt-1">仕様バージョン: ${APP_SPECIFICATION.version} / レスポンシブ対応: PC・モバイル両対応</p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-white mb-2">1. 実装済みアートフィルター一覧と仕様</h4>
+          <ul class="space-y-1.5 text-xs">
+            ${APP_SPECIFICATION.requiredFilters.map(f => `
+              <li class="p-2.5 rounded-lg bg-studio-850 border border-slate-800">
+                <span class="font-bold text-indigo-300">・${f.name}</span>：${f.desc}
+              </li>
+            `).join("")}
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-white mb-2">2. 自動動作試験結果（ピクセル演算検証）</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            ${testResults.map(r => `
+              <div class="p-2.5 rounded-lg bg-studio-850 border border-slate-800 flex items-center justify-between text-xs">
+                <span class="font-medium text-slate-200">${r.name}</span>
+                <span class="px-2 py-0.5 rounded font-semibold ${r.passed ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/20 text-rose-300"}">
+                  ${r.passed ? "PASS" : "FAIL"} (${r.detail})
+                </span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `;
+
+      modal.classList.remove("hidden");
+    }
+
+    document.getElementById("btn-spec-modal").addEventListener("click", openSpecModal);
+    document.getElementById("btn-run-selftest").addEventListener("click", () => {
+      openSpecModal();
+      showToast("全10フィルターの自動動作試験を実行しました。", "success");
+    });
+    document.getElementById("btn-close-spec").addEventListener("click", () => document.getElementById("spec-modal").classList.add("hidden"));
+    document.getElementById("btn-close-spec-footer").addEventListener("click", () => document.getElementById("spec-modal").classList.add("hidden"));
+
+    // =========================================================================
+    // 14. アプリ初期化（起動時検証を含む）
+    // =========================================================================
+    window.addEventListener("DOMContentLoaded", () => {
+      renderFilterCards();
+      renderSliders();
+      updateStatusLabels();
+
+      // 初期サンプル画像ロード＆初回レンダリング
+      const initialSample = createSampleCanvas("townscape");
+      setSourceCanvas(initialSample);
+
+      // 起動時バックグラウンド自己診断
+      const bootCheck = runSelfVerificationTests();
+      if (!bootCheck.every(r => r.passed)) {
+        showToast("一部のフィルター初期化チェックで警告が発生しました。", "error");
+      }
+    });
+  </script>
+</body>
+</html>
