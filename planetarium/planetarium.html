@@ -271,6 +271,21 @@
                 </div>
                 <input id="slider-offset" type="range" min="-180" max="180" value="0" class="w-full" />
               </div>
+
+              <!-- Sensor response rate -->
+              <div class="bg-slate-900/55 p-3 rounded-2xl border border-slate-700/50 space-y-2">
+                <div class="flex justify-between items-center gap-2 text-xs">
+                  <span class="text-slate-300 font-medium">センサー反映頻度</span>
+                  <span id="label-sensor-rate" class="font-mono text-emerald-300">1秒に1回</span>
+                </div>
+                <select id="select-sensor-rate" class="w-full bg-slate-800/90 border border-slate-600/60 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400">
+                  <option value="2000" selected>ゆっくり・安定（2秒に1回）</option>
+                  <option value="1000">標準（1秒に1回）</option>
+                  <option value="500">やや速い（0.5秒に1回）</option>
+                  <option value="250">速い（0.25秒に1回）</option>
+                </select>
+                <p class="text-[10px] leading-relaxed text-slate-400">小さな揺れは無視し、一定以上向きを変えたときだけ星空を更新します。端末に合わせて調整できます。</p>
+              </div>
             </div>
 
             <!-- Right Column: Date, Time & Seasons -->
@@ -411,6 +426,10 @@
         sensorFilteredAltitude: 32.0,
         sensorFilterTime: 0,
         sensorEventName: 'deviceorientation',
+        sensorApplyInterval: 1000,
+        lastSensorApplyAt: 0,
+        sensorDeadbandAzimuth: 4.5,
+        sensorDeadbandAltitude: 4.0,
 
         // カメラ状態
         cameraActive: false,
@@ -1134,16 +1153,13 @@
         return ((to - from + 540) % 360) - 180;
       }
 
-      // 方位角は 359° と 1° の平均が 180° にならないよう円平均する
-      function circularMeanDegrees(values) {
+      // 方位角の中央値。北(0度)をまたぐ角度も正しく扱う。
+      function circularMedianDegrees(values) {
         if (!values.length) return null;
-        let x = 0, y = 0;
-        for (const value of values) {
-          const rad = value * Math.PI / 180;
-          x += Math.cos(rad);
-          y += Math.sin(rad);
-        }
-        return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+        const reference = values[values.length - 1];
+        const unwrapped = values.map(v => reference + shortestAngleDiff(v, reference)).sort((a, b) => a - b);
+        const med = unwrapped[Math.floor(unwrapped.length / 2)];
+        return (med % 360 + 360) % 360;
       }
 
       function median(values) {
@@ -1155,13 +1171,12 @@
       function handleDeviceOrientation(event) {
         if (!state.sensorEnabled) return;
 
-        // センサーイベントは最大約25Hzだけ処理。描画自体は requestAnimationFrame で滑らかに補間。
+        // 生イベントは10Hzまでに間引き、細かなセンサー揺れを画面へ直結させない。
         const now = performance.now();
-        if (now - state.lastSensorEventAt < 50) return;
+        if (now - state.lastSensorEventAt < 100) return;
         state.lastSensorEventAt = now;
 
         let compassHeading = null;
-        // iOS Safari の絶対方位を優先
         if (typeof event.webkitCompassHeading === 'number' && Number.isFinite(event.webkitCompassHeading)) {
           compassHeading = event.webkitCompassHeading;
         } else if (typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
@@ -1183,35 +1198,41 @@
         const nextAzimuth = (compassHeading + state.azimuthOffset + 360) % 360;
         state.sensorHeadingSamples.push(nextAzimuth);
         state.sensorAltitudeSamples.push(altitude);
-        // 短い移動中央値で瞬間的な飛び値・磁気ノイズを除去
-        if (state.sensorHeadingSamples.length > 9) state.sensorHeadingSamples.shift();
-        if (state.sensorAltitudeSamples.length > 9) state.sensorAltitudeSamples.shift();
+        // 約1.5秒分の履歴から中央値を取って瞬間的な磁気ノイズを除去。
+        if (state.sensorHeadingSamples.length > 15) state.sensorHeadingSamples.shift();
+        if (state.sensorAltitudeSamples.length > 15) state.sensorAltitudeSamples.shift();
 
-        const stableAzimuth = circularMeanDegrees(state.sensorHeadingSamples);
+        const stableAzimuth = circularMedianDegrees(state.sensorHeadingSamples);
         const stableAltitude = median(state.sensorAltitudeSamples);
         if (stableAzimuth === null || stableAltitude === null) return;
 
+        // 初回だけ現在の端末方向を基準にする。その後は頻度設定と大きな動きの条件を適用。
         if (!state.hasSensorSample) {
           state.sensorAnchorAzimuth = stableAzimuth;
           state.sensorAnchorAltitude = stableAltitude;
-          state.sensorFilteredAzimuth = stableAzimuth;
-          state.sensorFilteredAltitude = stableAltitude;
           state.targetAzimuth = stableAzimuth;
           state.targetAltitude = stableAltitude;
-          state.sensorFilterTime = now;
+          state.azimuth = stableAzimuth;
+          state.altitude = stableAltitude;
+          state.lastSensorApplyAt = now;
           state.hasSensorSample = true;
           return;
         }
 
-        // 静止時の微小な揺れを無視。基準値からの累積変化で判定するため、
-        // ゆっくり端末を回した場合も一定量動けば確実に追従する。
+        // 基準点からの累積移動量で判定。小刻みな揺れでは基準を更新せず、画面を固定する。
         const headingFromAnchor = shortestAngleDiff(stableAzimuth, state.sensorAnchorAzimuth);
         const altitudeFromAnchor = stableAltitude - state.sensorAnchorAltitude;
-        if (Math.abs(headingFromAnchor) >= 2.8 || Math.abs(altitudeFromAnchor) >= 2.2) {
-          state.sensorAnchorAzimuth = stableAzimuth;
-          state.sensorAnchorAltitude = stableAltitude;
+        const meaningfulMove =
+          Math.abs(headingFromAnchor) >= state.sensorDeadbandAzimuth ||
+          Math.abs(altitudeFromAnchor) >= state.sensorDeadbandAltitude;
+
+        // 指定された反映間隔に達し、かつ十分な移動があった場合のみ表示目標を更新。
+        if (meaningfulMove && now - state.lastSensorApplyAt >= state.sensorApplyInterval) {
           state.targetAzimuth = stableAzimuth;
           state.targetAltitude = stableAltitude;
+          state.sensorAnchorAzimuth = stableAzimuth;
+          state.sensorAnchorAltitude = stableAltitude;
+          state.lastSensorApplyAt = now;
         }
       }
 
@@ -1251,6 +1272,7 @@
         state.sensorHeadingSamples = [];
         state.sensorAltitudeSamples = [];
         state.sensorFilterTime = 0;
+        state.lastSensorApplyAt = 0;
         // 絶対方位イベントがある端末ではそちらを優先。イベントの二重購読はしない。
         state.sensorEventName = ('ondeviceorientationabsolute' in window)
           ? 'deviceorientationabsolute'
@@ -1261,6 +1283,22 @@
         showToast('センサー連動をオンにしました！端末を動かして星空を探索できます。');
       }
       btnSensor.addEventListener('click', toggleSensor);
+
+      // センサー反映頻度の設定
+      const sensorRateSelect = document.getElementById('select-sensor-rate');
+      const sensorRateLabel = document.getElementById('label-sensor-rate');
+      function updateSensorRate() {
+        state.sensorApplyInterval = Number(sensorRateSelect.value) || 1000;
+        const labels = {
+          2000: '2秒に1回',
+          1000: '1秒に1回',
+          500: '0.5秒に1回',
+          250: '0.25秒に1回'
+        };
+        sensorRateLabel.textContent = labels[state.sensorApplyInterval] || '1秒に1回';
+      }
+      sensorRateSelect.addEventListener('change', updateSensorRate);
+      updateSensorRate();
 
       // --------------------------------------------------------------------------
       // 10. タッチ / マウスドラッグ & ピンチズーム操作
@@ -1639,7 +1677,7 @@
 
         // フレームレートに依存しない指数平滑化。端末の向きへ遅れすぎず滑らかに追従。
         if (state.sensorEnabled && state.hasSensorSample) {
-          const smoothFactor = 1 - Math.exp(-Math.max(0, dt) / 0.28);
+          const smoothFactor = 1 - Math.exp(-Math.max(0, dt) / 0.55);
           const diffAz = shortestAngleDiff(state.targetAzimuth, state.azimuth);
           state.azimuth = (state.azimuth + diffAz * smoothFactor + 360) % 360;
           state.altitude += (state.targetAltitude - state.altitude) * smoothFactor;
