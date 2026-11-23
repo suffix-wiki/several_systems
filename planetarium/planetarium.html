@@ -146,6 +146,14 @@
             <span id="btn-camera-text">カメラ起動</span>
           </button>
 
+          <button id="btn-gps" type="button" class="glass-panel hover:bg-slate-800/80 active:scale-95 transition px-3 py-2 rounded-2xl text-xs sm:text-sm font-medium flex items-center gap-1.5 text-slate-100 border border-slate-500/30">
+            <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span id="btn-gps-text">位置情報: OFF</span>
+          </button>
+
           <button id="btn-sensor" type="button" class="glass-panel hover:bg-slate-800/80 active:scale-95 transition px-3 py-2 rounded-2xl text-xs sm:text-sm font-medium flex items-center gap-1.5 text-slate-100 border border-slate-500/30">
             <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
@@ -315,15 +323,8 @@
                 </div>
               </div>
 
-              <!-- Location & Camera Opacity -->
+              <!-- Camera Opacity -->
               <div class="flex items-center justify-between gap-2 text-xs">
-                <button id="btn-gps" type="button" class="flex-1 py-2 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-600/60 text-slate-200 font-medium flex items-center justify-center gap-1.5 transition">
-                  <svg class="w-3.5 h-3.5 text-rose-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                  </svg>
-                  現在地GPS取得
-                </button>
                 <div id="camera-opacity-wrap" class="hidden flex-1 items-center gap-2 bg-slate-900/55 px-3 py-1.5 rounded-xl border border-slate-700/50">
                   <span class="text-[11px] text-slate-400 whitespace-nowrap">星空濃度</span>
                   <input id="slider-sky-alpha" type="range" min="25" max="100" value="72" class="w-full" />
@@ -387,6 +388,7 @@
         lat: 30.4006,
         lon: 130.97765,
         locationName: '種子島宇宙センター',
+        locationEnabled: false,
 
         // 視線方向 (方位角 Azimuth: 0=北, 90=東, 180=南, 270=西 / 高度 Altitude: -90〜+90)
         azimuth: 180.0,
@@ -399,6 +401,8 @@
         targetAzimuth: 180.0,
         targetAltitude: 32.0,
         targetRoll: 0.0,
+        lastSensorEventAt: 0,
+        hasSensorSample: false,
 
         // カメラ状態
         cameraActive: false,
@@ -1120,6 +1124,11 @@
       function handleDeviceOrientation(event) {
         if (!state.sensorEnabled) return;
 
+        // センサーイベントを間引き、細かな揺れや重複イベントを表示に反映しすぎない
+        const now = performance.now();
+        if (now - state.lastSensorEventAt < 120) return; // 最大約8回/秒
+        state.lastSensorEventAt = now;
+
         let compassHeading = null;
         // iOS Safari: webkitCompassHeading (0 = 北, 90 = 東, 180 = 南, 270 = 西)
         if (typeof event.webkitCompassHeading === 'number' && !isNaN(event.webkitCompassHeading)) {
@@ -1149,8 +1158,15 @@
           altitude = Math.max(-89, Math.min(89, beta - 90));
         }
 
-        state.targetAzimuth = (azimuth + state.azimuthOffset + 360) % 360;
-        state.targetAltitude = altitude;
+        const nextAzimuth = (azimuth + state.azimuthOffset + 360) % 360;
+        // 1.2度未満の小さな変化は無視。ゆっくり動かした場合も差分が蓄積して反応する
+        const azDiff = ((nextAzimuth - state.targetAzimuth + 540) % 360) - 180;
+        const altDiff = altitude - state.targetAltitude;
+        if (!state.hasSensorSample || Math.abs(azDiff) >= 1.2 || Math.abs(altDiff) >= 1.2) {
+          state.targetAzimuth = nextAzimuth;
+          state.targetAltitude = altitude;
+          state.hasSensorSample = true;
+        }
       }
 
       async function toggleSensor() {
@@ -1185,6 +1201,8 @@
         }
 
         state.sensorEnabled = true;
+        state.hasSensorSample = false;
+        state.lastSensorEventAt = 0;
         window.addEventListener('deviceorientationabsolute', handleDeviceOrientation, true);
         window.addEventListener('deviceorientation', handleDeviceOrientation, true);
         btnSensorText.textContent = 'センサー連動: ON';
@@ -1505,13 +1523,37 @@
         });
       });
 
-      // GPS現在地取得
-      document.getElementById('btn-gps').addEventListener('click', () => {
-        if (!navigator.geolocation) {
-          showToast('お使いのブラウザはGPS位置情報に対応していません。');
+      // 位置情報ON/OFF（ONで現在地を取得、OFFで種子島の初期位置へ戻す）
+      const btnGps = document.getElementById('btn-gps');
+      const btnGpsText = document.getElementById('btn-gps-text');
+      const DEFAULT_LOCATION = { lat: 30.4006, lon: 130.97765, name: '種子島宇宙センター' };
+
+      function setLocationButton(enabled) {
+        state.locationEnabled = enabled;
+        btnGpsText.textContent = enabled ? '位置情報: ON' : '位置情報: OFF';
+        if (enabled) {
+          btnGps.classList.add('border-rose-400', 'bg-rose-500/20');
+        } else {
+          btnGps.classList.remove('border-rose-400', 'bg-rose-500/20');
+        }
+      }
+
+      btnGps.addEventListener('click', () => {
+        if (state.locationEnabled) {
+          state.lat = DEFAULT_LOCATION.lat;
+          state.lon = DEFAULT_LOCATION.lon;
+          state.locationName = DEFAULT_LOCATION.name;
+          document.getElementById('hud-location').textContent =
+            `種子島宇宙センター (${state.lat.toFixed(1)}°N, ${state.lon.toFixed(1)}°E)`;
+          setLocationButton(false);
+          showToast('位置情報をOFFにし、種子島宇宙センターに戻しました');
           return;
         }
-        showToast('位置情報を取得中...');
+        if (!navigator.geolocation) {
+          showToast('このブラウザは位置情報取得に対応していません。');
+          return;
+        }
+        showToast('現在地を取得中...');
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             state.lat = pos.coords.latitude;
@@ -1519,12 +1561,13 @@
             state.locationName = '現在地';
             document.getElementById('hud-location').textContent =
               `現在地 (${state.lat.toFixed(1)}°${state.lat >= 0 ? 'N' : 'S'}, ${state.lon.toFixed(1)}°${state.lon >= 0 ? 'E' : 'W'})`;
-            showToast('現在地の緯度・経度に合わせて星空を更新しました！');
+            setLocationButton(true);
+            showToast('現在地に合わせた星空に切り替えました');
           },
           () => {
-            showToast('位置情報の取得が許可されませんでした（種子島宇宙センターの星空を表示中）。');
+            showToast('位置情報を取得できませんでした。許可設定をご確認ください。');
           },
-          { timeout: 8000 }
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
         );
       });
 
@@ -1548,8 +1591,8 @@
           let diffAz = state.targetAzimuth - state.azimuth;
           if (diffAz > 180) diffAz -= 360;
           if (diffAz < -180) diffAz += 360;
-          state.azimuth = (state.azimuth + diffAz * 0.18 + 360) % 360;
-          state.altitude += (state.targetAltitude - state.altitude) * 0.18;
+          state.azimuth = (state.azimuth + diffAz * 0.10 + 360) % 360;
+          state.altitude += (state.targetAltitude - state.altitude) * 0.10;
         }
 
         // HUDテキスト更新
