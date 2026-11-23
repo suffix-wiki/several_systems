@@ -1,0 +1,2602 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Luminous Sanctuary - 光と情景のデジタルアート空間</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #03050a;
+      font-family: 'Inter', 'Noto Sans JP', sans-serif;
+      color: #f8fafc;
+    }
+    canvas#artCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+    /* カスタムスクロールバー */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.4);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.35);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.6);
+    }
+    /* レンジスライダーの美しいスタイル */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    .glass-panel {
+      background: rgba(10, 14, 26, 0.68);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+    }
+    .glass-card {
+      background: rgba(20, 27, 46, 0.55);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .glass-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255, 255, 255, 0.35);
+      background: rgba(30, 41, 69, 0.75);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(139, 92, 246, 0.25);
+    }
+    .fade-transition {
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden select-none">
+
+  <!-- メインアート描画用全画面Canvas -->
+  <canvas id="artCanvas"></canvas>
+
+  <!-- トースト通知（alert代替） -->
+  <div id="toastMessage" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-opacity duration-300 glass-panel px-5 py-2.5 rounded-full text-sm font-medium text-white shadow-lg flex items-center gap-2">
+    <span class="w-2 h-2 rounded-full bg-amber-300 animate-ping"></span>
+    <span id="toastText">通知メッセージ</span>
+  </div>
+
+  <!-- 上部フローティングHUD（鑑賞中に表示） -->
+  <header id="topHud" class="fixed top-0 left-0 right-0 z-30 p-3 sm:p-5 flex items-center justify-between pointer-events-none fade-transition">
+    <!-- 左側：メニューボタン＆現在の作品タイトル -->
+    <div class="flex items-center gap-2.5 sm:gap-3 pointer-events-auto">
+      <button id="openMenuBtn" class="glass-panel hover:bg-white/15 active:scale-95 text-white px-3.5 py-2.5 sm:px-4 sm:py-2.5 rounded-2xl flex items-center gap-2 text-xs sm:text-sm font-medium transition shadow-lg">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+        <span>作品一覧</span>
+      </button>
+
+      <div class="glass-panel px-3.5 py-2 sm:px-4 sm:py-2 rounded-2xl max-w-[190px] sm:max-w-md truncate">
+        <div class="flex items-center gap-2">
+          <span id="hudCategoryBadge" class="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-white/15 text-amber-200 font-medium">デジタル空間</span>
+          <h1 id="hudArtTitle" class="text-xs sm:text-sm font-semibold text-white truncate">1. 呼応するランプの森</h1>
+        </div>
+        <p id="hudArtHint" class="text-[10px] sm:text-xs text-slate-300 truncate mt-0.5">画面に触れる・動かすと光が呼応します</p>
+      </div>
+    </div>
+
+    <!-- 右側：クイック操作＆パラメータパネル開閉 -->
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <button id="screenshotBtn" title="スクリーンショット保存" class="glass-panel hover:bg-white/15 active:scale-95 p-2.5 rounded-2xl text-slate-200 hover:text-white transition">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+      </button>
+
+      <button id="hideUiBtn" title="UIを隠して純粋鑑賞" class="glass-panel hover:bg-white/15 active:scale-95 p-2.5 rounded-2xl text-slate-200 hover:text-white transition">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+        </svg>
+      </button>
+
+      <button id="toggleControlsBtn" class="glass-panel hover:bg-white/15 active:scale-95 px-3.5 py-2.5 sm:px-4 sm:py-2.5 rounded-2xl flex items-center gap-2 text-xs sm:text-sm font-medium text-white transition shadow-lg">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+        </svg>
+        <span class="hidden sm:inline">光を調整</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- UI非表示時の復帰ボタン -->
+  <button id="restoreUiBtn" class="fixed bottom-5 right-5 z-40 glass-panel px-4 py-2.5 rounded-full text-xs sm:text-sm text-white/90 hover:text-white flex items-center gap-2 shadow-xl opacity-0 pointer-events-none transition-opacity duration-300">
+    <svg class="w-4 h-4 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+    </svg>
+    <span>UIを表示</span>
+  </button>
+
+  <!-- パラメータ調整パネル（PC: 右サイド / スマホ: 下部ドロワー） -->
+  <aside id="controlPanel" class="fixed z-30 bottom-0 left-0 right-0 sm:top-20 sm:bottom-5 sm:left-auto sm:right-5 sm:w-80 glass-panel rounded-t-3xl sm:rounded-3xl p-5 flex flex-col gap-4 max-h-[72vh] sm:max-h-[calc(100vh-6.5rem)] overflow-y-auto transform translate-y-full sm:translate-y-0 sm:translate-x-[120%] transition-transform duration-300 ease-out">
+    <div class="flex items-center justify-between border-b border-white/10 pb-3">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-amber-300 to-cyan-300"></span>
+        <h2 class="text-sm font-semibold tracking-wide text-white">光のパラメータ調整</h2>
+      </div>
+      <button id="closeControlsBtn" class="p-1.5 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- カラーテーマ選択 -->
+    <div>
+      <label class="block text-xs font-medium text-slate-300 mb-2">カラーパレット・雰囲気</label>
+      <div id="paletteSelector" class="grid grid-cols-3 gap-1.5">
+        <button data-palette="original" class="palette-btn active px-2 py-2 rounded-xl text-xs font-medium bg-white/20 border border-white/40 text-white transition">オリジナル</button>
+        <button data-palette="golden" class="palette-btn px-2 py-2 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-amber-200 hover:bg-white/15 transition">ゴールデン</button>
+        <button data-palette="aurora" class="palette-btn px-2 py-2 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-emerald-200 hover:bg-white/15 transition">オーロラ</button>
+        <button data-palette="sakura" class="palette-btn px-2 py-2 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-pink-200 hover:bg-white/15 transition">サクラ幻想</button>
+        <button data-palette="deepblue" class="palette-btn px-2 py-2 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-cyan-200 hover:bg-white/15 transition">ディープ海</button>
+        <button data-palette="prism" class="palette-btn px-2 py-2 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-purple-200 hover:bg-white/15 transition">プリズム虹</button>
+      </div>
+    </div>
+
+    <!-- スライダー群 -->
+    <div class="space-y-3.5 text-xs">
+      <div>
+        <div class="flex justify-between text-slate-300 mb-1">
+          <span>色相シフト (Hue Shift)</span>
+          <span id="valHue" class="font-mono text-white">0°</span>
+        </div>
+        <input type="range" id="paramHue" min="0" max="360" value="0" />
+      </div>
+
+      <div>
+        <div class="flex justify-between text-slate-300 mb-1">
+          <span>光の量・密度 (Density)</span>
+          <span id="valDensity" class="font-mono text-white">100%</span>
+        </div>
+        <input type="range" id="paramDensity" min="20" max="200" value="100" />
+      </div>
+
+      <div>
+        <div class="flex justify-between text-slate-300 mb-1">
+          <span>輝き・ブルーム強度 (Glow)</span>
+          <span id="valGlow" class="font-mono text-white">100%</span>
+        </div>
+        <input type="range" id="paramGlow" min="20" max="200" value="100" />
+      </div>
+
+      <div>
+        <div class="flex justify-between text-slate-300 mb-1">
+          <span>動きのスピード (Speed)</span>
+          <span id="valSpeed" class="font-mono text-white">1.0x</span>
+        </div>
+        <input type="range" id="paramSpeed" min="10" max="300" value="100" />
+      </div>
+
+      <div>
+        <div class="flex justify-between text-slate-300 mb-1">
+          <span>光のサイズ・スケール (Size)</span>
+          <span id="valSize" class="font-mono text-white">100%</span>
+        </div>
+        <input type="range" id="paramSize" min="40" max="200" value="100" />
+      </div>
+
+      <div>
+        <div class="flex justify-between text-slate-300 mb-1">
+          <span>タッチ・カーソル反応感度</span>
+          <span id="valReact" class="font-mono text-white">100%</span>
+        </div>
+        <input type="range" id="paramReact" min="0" max="200" value="100" />
+      </div>
+    </div>
+
+    <!-- アクションボタン -->
+    <div class="grid grid-cols-3 gap-2 pt-2 border-t border-white/10">
+      <button id="randomParamBtn" class="py-2 px-2 rounded-xl bg-gradient-to-r from-indigo-500/40 to-purple-500/40 hover:from-indigo-500/60 hover:to-purple-500/60 border border-white/20 text-xs font-medium text-white transition">
+        ✨ ランダム
+      </button>
+      <button id="pauseBtn" class="py-2 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-medium text-white transition">
+        ⏸ 一時停止
+      </button>
+      <button id="resetParamBtn" class="py-2 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-medium text-white transition">
+        ↺ 初期値
+      </button>
+    </div>
+  </aside>
+
+  <!-- ギャラリーメニューオーバーレイ（全24種類選択画面） -->
+  <div id="galleryModal" class="fixed inset-0 z-40 bg-slate-950/85 backdrop-blur-xl flex flex-col transition-opacity duration-300">
+    <!-- ヘッダー部 -->
+    <div class="px-4 sm:px-8 pt-5 pb-3 border-b border-white/10 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shrink-0">
+      <div>
+        <div class="flex items-center gap-2.5">
+          <span class="inline-block w-3 h-3 rounded-full bg-gradient-to-tr from-amber-300 via-pink-400 to-cyan-400 shadow-[0_0_12px_#fbbf24]"></span>
+          <h1 class="text-lg sm:text-2xl font-bold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-white via-amber-100 to-cyan-200">
+            LUMINOUS SANCTUARY
+          </h1>
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-amber-200 border border-amber-300/30">全24作品</span>
+        </div>
+        <p class="text-xs sm:text-sm text-slate-300 mt-1">美しい光と幻想的な情景を旅するインタラクティブ・デジタルアート空間</p>
+      </div>
+
+      <div class="flex items-center gap-2 self-end md:self-auto">
+        <button id="randomArtBtn" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500/30 to-pink-500/30 hover:from-amber-500/50 hover:to-pink-500/50 border border-amber-300/30 text-xs sm:text-sm font-medium text-amber-100 transition flex items-center gap-1.5">
+          <span>🎲 ランダムに鑑賞</span>
+        </button>
+        <button id="closeMenuBtn" class="px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-xs sm:text-sm font-medium text-white transition">
+          閉じる ✕
+        </button>
+      </div>
+    </div>
+
+    <!-- カテゴリフィルタータブ -->
+    <div class="px-4 sm:px-8 py-3 flex items-center gap-2 overflow-x-auto shrink-0 border-b border-white/5">
+      <button data-cat="all" class="cat-tab active px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white text-slate-950 shadow transition whitespace-nowrap">
+        すべて (24)
+      </button>
+      <button data-cat="teamlab" class="cat-tab px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white/10 text-slate-200 hover:bg-white/20 transition whitespace-nowrap">
+        ✨ デジタルアート空間 (6)
+      </button>
+      <button data-cat="aqua" class="cat-tab px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white/10 text-slate-200 hover:bg-white/20 transition whitespace-nowrap">
+        🪼 アクア・水中世界 (6)
+      </button>
+      <button data-cat="cosmos" class="cat-tab px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white/10 text-slate-200 hover:bg-white/20 transition whitespace-nowrap">
+        🌌 天体・花火・虹・オーロラ (6)
+      </button>
+      <button data-cat="glitter" class="cat-tab px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-white/10 text-slate-200 hover:bg-white/20 transition whitespace-nowrap">
+        🌟 黄金グリッター・幻想光粒 (6)
+      </button>
+    </div>
+
+    <!-- 24作品グリッド一覧 -->
+    <div id="artGrid" class="flex-1 overflow-y-auto p-4 sm:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <!-- JavaScriptで24枚のカードを生成 -->
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * LUMINOUS SANCTUARY - 24種類の光と情景のデジタルアートエンジン
+     * ============================================================================
+     */
+
+    // 24作品の定義データ
+    const ARTWORKS = [
+      // --- カテゴリA：チームラボ・デジタルアート空間 ---
+      {
+        id: 'lamps',
+        num: 1,
+        cat: 'teamlab',
+        catLabel: 'デジタル空間',
+        title: '呼応するランプの森',
+        en: 'Forest of Resonating Lamps',
+        desc: '無数のベネチアンガラス風ランプが空間に浮かび、触れたランプから隣へと光の波紋が伝播します。',
+        hint: 'ランプに近づく・タップすると光の連鎖が広がります',
+        grad: 'from-amber-500/40 via-rose-500/30 to-purple-900/60',
+        accent: '#fbbf24'
+      },
+      {
+        id: 'crystal',
+        num: 2,
+        cat: 'teamlab',
+        catLabel: 'デジタル空間',
+        title: '境界のない結晶世界',
+        en: 'Borderless Crystal Universe',
+        desc: '無限に広がる3D空間のLED光柱と光の粒が立体的に回転・明滅し、空間の境界を溶かします。',
+        hint: 'ドラッグ・スワイプで3D光空間の視点を自由に回転できます',
+        grad: 'from-cyan-500/40 via-blue-600/30 to-indigo-950/70',
+        accent: '#38bdf8'
+      },
+      {
+        id: 'waterfall',
+        num: 3,
+        cat: 'teamlab',
+        catLabel: 'デジタル空間',
+        title: '花と人のデジタル滝',
+        en: 'Waterfall of Flowers & Light',
+        desc: '岩肌を流れ落ちる光の滝。触れた場所を人が立つ岩のように避けて流れ、色とりどりの花びらが舞い散ります。',
+        hint: '画面に触れると水流が分かれ、光の華が咲き誇ります',
+        grad: 'from-teal-400/40 via-pink-500/30 to-slate-900/70',
+        accent: '#f472b6'
+      },
+      {
+        id: 'spheres',
+        num: 4,
+        cat: 'teamlab',
+        catLabel: 'デジタル空間',
+        title: '浮遊する光の球体群',
+        en: 'Floating Light Spheres',
+        desc: '空間を漂う巨大な光の球体。触れられると色を変えながら弾み、周囲の球体へ光の波紋を響かせます。',
+        hint: '光の球体をタップ・弾くと色と波紋が連鎖します',
+        grad: 'from-fuchsia-500/40 via-amber-400/30 to-indigo-950/70',
+        accent: '#e879f9'
+      },
+      {
+        id: 'synapse',
+        num: 5,
+        cat: 'teamlab',
+        catLabel: 'デジタル空間',
+        title: '神経網のシナプス光流',
+        en: 'Neural Synapse Light Stream',
+        desc: '幾何学的に結ばれた光のネットワーク上を、無数のエネルギーパルスが思考のように駆け巡ります。',
+        hint: 'タップした場所から新たな神経パルスが発火します',
+        grad: 'from-violet-500/40 via-cyan-500/30 to-slate-950/80',
+        accent: '#a78bfa'
+      },
+      {
+        id: 'kaleidoscope',
+        num: 6,
+        cat: 'teamlab',
+        catLabel: 'デジタル空間',
+        title: '万華鏡の幾何学プリズム',
+        en: 'Kaleidoscope Prism',
+        desc: '12角形の鏡面反射と屈折光が織りなす、万華鏡のように刻々と変化する極彩色の幾何学曼荼羅。',
+        hint: 'カーソル位置・タップで万華鏡の結晶パターンが変化します',
+        grad: 'from-rose-500/40 via-amber-400/30 to-emerald-900/60',
+        accent: '#fb7185'
+      },
+
+      // --- カテゴリB：マクセル アクアパーク・幻想水中世界 ---
+      {
+        id: 'jellyfish',
+        num: 7,
+        cat: 'aqua',
+        catLabel: 'アクア・水中世界',
+        title: '幻想クラゲのアクアリウム',
+        en: 'Jellyfish Light Aquarium',
+        desc: '透明感あふれるミズクラゲたちが優雅に拍動しながら漂い、幻想的なライティングと泡が煌めきます。',
+        hint: '触れると水流が生まれ、クラゲたちが光りながら舞います',
+        grad: 'from-blue-500/40 via-purple-500/30 to-slate-950/80',
+        accent: '#60a5fa'
+      },
+      {
+        id: 'bioluminescence',
+        num: 8,
+        cat: 'aqua',
+        catLabel: 'アクア・水中世界',
+        title: '深海のバイオルミネッセンス',
+        en: 'Deep Sea Bioluminescence',
+        desc: '漆黒の深海で青白く発光するプランクトンや神秘的な深海生物が、軌跡を描きながら幻想的に舞います。',
+        hint: '水をかき混ぜるように動かすと夜光虫が青白く輝きます',
+        grad: 'from-cyan-500/40 via-teal-600/30 to-slate-950/90',
+        accent: '#22d3ee'
+      },
+      {
+        id: 'coral',
+        num: 9,
+        cat: 'aqua',
+        catLabel: 'アクア・水中世界',
+        title: '珊瑚礁の光と水のゆらぎ',
+        en: 'Coral Reef Caustics',
+        desc: '水面から差し込む光のカーテン（コースティクス）と、色鮮やかな熱帯の光の魚群が舞い泳ぐ海中楽園。',
+        hint: 'タップすると光の魚群が集まり、泡が立ち昇ります',
+        grad: 'from-sky-400/40 via-emerald-400/30 to-blue-950/80',
+        accent: '#34d399'
+      },
+      {
+        id: 'glacial',
+        num: 10,
+        cat: 'aqua',
+        catLabel: 'アクア・水中世界',
+        title: '氷河とクリスタル・ドロップ',
+        en: 'Glacial Crystal Drops',
+        desc: '透き通る氷の結晶が輝き、水面に落ちる光の雫が美しい同心円の波紋を幾重にも広げます。',
+        hint: 'タップした水面に清らかな光の雫と波紋が広がります',
+        grad: 'from-cyan-300/40 via-sky-500/30 to-slate-900/80',
+        accent: '#7dd3fc'
+      },
+      {
+        id: 'lotus',
+        num: 11,
+        cat: 'aqua',
+        catLabel: 'アクア・水中世界',
+        title: '蓮の池と蛍の夜',
+        en: 'Lotus Pond & Fireflies',
+        desc: '夜の静かな水面に浮かぶ発光する蓮の花と、淡い黄金色の光を明滅させながら舞う無数の蛍。',
+        hint: 'カーソル・指先に蛍たちが優しく集まってきます',
+        grad: 'from-lime-400/30 via-emerald-600/30 to-slate-950/90',
+        accent: '#bef264'
+      },
+      {
+        id: 'whale',
+        num: 12,
+        cat: 'aqua',
+        catLabel: 'アクア・水中世界',
+        title: '銀河を泳ぐ光のクジラ',
+        en: 'Luminous Whale in Astral Sea',
+        desc: '無数の光粒で構成された巨大なクジラが、星屑と光の泡が漂う幻想の海をゆったりと泳ぎます。',
+        hint: 'タップした方向へ光のクジラが優雅に旋回します',
+        grad: 'from-indigo-500/40 via-sky-500/30 to-slate-950/90',
+        accent: '#818cf8'
+      },
+
+      // --- カテゴリC：プラネタリウム・花火・虹・オーロラ ---
+      {
+        id: 'planetarium',
+        num: 13,
+        cat: 'cosmos',
+        catLabel: '宇宙・天体・自然',
+        title: '満天のプラネタリウムと天の川',
+        en: 'Planetarium & Milky Way',
+        desc: '繊細な星座線、淡く輝く天の川の星雲、そして夜空を横切る美しい流星群を360度パノラマで堪能。',
+        hint: 'ドラッグで星空を回転、タップで願いの流星を流せます',
+        grad: 'from-indigo-600/40 via-purple-700/30 to-slate-950/90',
+        accent: '#c084fc'
+      },
+      {
+        id: 'fireworks',
+        num: 14,
+        cat: 'cosmos',
+        catLabel: '宇宙・天体・自然',
+        title: '夜空の大輪・打ち上げ花火',
+        en: 'Grand Fireworks Festival',
+        desc: '菊・牡丹・冠菊・柳など多彩な光跡と残像を持つ大輪の花火が、水面への反射とともに夜空に咲き誇ります。',
+        hint: '夜空をタップした場所に特大の打ち上げ花火が開きます',
+        grad: 'from-amber-500/40 via-red-500/30 to-slate-950/90',
+        accent: '#fb923c'
+      },
+      {
+        id: 'aurora',
+        num: 15,
+        cat: 'cosmos',
+        catLabel: '宇宙・天体・自然',
+        title: '極北のオーロラカーテン',
+        en: 'Aurora Borealis Curtain',
+        desc: 'エメラルドグリーンやバイオレットの光のカーテンが、磁気嵐のように夜空で揺らめき雪原を照らします。',
+        hint: 'カーソルを動かすとオーロラの光のカーテンが揺らぎます',
+        grad: 'from-emerald-400/40 via-teal-500/30 to-indigo-950/90',
+        accent: '#34d399'
+      },
+      {
+        id: 'rainbow',
+        num: 16,
+        cat: 'cosmos',
+        catLabel: '宇宙・天体・自然',
+        title: 'プリズムの虹と光の雨',
+        en: 'Prism Rainbow & Sunshower',
+        desc: '陽光が雨粒に屈折して生まれるダブルレインボーと、キラキラと輝きながら降り注ぐ光の雨（天気雨）。',
+        hint: '画面を動かすと光の角度が変わり虹の輝きが増します',
+        grad: 'from-sky-400/40 via-amber-300/30 to-indigo-900/70',
+        accent: '#fcd34d'
+      },
+      {
+        id: 'eclipse',
+        num: 17,
+        cat: 'cosmos',
+        catLabel: '宇宙・天体・自然',
+        title: '日食のダイヤモンドリング',
+        en: 'Solar Eclipse & Corona',
+        desc: '皆既日食の幻想的なコロナの揺らめきと、月の縁から溢れ出す眩いダイヤモンドリングのレンズフレア。',
+        hint: 'カーソル移動で太陽と月の重なりとフレアが変化します',
+        grad: 'from-amber-400/40 via-orange-600/30 to-slate-950/95',
+        accent: '#fbbf24'
+      },
+      {
+        id: 'nebula',
+        num: 18,
+        cat: 'cosmos',
+        catLabel: '宇宙・天体・自然',
+        title: '星屑のネビュラ星雲',
+        en: 'Cosmic Nebula Cloud',
+        desc: '極彩色の宇宙ガスと生まれたばかりの星々が巨大な渦を巻き、創造の柱のように輝く深宇宙の星雲。',
+        hint: '触れると宇宙の星間ガスが渦を巻き星が生まれます',
+        grad: 'from-fuchsia-600/40 via-indigo-600/30 to-slate-950/90',
+        accent: '#e879f9'
+      },
+
+      // --- カテゴリD：黄金グリッター・ボケ光・幻想イラスト風 ---
+      {
+        id: 'glitter',
+        num: 19,
+        cat: 'glitter',
+        catLabel: '黄金グリッター・幻想',
+        title: '黄金のグリッター・ストリーム',
+        en: 'Golden Glitter Stream',
+        desc: '金色の微細な光粒とシルクのような光のリボンが、螺旋を描きながら華麗に舞うラグジュアリーな光景。',
+        hint: '指やカーソルの軌跡に沿って黄金の光の帯が舞います',
+        grad: 'from-amber-400/50 via-yellow-600/30 to-stone-950/90',
+        accent: '#f59e0b'
+      },
+      {
+        id: 'bokeh',
+        num: 20,
+        cat: 'glitter',
+        catLabel: '黄金グリッター・幻想',
+        title: '幻想ボケ光のイルミネーション',
+        en: 'Dreamy Bokeh Lights',
+        desc: '大小さまざまな円形・六角形の玉ボケ（レンズフレア）が美しい被写界深度を持ってふわふわと漂います。',
+        hint: '視点を動かすとボケ光に立体的な視差（パララックス）が生まれます',
+        grad: 'from-amber-300/40 via-rose-400/30 to-purple-950/80',
+        accent: '#fda4af'
+      },
+      {
+        id: 'fairydust',
+        num: 21,
+        cat: 'glitter',
+        catLabel: '黄金グリッター・幻想',
+        title: '妖精の光の粉・フェアリーダスト',
+        en: 'Fairy Dust Swirl',
+        desc: '七色の魔法の粉と星屑が渦を巻きながら煌めき、触れるたびに新しい光の妖精たちが舞い踊ります。',
+        hint: 'カーソルを動かすと魔法の光の粉が渦を巻いて追従します',
+        grad: 'from-pink-400/40 via-amber-300/30 to-indigo-950/80',
+        accent: '#f9a8d4'
+      },
+      {
+        id: 'stainedglass',
+        num: 22,
+        cat: 'glitter',
+        catLabel: '黄金グリッター・幻想',
+        title: 'ステンドグラスの聖なる光',
+        en: 'Stained Glass Sunbeams',
+        desc: '大聖堂の色彩豊かなバラ窓を通過して空間に差し込む、神々しいゴッドレイ（薄明光線）と光の塵。',
+        hint: '画面に触れるとステンドグラスの光の角度と輝きが変化します',
+        grad: 'from-amber-400/40 via-sky-500/30 to-rose-950/80',
+        accent: '#fde047'
+      },
+      {
+        id: 'sakura',
+        num: 23,
+        cat: 'glitter',
+        catLabel: '黄金グリッター・幻想',
+        title: '桜吹雪と月光の幻想夜',
+        en: 'Moonlit Sakura & Light Petals',
+        desc: '大きな満月の光に照らされ、淡く発光する無数の桜の花びらが夜風に乗って舞い踊る幻想的な夜桜。',
+        hint: '風を起こすようにスワイプすると桜吹雪が舞い上がります',
+        grad: 'from-pink-400/40 via-rose-500/30 to-indigo-950/90',
+        accent: '#f472b6'
+      },
+      {
+        id: 'chandelier',
+        num: 24,
+        cat: 'glitter',
+        catLabel: '黄金グリッター・幻想',
+        title: 'プリズム・クリスタル・シャンデリア',
+        en: 'Crystal Chandelier Refraction',
+        desc: '無数のカットガラスが回転し、虹色の分光（ディスパージョン）と鋭い十字のスターバースト光を放ちます。',
+        hint: '触れるとクリスタルが揺れ、虹色の閃光が空間に広がります',
+        grad: 'from-amber-200/40 via-cyan-300/30 to-slate-950/90',
+        accent: '#fef08a'
+      }
+    ];
+
+    // カラーパレット定義（色相のオーバーライドやティント）
+    const PALETTES = {
+      original: null,
+      golden:   { baseHue: 42,  spread: 25, sat: 90, light: 65 },
+      aurora:   { baseHue: 155, spread: 70, sat: 85, light: 60 },
+      sakura:   { baseHue: 335, spread: 30, sat: 85, light: 72 },
+      deepblue: { baseHue: 205, spread: 40, sat: 90, light: 60 },
+      prism:    { baseHue: 0,   spread: 360, sat: 92, light: 65 }
+    };
+
+    // アプリケーション全体状態
+    const state = {
+      currentArtIndex: 0,
+      isPaused: false,
+      isUiHidden: false,
+      isMenuOpen: true,
+      isControlsOpen: false,
+      activeCategory: 'all',
+      // パラメータ
+      params: {
+        palette: 'original',
+        hueShift: 0,
+        density: 1.0,
+        glow: 1.0,
+        speed: 1.0,
+        size: 1.0,
+        reactivity: 1.0
+      },
+      // ポインタ・タッチ状態
+      pointer: {
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        isDown: false,
+        justClicked: false,
+        active: false
+      },
+      time: 0,
+      width: 0,
+      height: 0,
+      dpr: 1
+    };
+
+    // DOM要素の参照
+    const canvas = document.getElementById('artCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const galleryModal = document.getElementById('galleryModal');
+    const artGrid = document.getElementById('artGrid');
+    const controlPanel = document.getElementById('controlPanel');
+    const topHud = document.getElementById('topHud');
+    const restoreUiBtn = document.getElementById('restoreUiBtn');
+
+    // トースト通知表示関数
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById('toastMessage');
+      document.getElementById('toastText').textContent = msg;
+      toast.classList.remove('opacity-0');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('opacity-0');
+      }, 2400);
+    }
+
+    // 色変換ヘルパー（パレットと色相シフトを適用）
+    function getArtColor(defaultHue, sat = 85, light = 60, alpha = 1, seed = 0) {
+      let h = defaultHue;
+      let s = sat;
+      let l = light;
+      const pal = PALETTES[state.params.palette];
+      if (pal) {
+        if (state.params.palette === 'prism') {
+          h = (state.time * 40 + seed * 137.5) % 360;
+        } else {
+          const offset = Math.sin(seed * 12.9898) * 0.5 + 0.5;
+          h = pal.baseHue + (offset - 0.5) * pal.spread;
+        }
+        s = (s + pal.sat) * 0.5;
+        l = (l + pal.light) * 0.5;
+      }
+      h = (h + state.params.hueShift + 360) % 360;
+      return `hsla(${h.toFixed(1)}, ${s.toFixed(0)}%, ${l.toFixed(0)}%, ${alpha.toFixed(3)})`;
+    }
+
+    // Canvasのリサイズ処理（Retina / スマホ高精細対応）
+    function resizeCanvas() {
+      state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+      state.width = window.innerWidth;
+      state.height = window.innerHeight;
+      canvas.width = Math.floor(state.width * state.dpr);
+      canvas.height = Math.floor(state.height * state.dpr);
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+      initCurrentArtwork();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // ============================================================================
+    // 各アートワークの内部状態・初期化・描画ロジック（全24種）
+    // ============================================================================
+    let sim = {}; // 現在の作品のシミュレーションデータ
+
+    function initCurrentArtwork() {
+      const art = ARTWORKS[state.currentArtIndex];
+      const w = state.width;
+      const h = state.height;
+      sim = { particles: [], items: [], ripples: [], extra: {} };
+
+      switch (art.id) {
+        case 'lamps': {
+          // 1. 呼応するランプの森
+          const count = Math.floor((w * h) / 14000) + 18;
+          for (let i = 0; i < count; i++) {
+            sim.items.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              baseY: Math.random() * h,
+              phase: Math.random() * Math.PI * 2,
+              radius: 14 + Math.random() * 14,
+              hue: 25 + Math.random() * 35,
+              energy: 0.2,
+              cooldown: 0
+            });
+          }
+          break;
+        }
+        case 'crystal': {
+          // 2. 境界のない結晶世界
+          sim.extra.rotX = 0.2;
+          sim.extra.rotY = 0;
+          const cols = 7;
+          for (let x = -cols; x <= cols; x += 2) {
+            for (let z = -cols; z <= cols; z += 2) {
+              for (let y = -4; y <= 4; y += 2) {
+                sim.particles.push({
+                  x: x * 65,
+                  y: y * 65,
+                  z: z * 65,
+                  phase: Math.random() * Math.PI * 2,
+                  hue: 190 + (x + z) * 12
+                });
+              }
+            }
+          }
+          break;
+        }
+        case 'waterfall': {
+          // 3. 花と人のデジタル滝
+          for (let i = 0; i < 450; i++) {
+            sim.particles.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              vy: 3 + Math.random() * 5,
+              vx: 0,
+              len: 12 + Math.random() * 22,
+              hue: 185 + Math.random() * 35
+            });
+          }
+          break;
+        }
+        case 'spheres': {
+          // 4. 浮遊する光の球体群
+          const count = Math.min(18, Math.max(8, Math.floor(w / 85)));
+          for (let i = 0; i < count; i++) {
+            const r = (Math.min(w, h) * 0.055) + Math.random() * 25;
+            sim.items.push({
+              x: r + Math.random() * (w - r * 2),
+              y: r + Math.random() * (h - r * 2),
+              vx: (Math.random() - 0.5) * 1.2,
+              vy: (Math.random() - 0.5) * 1.2,
+              r,
+              hue: (i * 42) % 360,
+              pulse: 0
+            });
+          }
+          break;
+        }
+        case 'synapse': {
+          // 5. 神経網のシナプス光流
+          const nodeCount = Math.min(65, Math.floor((w * h) / 16000) + 22);
+          for (let i = 0; i < nodeCount; i++) {
+            sim.items.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              vx: (Math.random() - 0.5) * 0.4,
+              vy: (Math.random() - 0.5) * 0.4,
+              hue: 250 + Math.random() * 60,
+              glow: 0
+            });
+          }
+          break;
+        }
+        case 'kaleidoscope': {
+          // 6. 万華鏡の幾何学プリズム
+          for (let i = 0; i < 45; i++) {
+            sim.items.push({
+              dist: 20 + Math.random() * (Math.min(w, h) * 0.48),
+              angle: Math.random() * Math.PI * 2,
+              size: 12 + Math.random() * 34,
+              rot: Math.random() * Math.PI,
+              rotSpeed: (Math.random() - 0.5) * 0.03,
+              sides: [3, 4, 6][Math.floor(Math.random() * 3)],
+              hue: Math.random() * 360
+            });
+          }
+          break;
+        }
+        case 'jellyfish': {
+          // 7. 幻想クラゲのアクアリウム
+          const count = Math.min(16, Math.max(7, Math.floor(w / 90)));
+          for (let i = 0; i < count; i++) {
+            sim.items.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              vx: (Math.random() - 0.5) * 0.5,
+              vy: -0.4 - Math.random() * 0.5,
+              scale: 0.55 + Math.random() * 0.75,
+              phase: Math.random() * Math.PI * 2,
+              hue: [200, 270, 320, 180][i % 4] + Math.random() * 25
+            });
+          }
+          for (let i = 0; i < 90; i++) {
+            sim.particles.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              r: 1 + Math.random() * 3,
+              vy: -0.5 - Math.random() * 1.2,
+              wobble: Math.random() * Math.PI * 2
+            });
+          }
+          break;
+        }
+        case 'bioluminescence': {
+          // 8. 深海のバイオルミネッセンス
+          for (let i = 0; i < 220; i++) {
+            sim.particles.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              vx: (Math.random() - 0.5) * 0.8,
+              vy: (Math.random() - 0.5) * 0.8,
+              r: 1.2 + Math.random() * 3,
+              phase: Math.random() * Math.PI * 2,
+              hue: 175 + Math.random() * 35
+            });
+          }
+          break;
+        }
+        case 'coral': {
+          // 9. 珊瑚礁の光と水のゆらぎ
+          for (let i = 0; i < 65; i++) {
+            sim.items.push({
+              x: Math.random() * w,
+              y: h * 0.25 + Math.random() * h * 0.65,
+              vx: (Math.random() > 0.5 ? 1 : -1) * (1.2 + Math.random() * 1.5),
+              vy: (Math.random() - 0.5) * 0.3,
+              size: 4 + Math.random() * 5,
+              hue: [45, 175, 330, 195][i % 4],
+              phase: Math.random() * Math.PI * 2
+            });
+          }
+          break;
+        }
+        case 'glacial': {
+          // 10. 氷河とクリスタル・ドロップ
+          for (let i = 0; i < 45; i++) {
+            sim.particles.push({
+              x: Math.random() * w,
+              y: Math.random() * h * 0.75,
+              vy: 3 + Math.random() * 4,
+              size: 3 + Math.random() * 4,
+              hue: 190 + Math.random() * 25
+            });
+          }
+          break;
+        }
+        case 'lotus': {
+          // 11. 蓮の池と蛍の夜
+          const lotusCount = Math.min(14, Math.max(6, Math.floor(w / 100)));
+          for (let i = 0; i < lotusCount; i++) {
+            sim.items.push({
+              x: (w / (lotusCount + 1)) * (i + 1) + (Math.random() - 0.5) * 40,
+              y: h * 0.55 + Math.random() * h * 0.35,
+              scale: 0.7 + Math.random() * 0.6,
+              hue: 325 + Math.random() * 35,
+              phase: Math.random() * Math.PI * 2
+            });
+          }
+          for (let i = 0; i < 85; i++) {
+            sim.particles.push({
+              x: Math.random() * w,
+              y: Math.random() * h * 0.85,
+              vx: (Math.random() - 0.5) * 0.8,
+              vy: (Math.random() - 0.5) * 0.6,
+              phase: Math.random() * Math.PI * 2,
+              hue: 72 + Math.random() * 25
+            });
+          }
+          break;
+        }
+        case 'whale': {
+          // 12. 銀河を泳ぐ光のクジラ
+          sim.extra.whale = {
+            x: w * 0.3,
+            y: h * 0.5,
+            angle: 0,
+            targetX: w * 0.7,
+            targetY: h * 0.45,
+            spine: Array.from({ length: 28 }, (_, i) => ({ x: w * 0.3 - i * 10, y: h * 0.5 }))
+          };
+          for (let i = 0; i < 160; i++) {
+            sim.particles.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              r: 0.8 + Math.random() * 2.5,
+              speed: 0.2 + Math.random() * 0.6,
+              hue: 200 + Math.random() * 60
+            });
+          }
+          break;
+        }
+        case 'planetarium': {
+          // 13. 満天のプラネタリウムと天の川
+          sim.extra.rot = 0;
+          for (let i = 0; i < 360; i++) {
+            const isMilkyWay = i < 160;
+            const angle = Math.random() * Math.PI * 2;
+            const spread = isMilkyWay ? (Math.random() - 0.5) * 0.35 : (Math.random() - 0.5) * Math.PI;
+            sim.particles.push({
+              angle,
+              spread,
+              r: isMilkyWay ? (0.6 + Math.random() * 1.6) : (0.8 + Math.random() * 2.4),
+              twinkle: Math.random() * Math.PI * 2,
+              hue: isMilkyWay ? (210 + Math.random() * 60) : (40 + Math.random() * 180)
+            });
+          }
+          sim.extra.meteors = [];
+          break;
+        }
+        case 'fireworks': {
+          // 14. 夜空の大輪・打ち上げ花火
+          sim.extra.rockets = [];
+          sim.extra.sparks = [];
+          break;
+        }
+        case 'aurora': {
+          // 15. 極北のオーロラカーテン
+          for (let i = 0; i < 120; i++) {
+            sim.particles.push({
+              x: Math.random() * w,
+              y: Math.random() * h * 0.7,
+              r: 0.5 + Math.random() * 1.8,
+              phase: Math.random() * Math.PI * 2
+            });
+          }
+          break;
+        }
+        case 'rainbow': {
+          // 16. プリズムの虹と光の雨
+          for (let i = 0; i < 180; i++) {
+            sim.particles.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              vy: 6 + Math.random() * 7,
+              len: 14 + Math.random() * 20,
+              bokeh: Math.random() > 0.75,
+              r: 4 + Math.random() * 12,
+              hue: Math.random() * 360
+            });
+          }
+          break;
+        }
+        case 'eclipse': {
+          // 17. 日食のダイヤモンドリング
+          for (let i = 0; i < 140; i++) {
+            sim.particles.push({
+              angle: Math.random() * Math.PI * 2,
+              dist: 1 + Math.random() * 0.8,
+              speed: 0.005 + Math.random() * 0.015,
+              size: 1 + Math.random() * 2.5
+            });
+          }
+          break;
+        }
+        case 'nebula': {
+          // 18. 星屑のネビュラ星雲
+          for (let i = 0; i < 240; i++) {
+            const arm = i % 3;
+            const radius = 15 + Math.random() * (Math.min(w, h) * 0.45);
+            const angle = (arm * (Math.PI * 2 / 3)) + radius * 0.012 + (Math.random() - 0.5) * 0.7;
+            sim.particles.push({
+              radius,
+              angle,
+              speed: (0.002 + (1 / (radius + 30)) * 0.25),
+              size: 1.5 + Math.random() * 4,
+              cloud: i % 4 === 0,
+              hue: [280, 210, 330, 45][arm % 4] + Math.random() * 35
+            });
+          }
+          break;
+        }
+        case 'glitter': {
+          // 19. 黄金のグリッター・ストリーム
+          for (let i = 0; i < 260; i++) {
+            sim.particles.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              phase: Math.random() * Math.PI * 2,
+              speed: 0.8 + Math.random() * 1.8,
+              size: 1 + Math.random() * 3.5,
+              hue: 38 + Math.random() * 20
+            });
+          }
+          break;
+        }
+        case 'bokeh': {
+          // 20. 幻想ボケ光のイルミネーション
+          for (let i = 0; i < 85; i++) {
+            const depth = 0.2 + Math.random() * 0.8;
+            sim.particles.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              vx: (Math.random() - 0.5) * 0.4 * depth,
+              vy: -0.15 - Math.random() * 0.35 * depth,
+              r: (12 + Math.random() * 48) * depth,
+              depth,
+              hex: Math.random() > 0.65,
+              hue: [35, 340, 200, 50, 280][i % 5] + Math.random() * 20,
+              phase: Math.random() * Math.PI * 2
+            });
+          }
+          break;
+        }
+        case 'fairydust': {
+          // 21. 妖精の光の粉・フェアリーダスト
+          sim.extra.trail = [];
+          for (let i = 0; i < 150; i++) {
+            sim.particles.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              vx: (Math.random() - 0.5) * 1.2,
+              vy: (Math.random() - 0.5) * 1.2,
+              size: 1.5 + Math.random() * 3,
+              hue: Math.random() * 360,
+              phase: Math.random() * Math.PI * 2
+            });
+          }
+          break;
+        }
+        case 'stainedglass': {
+          // 22. ステンドグラスの聖なる光
+          for (let i = 0; i < 110; i++) {
+            sim.particles.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              vy: -0.2 - Math.random() * 0.4,
+              vx: (Math.random() - 0.5) * 0.3,
+              r: 1 + Math.random() * 2.5,
+              hue: 40 + Math.random() * 20
+            });
+          }
+          break;
+        }
+        case 'sakura': {
+          // 23. 桜吹雪と月光の幻想夜
+          for (let i = 0; i < 160; i++) {
+            sim.particles.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              vx: -0.6 - Math.random() * 1.2,
+              vy: 0.7 + Math.random() * 1.4,
+              rot: Math.random() * Math.PI * 2,
+              rotSpeed: (Math.random() - 0.5) * 0.06,
+              flip: Math.random() * Math.PI,
+              size: 5 + Math.random() * 7,
+              hue: 335 + Math.random() * 20
+            });
+          }
+          break;
+        }
+        case 'chandelier': {
+          // 24. プリズム・クリスタル・シャンデリア
+          for (let ring = 1; ring <= 4; ring++) {
+            const count = ring * 10;
+            for (let i = 0; i < count; i++) {
+              sim.items.push({
+                ring,
+                angle: (i / count) * Math.PI * 2,
+                size: 6 + ring * 2.5,
+                sparkle: Math.random() * Math.PI * 2,
+                hue: (i * 36) % 360
+              });
+            }
+          }
+          break;
+        }
+      }
+    }
+
+    // 十字スターバースト描画ヘルパー
+    function drawStarburst(x, y, radius, color, alpha = 0.8) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.globalAlpha = alpha;
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.25, color);
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 鋭い十字の閃光
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(1, radius * 0.06);
+      ctx.beginPath();
+      ctx.moveTo(-radius * 1.6, 0);
+      ctx.lineTo(radius * 1.6, 0);
+      ctx.moveTo(0, -radius * 1.6);
+      ctx.lineTo(0, radius * 1.6);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // ============================================================================
+    // メイン描画ループ（全24作品のレンダリングスイッチ）
+    // ============================================================================
+    function renderFrame(dt) {
+      const art = ARTWORKS[state.currentArtIndex];
+      const w = state.width;
+      const h = state.height;
+      const { density, glow, speed, size, reactivity } = state.params;
+      const ptr = state.pointer;
+
+      // 背景クリア（残像効果のある作品は半透明オーバーレイ）
+      ctx.globalCompositeOperation = 'source-over';
+      if (art.id === 'fireworks' || art.id === 'glitter' || art.id === 'fairydust') {
+        ctx.fillStyle = 'rgba(3, 5, 12, 0.22)';
+      } else if (art.id === 'bioluminescence' || art.id === 'nebula') {
+        ctx.fillStyle = 'rgba(2, 6, 16, 0.28)';
+      } else {
+        ctx.fillStyle = '#03050c';
+      }
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.globalCompositeOperation = 'lighter';
+
+      switch (art.id) {
+        // ------------------------------------------------------------------------
+        // 1. 呼応するランプの森
+        // ------------------------------------------------------------------------
+        case 'lamps': {
+          const items = sim.items;
+          for (let i = 0; i < items.length; i++) {
+            const lamp = items[i];
+            lamp.y = lamp.baseY + Math.sin(state.time * 1.2 + lamp.phase) * 14;
+            if (lamp.cooldown > 0) lamp.cooldown -= dt;
+
+            // カーソルとの距離判定
+            const dx = ptr.x - lamp.x;
+            const dy = ptr.y - lamp.y;
+            const dist = Math.hypot(dx, dy);
+            if (ptr.active && dist < 110 * reactivity && lamp.cooldown <= 0) {
+              lamp.energy = 1.0;
+              lamp.hue = (lamp.hue + 55) % 360;
+              lamp.cooldown = 0.8;
+              sim.ripples.push({ x: lamp.x, y: lamp.y, r: lamp.radius, maxR: 260, hue: lamp.hue, alpha: 0.9 });
+            }
+            lamp.energy = Math.max(0.22, lamp.energy - dt * 0.45);
+
+            // 吊り下げ糸
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(lamp.x, 0);
+            ctx.lineTo(lamp.x, lamp.y - lamp.radius * size);
+            ctx.stroke();
+
+            // ランプのハロー光
+            const r = lamp.radius * size * (0.9 + lamp.energy * 0.45);
+            const haloR = r * (3.2 * glow);
+            const grad = ctx.createRadialGradient(lamp.x, lamp.y, r * 0.1, lamp.x, lamp.y, haloR);
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.25, getArtColor(lamp.hue, 90, 62, 0.85 * lamp.energy, i));
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(lamp.x, lamp.y, haloR, 0, Math.PI * 2);
+            ctx.fill();
+
+            // ガラスシェード本体
+            ctx.fillStyle = getArtColor(lamp.hue, 85, 75, 0.95, i);
+            ctx.beginPath();
+            ctx.ellipse(lamp.x, lamp.y, r * 0.78, r * 1.15, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // 光の伝播リング
+          for (let i = sim.ripples.length - 1; i >= 0; i--) {
+            const rp = sim.ripples[i];
+            rp.r += 240 * dt * speed;
+            rp.alpha -= dt * 0.7;
+            // 近くのランプへ連鎖
+            for (const lamp of items) {
+              const d = Math.hypot(lamp.x - rp.x, lamp.y - rp.y);
+              if (Math.abs(d - rp.r) < 18 && lamp.cooldown <= 0) {
+                lamp.energy = 1.0;
+                lamp.hue = (rp.hue + 25) % 360;
+                lamp.cooldown = 1.1;
+              }
+            }
+            if (rp.alpha <= 0) {
+              sim.ripples.splice(i, 1);
+            } else {
+              ctx.strokeStyle = getArtColor(rp.hue, 90, 65, rp.alpha * 0.45);
+              ctx.lineWidth = 2.5;
+              ctx.beginPath();
+              ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 2. 境界のない結晶世界
+        // ------------------------------------------------------------------------
+        case 'crystal': {
+          sim.extra.rotY += 0.35 * dt * speed + (ptr.isDown ? ptr.vx * 0.005 : 0);
+          sim.extra.rotX = 0.25 + Math.sin(state.time * 0.4) * 0.15 + (ptr.active ? ((ptr.y / h) - 0.5) * 0.5 * reactivity : 0);
+          const cosY = Math.cos(sim.extra.rotY);
+          const sinY = Math.sin(sim.extra.rotY);
+          const cosX = Math.cos(sim.extra.rotX);
+          const sinX = Math.sin(sim.extra.rotX);
+          const fov = 480;
+
+          const limit = Math.floor(sim.particles.length * Math.min(1, density));
+          for (let i = 0; i < limit; i++) {
+            const p = sim.particles[i];
+            // 3D回転
+            let x1 = p.x * cosY - p.z * sinY;
+            let z1 = p.z * cosY + p.x * sinY;
+            let y1 = p.y * cosX - z1 * sinX;
+            let z2 = z1 * cosX + p.y * sinX + 550;
+
+            if (z2 < 40) continue;
+            const scale = fov / z2;
+            const sx = w * 0.5 + x1 * scale;
+            const sy = h * 0.5 + y1 * scale;
+
+            const pulse = 0.5 + 0.5 * Math.sin(state.time * 3 + p.phase);
+            const r = (2.5 + pulse * 4) * scale * size;
+
+            // 垂直の光柱ライン
+            const lineH = 55 * scale * glow;
+            const grad = ctx.createLinearGradient(sx, sy - lineH, sx, sy + lineH);
+            grad.addColorStop(0, 'transparent');
+            grad.addColorStop(0.5, getArtColor(p.hue + state.time * 25, 90, 68, 0.55 * pulse, i));
+            grad.addColorStop(1, 'transparent');
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = Math.max(1, r * 0.7);
+            ctx.beginPath();
+            ctx.moveTo(sx, sy - lineH);
+            ctx.lineTo(sx, sy + lineH);
+            ctx.stroke();
+
+            // 結晶コア
+            ctx.fillStyle = getArtColor(p.hue + state.time * 25, 80, 82, 0.9, i);
+            ctx.beginPath();
+            ctx.arc(sx, sy, r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 3. 花と人のデジタル滝
+        // ------------------------------------------------------------------------
+        case 'waterfall': {
+          const count = Math.floor(sim.particles.length * Math.min(1, density));
+          for (let i = 0; i < count; i++) {
+            const p = sim.particles[i];
+            p.y += p.vy * speed * 1.4;
+            p.x += p.vx;
+            p.vx *= 0.92;
+
+            // ポインタ障害物（岩・人のシルエット）を避けて流れる
+            if (ptr.active) {
+              const dx = p.x - ptr.x;
+              const dy = p.y - ptr.y;
+              const dist = Math.hypot(dx, dy);
+              const blockR = 65 * reactivity;
+              if (dist < blockR && dist > 0.1) {
+                p.vx += (dx / dist) * 2.2;
+                if (Math.random() < 0.04) {
+                  sim.items.push({
+                    x: p.x,
+                    y: p.y,
+                    vx: (Math.random() - 0.5) * 3,
+                    vy: -1 - Math.random() * 2,
+                    r: 4 + Math.random() * 6,
+                    life: 1.0,
+                    hue: 320 + Math.random() * 60
+                  });
+                }
+              }
+            }
+
+            if (p.y > h + 20) {
+              p.y = -20;
+              p.x = Math.random() * w;
+              p.vx = 0;
+            }
+
+            ctx.strokeStyle = getArtColor(p.hue, 85, 65, 0.45 * glow, i);
+            ctx.lineWidth = 2 * size;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x - p.vx * 1.5, p.y - p.len * size);
+            ctx.stroke();
+          }
+
+          // 水しぶきから生まれる光の花々
+          for (let i = sim.items.length - 1; i >= 0; i--) {
+            const fl = sim.items[i];
+            fl.x += fl.vx * speed;
+            fl.y += fl.vy * speed;
+            fl.vy += 0.04;
+            fl.life -= dt * 0.55;
+            if (fl.life <= 0) {
+              sim.items.splice(i, 1);
+            } else {
+              drawStarburst(fl.x, fl.y, fl.r * size * 1.6, getArtColor(fl.hue, 90, 70, fl.life, i), fl.life);
+            }
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 4. 浮遊する光の球体群
+        // ------------------------------------------------------------------------
+        case 'spheres': {
+          const items = sim.items;
+          for (let i = 0; i < items.length; i++) {
+            const s = items[i];
+            const rad = s.r * size;
+            s.x += s.vx * speed;
+            s.y += s.vy * speed;
+
+            if (s.x < rad) { s.x = rad; s.vx *= -1; }
+            if (s.x > w - rad) { s.x = w - rad; s.vx *= -1; }
+            if (s.y < rad) { s.y = rad; s.vy *= -1; }
+            if (s.y > h - rad) { s.y = h - rad; s.vy *= -1; }
+
+            // ポインタで弾く
+            if (ptr.active) {
+              const dx = s.x - ptr.x;
+              const dy = s.y - ptr.y;
+              const d = Math.hypot(dx, dy);
+              if (d < rad + 45 * reactivity && d > 0.1) {
+                s.vx += (dx / d) * 0.45 * reactivity;
+                s.vy += (dy / d) * 0.45 * reactivity;
+                s.hue = (s.hue + 3) % 360;
+                s.pulse = 1.0;
+              }
+            }
+            s.vx *= 0.992;
+            s.vy *= 0.992;
+            s.pulse = Math.max(0, s.pulse - dt * 1.5);
+
+            const drawR = rad * (1 + s.pulse * 0.25);
+            const grad = ctx.createRadialGradient(s.x - drawR * 0.3, s.y - drawR * 0.3, drawR * 0.05, s.x, s.y, drawR * (1.3 * glow));
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.35, getArtColor(s.hue, 90, 65, 0.85, i));
+            grad.addColorStop(0.75, getArtColor(s.hue + 30, 85, 45, 0.4, i));
+            grad.addColorStop(1, 'transparent');
+
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, drawR * 1.3 * glow, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 5. 神経網のシナプス光流
+        // ------------------------------------------------------------------------
+        case 'synapse': {
+          const nodes = sim.items;
+          const maxDist = Math.min(w, h) * 0.26;
+          for (let i = 0; i < nodes.length; i++) {
+            const n = nodes[i];
+            n.x += n.vx * speed;
+            n.y += n.vy * speed;
+            if (n.x < 0 || n.x > w) n.vx *= -1;
+            if (n.y < 0 || n.y > h) n.vy *= -1;
+            n.glow = Math.max(0.15, n.glow - dt * 0.8);
+
+            if (ptr.active && Math.hypot(n.x - ptr.x, n.y - ptr.y) < 100 * reactivity) {
+              n.glow = 1.0;
+            }
+          }
+
+          // ネットワーク接続線とパルス
+          for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+              const d = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
+              if (d < maxDist) {
+                const alpha = (1 - d / maxDist) * 0.45 * glow;
+                ctx.strokeStyle = getArtColor(nodes[i].hue, 85, 65, alpha, i);
+                ctx.lineWidth = 1.2 * size;
+                ctx.beginPath();
+                ctx.moveTo(nodes[i].x, nodes[i].y);
+                ctx.lineTo(nodes[j].x, nodes[j].y);
+                ctx.stroke();
+
+                // オンライン上を走るエネルギー光粒
+                if ((i + j) % 3 === 0) {
+                  const t = (state.time * speed * 0.6 + i * 0.2) % 1;
+                  const px = nodes[i].x + (nodes[j].x - nodes[i].x) * t;
+                  const py = nodes[i].y + (nodes[j].y - nodes[i].y) * t;
+                  ctx.fillStyle = '#ffffff';
+                  ctx.beginPath();
+                  ctx.arc(px, py, 2 * size, 0, Math.PI * 2);
+                  ctx.fill();
+                }
+              }
+            }
+            // ノードコア
+            drawStarburst(nodes[i].x, nodes[i].y, (6 + nodes[i].glow * 12) * size, getArtColor(nodes[i].hue, 90, 70, 0.9, i), 0.85);
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 6. 万華鏡の幾何学プリズム
+        // ------------------------------------------------------------------------
+        case 'kaleidoscope': {
+          const cx = w * 0.5;
+          const cy = h * 0.5;
+          const slices = 12;
+          const stepAngle = (Math.PI * 2) / slices;
+
+          for (let s = 0; s < slices; s++) {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(s * stepAngle + state.time * 0.15 * speed);
+            if (s % 2 === 1) ctx.scale(1, -1);
+
+            for (let i = 0; i < sim.items.length; i++) {
+              const it = sim.items[i];
+              const rot = it.rot + state.time * it.rotSpeed * 35 * speed;
+              const dist = it.dist * (0.85 + 0.15 * Math.sin(state.time + i));
+              const px = Math.cos(it.angle + state.time * 0.2 * speed) * dist;
+              const py = Math.sin(it.angle + state.time * 0.2 * speed) * dist;
+              const sz = it.size * size;
+
+              ctx.save();
+              ctx.translate(px, py);
+              ctx.rotate(rot);
+              ctx.fillStyle = getArtColor(it.hue + state.time * 20, 90, 62, 0.28 * glow, i);
+              ctx.strokeStyle = getArtColor(it.hue + state.time * 20, 95, 78, 0.65, i);
+              ctx.lineWidth = 1.2;
+              ctx.beginPath();
+              for (let k = 0; k < it.sides; k++) {
+                const a = (k / it.sides) * Math.PI * 2;
+                const vx = Math.cos(a) * sz;
+                const vy = Math.sin(a) * sz;
+                if (k === 0) ctx.moveTo(vx, vy);
+                else ctx.lineTo(vx, vy);
+              }
+              ctx.closePath();
+              ctx.fill();
+              ctx.stroke();
+              ctx.restore();
+            }
+            ctx.restore();
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 7. 幻想クラゲのアクアリウム
+        // ------------------------------------------------------------------------
+        case 'jellyfish': {
+          // 気泡の描画
+          for (const b of sim.particles) {
+            b.y += b.vy * speed;
+            b.x += Math.sin(state.time * 2 + b.wobble) * 0.4;
+            if (b.y < -10) { b.y = h + 10; b.x = Math.random() * w; }
+            ctx.strokeStyle = 'rgba(180, 230, 255, 0.35)';
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, b.r * size, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+
+          // クラゲの描画
+          for (let i = 0; i < sim.items.length; i++) {
+            const jf = sim.items[i];
+            const pulse = Math.sin(state.time * 2.5 * speed + jf.phase);
+            jf.y += (jf.vy - pulse * 0.35) * speed;
+            jf.x += Math.sin(state.time * 0.8 + jf.phase) * 0.4 + jf.vx;
+
+            if (ptr.active) {
+              const dx = jf.x - ptr.x;
+              const dy = jf.y - ptr.y;
+              const d = Math.hypot(dx, dy);
+              if (d < 140 * reactivity && d > 1) {
+                jf.x += (dx / d) * 1.5;
+                jf.y += (dy / d) * 1.5;
+              }
+            }
+            if (jf.y < -100) { jf.y = h + 80; jf.x = Math.random() * w; }
+
+            const r = 34 * jf.scale * size * (1 + pulse * 0.14);
+            const colMain = getArtColor(jf.hue + Math.sin(state.time * 0.5) * 30, 88, 65, 0.55 * glow, i);
+            const colCore = getArtColor(jf.hue + 20, 95, 80, 0.85, i);
+
+            ctx.save();
+            ctx.translate(jf.x, jf.y);
+
+            // 傘（ベル）
+            const grad = ctx.createRadialGradient(0, -r * 0.2, r * 0.1, 0, 0, r * 1.3);
+            grad.addColorStop(0, colCore);
+            grad.addColorStop(0.6, colMain);
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, r, Math.PI, 0, false);
+            ctx.bezierCurveTo(r, r * 0.35, -r, r * 0.35, -r, 0);
+            ctx.fill();
+
+            // 触手
+            ctx.strokeStyle = colMain;
+            ctx.lineWidth = 1.6 * jf.scale;
+            for (let t = -3; t <= 3; t++) {
+              ctx.beginPath();
+              const tx = t * (r * 0.22);
+              ctx.moveTo(tx, r * 0.15);
+              for (let seg = 1; seg <= 5; seg++) {
+                const wy = r * 0.15 + seg * (r * 0.45);
+                const wx = tx + Math.sin(state.time * 3 * speed + jf.phase + seg * 0.9 + t) * (8 * jf.scale);
+                ctx.lineTo(wx, wy);
+              }
+              ctx.stroke();
+            }
+            ctx.restore();
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 8. 深海のバイオルミネッセンス
+        // ------------------------------------------------------------------------
+        case 'bioluminescence': {
+          const count = Math.floor(sim.particles.length * Math.min(1, density));
+          for (let i = 0; i < count; i++) {
+            const p = sim.particles[i];
+            p.x += p.vx * speed + Math.sin(state.time + p.phase) * 0.3;
+            p.y += p.vy * speed + Math.cos(state.time * 0.8 + p.phase) * 0.3;
+
+            if (ptr.active) {
+              const dx = p.x - ptr.x;
+              const dy = p.y - ptr.y;
+              const d = Math.hypot(dx, dy);
+              if (d < 150 * reactivity && d > 1) {
+                // 渦を巻くように反応
+                p.vx += (-dy / d) * 0.18 * reactivity;
+                p.vy += (dx / d) * 0.18 * reactivity;
+              }
+            }
+            p.vx *= 0.97;
+            p.vy *= 0.97;
+
+            if (p.x < 0) p.x = w;
+            if (p.x > w) p.x = 0;
+            if (p.y < 0) p.y = h;
+            if (p.y > h) p.y = 0;
+
+            const alpha = 0.4 + 0.6 * Math.sin(state.time * 3 + p.phase);
+            drawStarburst(p.x, p.y, p.r * 3.5 * size * glow, getArtColor(p.hue, 95, 65, alpha, i), alpha);
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 9. 珊瑚礁の光と水のゆらぎ
+        // ------------------------------------------------------------------------
+        case 'coral': {
+          // 水面からの光のカーテン（コースティクスゴッドレイ）
+          for (let r = 0; r < 9; r++) {
+            const rx = (w / 8) * r + Math.sin(state.time * 0.7 * speed + r) * 55;
+            const topW = 35 + Math.sin(state.time + r) * 15;
+            const botW = 140 + Math.cos(state.time * 0.8 + r) * 40;
+            const grad = ctx.createLinearGradient(rx, 0, rx + 40, h * 0.9);
+            grad.addColorStop(0, getArtColor(190, 85, 75, 0.25 * glow, r));
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(rx - topW, 0);
+            ctx.lineTo(rx + topW, 0);
+            ctx.lineTo(rx + botW + 60, h);
+            ctx.lineTo(rx - botW + 60, h);
+            ctx.closePath();
+            ctx.fill();
+          }
+
+          // 光の熱帯魚群
+          for (let i = 0; i < sim.items.length; i++) {
+            const f = sim.items[i];
+            if (ptr.active) {
+              const dx = ptr.x - f.x;
+              const dy = ptr.y - f.y;
+              f.vx += Math.sign(dx) * 0.04 * reactivity;
+              f.vy += Math.sign(dy) * 0.03 * reactivity;
+              f.vx = Math.max(-3.5, Math.min(3.5, f.vx));
+              f.vy = Math.max(-2, Math.min(2, f.vy));
+            }
+            f.x += f.vx * speed;
+            f.y += f.vy * speed + Math.sin(state.time * 4 + f.phase) * 0.4;
+            if (f.x < -30) f.x = w + 30;
+            if (f.x > w + 30) f.x = -30;
+
+            const dir = f.vx >= 0 ? 1 : -1;
+            const sz = f.size * size;
+            ctx.fillStyle = getArtColor(f.hue, 92, 65, 0.85, i);
+            ctx.beginPath();
+            ctx.ellipse(f.x, f.y, sz * 1.8, sz * 0.8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // 尾びれ
+            ctx.beginPath();
+            ctx.moveTo(f.x - dir * sz * 1.6, f.y);
+            ctx.lineTo(f.x - dir * sz * 2.8, f.y - sz * 0.8);
+            ctx.lineTo(f.x - dir * sz * 2.8, f.y + sz * 0.8);
+            ctx.closePath();
+            ctx.fill();
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 10. 氷河とクリスタル・ドロップ
+        // ------------------------------------------------------------------------
+        case 'glacial': {
+          const waterY = h * 0.75;
+          // 水面ライン
+          ctx.strokeStyle = getArtColor(195, 80, 75, 0.35, 0);
+          ctx.beginPath();
+          ctx.moveTo(0, waterY);
+          ctx.lineTo(w, waterY);
+          ctx.stroke();
+
+          if (ptr.justClicked) {
+            sim.ripples.push({ x: ptr.x, y: Math.max(waterY, ptr.y), rx: 8, ry: 2, alpha: 1.0, hue: 195 });
+          }
+
+          for (let i = 0; i < sim.particles.length; i++) {
+            const p = sim.particles[i];
+            p.y += p.vy * speed;
+            if (p.y >= waterY) {
+              sim.ripples.push({ x: p.x, y: waterY + Math.random() * (h - waterY) * 0.6, rx: 4, ry: 1.5, alpha: 0.85, hue: p.hue });
+              p.y = -20;
+              p.x = Math.random() * w;
+            }
+            drawStarburst(p.x, p.y, p.size * 2.2 * size, getArtColor(p.hue, 90, 80, 0.85, i), 0.85);
+          }
+
+          // 水面の波紋
+          for (let i = sim.ripples.length - 1; i >= 0; i--) {
+            const rp = sim.ripples[i];
+            rp.rx += 95 * dt * speed;
+            rp.ry += 26 * dt * speed;
+            rp.alpha -= dt * 0.55;
+            if (rp.alpha <= 0) {
+              sim.ripples.splice(i, 1);
+            } else {
+              ctx.strokeStyle = getArtColor(rp.hue, 85, 78, rp.alpha * glow, i);
+              ctx.lineWidth = 1.5;
+              ctx.beginPath();
+              ctx.ellipse(rp.x, rp.y, rp.rx * size, rp.ry * size, 0, 0, Math.PI * 2);
+              ctx.stroke();
+            }
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 11. 蓮の池と蛍の夜
+        // ------------------------------------------------------------------------
+        case 'lotus': {
+          // 発光する蓮の花
+          for (let i = 0; i < sim.items.length; i++) {
+            const lt = sim.items[i];
+            const r = 26 * lt.scale * size;
+            ctx.save();
+            ctx.translate(lt.x, lt.y);
+            // 水面の反射光
+            const grad = ctx.createRadialGradient(0, 0, 2, 0, 0, r * 2.2 * glow);
+            grad.addColorStop(0, getArtColor(lt.hue, 90, 75, 0.7, i));
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.ellipse(0, 4, r * 2.2, r * 0.9, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 花びら
+            for (let p = 0; p < 8; p++) {
+              const ang = (p / 8) * Math.PI * 2 + Math.sin(state.time + lt.phase) * 0.05;
+              ctx.fillStyle = getArtColor(lt.hue + p * 3, 85, 72, 0.75, i);
+              ctx.beginPath();
+              ctx.ellipse(Math.cos(ang) * r * 0.45, Math.sin(ang) * r * 0.22, r * 0.55, r * 0.22, ang, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.restore();
+          }
+
+          // 舞う蛍
+          for (let i = 0; i < sim.particles.length; i++) {
+            const ff = sim.particles[i];
+            ff.x += ff.vx * speed + Math.sin(state.time * 1.5 + ff.phase) * 0.6;
+            ff.y += ff.vy * speed + Math.cos(state.time * 1.2 + ff.phase) * 0.5;
+            if (ptr.active) {
+              ff.x += (ptr.x - ff.x) * 0.008 * reactivity;
+              ff.y += (ptr.y - ff.y) * 0.008 * reactivity;
+            }
+            if (ff.x < 0) ff.x = w;
+            if (ff.x > w) ff.x = 0;
+            if (ff.y < 0) ff.y = h * 0.85;
+            if (ff.y > h * 0.85) ff.y = 0;
+
+            const blink = 0.25 + 0.75 * Math.pow(0.5 + 0.5 * Math.sin(state.time * 3.2 + ff.phase), 2);
+            drawStarburst(ff.x, ff.y, 10 * size * glow, getArtColor(ff.hue, 95, 65, blink, i), blink);
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 12. 銀河を泳ぐ光のクジラ
+        // ------------------------------------------------------------------------
+        case 'whale': {
+          // 背景の星屑
+          for (let i = 0; i < sim.particles.length; i++) {
+            const st = sim.particles[i];
+            st.x -= st.speed * speed;
+            if (st.x < 0) st.x = w;
+            ctx.fillStyle = getArtColor(st.hue, 80, 75, 0.6, i);
+            ctx.beginPath();
+            ctx.arc(st.x, st.y, st.r * size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // クジラの移動
+          const wh = sim.extra.whale;
+          if (ptr.active) {
+            wh.targetX = ptr.x;
+            wh.targetY = ptr.y;
+          } else {
+            wh.targetX = w * 0.5 + Math.cos(state.time * 0.35 * speed) * (w * 0.32);
+            wh.targetY = h * 0.5 + Math.sin(state.time * 0.55 * speed) * (h * 0.24);
+          }
+          wh.x += (wh.targetX - wh.x) * 0.02 * speed;
+          wh.y += (wh.targetY - wh.y) * 0.02 * speed;
+
+          wh.spine[0].x = wh.x;
+          wh.spine[0].y = wh.y;
+          for (let i = 1; i < wh.spine.length; i++) {
+            const prev = wh.spine[i - 1];
+            const curr = wh.spine[i];
+            const dx = prev.x - curr.x;
+            const dy = prev.y - curr.y;
+            const ang = Math.atan2(dy, dx);
+            const segLen = 11 * size;
+            curr.x = prev.x - Math.cos(ang) * segLen;
+            curr.y = prev.y - Math.sin(ang) * segLen + Math.sin(state.time * 3 * speed - i * 0.35) * 1.8;
+          }
+
+          // 光の粒子で構成されるクジラボディ
+          for (let i = 0; i < wh.spine.length; i++) {
+            const pt = wh.spine[i];
+            const progress = i / wh.spine.length;
+            const bodyWidth = Math.sin(progress * Math.PI) * 38 * size;
+            const hue = 195 + progress * 75;
+            for (let s = -2; s <= 2; s++) {
+              const px = pt.x;
+              const py = pt.y + (s / 2) * bodyWidth;
+              drawStarburst(px, py, (7 - progress * 4) * size * glow, getArtColor(hue, 90, 72, 0.75, i + s), 0.75);
+            }
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 13. 満天のプラネタリウムと天の川
+        // ------------------------------------------------------------------------
+        case 'planetarium': {
+          sim.extra.rot += 0.06 * dt * speed + (ptr.isDown ? ptr.vx * 0.003 : 0);
+          const cx = w * 0.5;
+          const cy = h * 0.55;
+          const maxR = Math.hypot(w, h) * 0.65;
+
+          for (let i = 0; i < sim.particles.length; i++) {
+            const st = sim.particles[i];
+            const a = st.angle + sim.extra.rot;
+            const dist = ((st.spread + Math.PI * 0.5) / Math.PI) * maxR;
+            const sx = cx + Math.cos(a) * dist;
+            const sy = cy + Math.sin(a) * dist * 0.75;
+            const tw = 0.5 + 0.5 * Math.sin(state.time * 2.5 + st.twinkle);
+            ctx.fillStyle = getArtColor(st.hue, 85, 80, tw * glow, i);
+            ctx.beginPath();
+            ctx.arc(sx, sy, st.r * size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // 流星
+          if (Math.random() < 0.03 * speed || ptr.justClicked) {
+            sim.extra.meteors.push({
+              x: ptr.justClicked ? ptr.x : Math.random() * w,
+              y: ptr.justClicked ? ptr.y : Math.random() * h * 0.4,
+              vx: -7 - Math.random() * 5,
+              vy: 4 + Math.random() * 3,
+              life: 1.0
+            });
+          }
+          for (let i = sim.extra.meteors.length - 1; i >= 0; i--) {
+            const m = sim.extra.meteors[i];
+            m.x += m.vx * speed;
+            m.y += m.vy * speed;
+            m.life -= dt * 1.4;
+            if (m.life <= 0) {
+              sim.extra.meteors.splice(i, 1);
+            } else {
+              const grad = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * 12, m.y - m.vy * 12);
+              grad.addColorStop(0, '#ffffff');
+              grad.addColorStop(1, 'transparent');
+              ctx.strokeStyle = grad;
+              ctx.lineWidth = 2.5 * size;
+              ctx.beginPath();
+              ctx.moveTo(m.x, m.y);
+              ctx.lineTo(m.x - m.vx * 12, m.y - m.vy * 12);
+              ctx.stroke();
+            }
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 14. 夜空の大輪・打ち上げ花火
+        // ------------------------------------------------------------------------
+        case 'fireworks': {
+          const launch = (tx, ty) => {
+            sim.extra.rockets.push({
+              x: tx + (Math.random() - 0.5) * 60,
+              y: h,
+              tx,
+              ty,
+              hue: Math.random() * 360
+            });
+          };
+          if (ptr.justClicked) launch(ptr.x, ptr.y);
+          if (Math.random() < 0.035 * speed * density) {
+            launch(w * 0.15 + Math.random() * w * 0.7, h * 0.15 + Math.random() * h * 0.42);
+          }
+
+          for (let i = sim.extra.rockets.length - 1; i >= 0; i--) {
+            const rk = sim.extra.rockets[i];
+            rk.x += (rk.tx - rk.x) * 0.08 * speed;
+            rk.y += (rk.ty - rk.y) * 0.08 * speed;
+            ctx.fillStyle = '#fff3c4';
+            ctx.beginPath();
+            ctx.arc(rk.x, rk.y, 2.5 * size, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (Math.hypot(rk.tx - rk.x, rk.ty - rk.y) < 12) {
+              const sparkCount = Math.floor(85 * density);
+              for (let k = 0; k < sparkCount; k++) {
+                const ang = (k / sparkCount) * Math.PI * 2 + Math.random() * 0.1;
+                const spd = 1.5 + Math.random() * 4.5;
+                sim.extra.sparks.push({
+                  x: rk.x,
+                  y: rk.y,
+                  vx: Math.cos(ang) * spd,
+                  vy: Math.sin(ang) * spd,
+                  life: 1.0,
+                  hue: rk.hue + (Math.random() - 0.5) * 35
+                });
+              }
+              sim.extra.rockets.splice(i, 1);
+            }
+          }
+
+          for (let i = sim.extra.sparks.length - 1; i >= 0; i--) {
+            const sp = sim.extra.sparks[i];
+            sp.x += sp.vx * speed;
+            sp.y += sp.vy * speed;
+            sp.vy += 0.045 * speed;
+            sp.vx *= 0.97;
+            sp.vy *= 0.97;
+            sp.life -= dt * 0.65;
+            if (sp.life <= 0) {
+              sim.extra.sparks.splice(i, 1);
+            } else {
+              ctx.fillStyle = getArtColor(sp.hue, 95, 65, sp.life * glow, i);
+              ctx.beginPath();
+              ctx.arc(sp.x, sp.y, 2.2 * size, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 15. 極北のオーロラカーテン
+        // ------------------------------------------------------------------------
+        case 'aurora': {
+          // 星空
+          for (const st of sim.particles) {
+            ctx.fillStyle = `rgba(255,255,255,${0.3 + 0.4 * Math.sin(state.time * 2 + st.phase)})`;
+            ctx.fillRect(st.x, st.y, st.r, st.r);
+          }
+
+          // オーロラカーテン層
+          const bands = 4;
+          for (let b = 0; b < bands; b++) {
+            const step = 14;
+            for (let x = 0; x <= w; x += step) {
+              const wave = Math.sin(x * 0.004 + state.time * 0.6 * speed + b * 1.4) * 55
+                         + Math.cos(x * 0.009 - state.time * 0.4 * speed) * 28;
+              const mouseOffset = ptr.active ? Math.exp(-Math.pow((x - ptr.x) / 180, 2)) * (ptr.y - h * 0.35) * 0.35 * reactivity : 0;
+              const baseY = h * (0.28 + b * 0.06) + wave + mouseOffset;
+              const curtainH = (130 + Math.sin(x * 0.01 + state.time + b) * 45) * size;
+
+              const grad = ctx.createLinearGradient(x, baseY, x, baseY - curtainH);
+              grad.addColorStop(0, 'transparent');
+              grad.addColorStop(0.25, getArtColor(145 + b * 38, 90, 58, 0.24 * glow, b));
+              grad.addColorStop(0.75, getArtColor(265 + b * 25, 85, 62, 0.14 * glow, b));
+              grad.addColorStop(1, 'transparent');
+
+              ctx.fillStyle = grad;
+              ctx.fillRect(x, baseY - curtainH, step + 1, curtainH);
+            }
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 16. プリズムの虹と光の雨
+        // ------------------------------------------------------------------------
+        case 'rainbow': {
+          const cx = w * 0.5 + (ptr.active ? (ptr.x - w * 0.5) * 0.15 : 0);
+          const cy = h * 0.92;
+          const baseR = Math.min(w, h) * 0.72 * size;
+          const rainbowHues = [0, 28, 52, 130, 200, 245, 285];
+
+          // メインレインボー＆ダブルレインボー
+          for (let pass = 0; pass < 2; pass++) {
+            const alphaMult = pass === 0 ? 0.26 * glow : 0.11 * glow;
+            const rOffset = pass === 0 ? 0 : baseR * 0.24;
+            for (let i = 0; i < rainbowHues.length; i++) {
+              ctx.strokeStyle = getArtColor(rainbowHues[i], 92, 62, alphaMult, i);
+              ctx.lineWidth = (pass === 0 ? 14 : 9) * size;
+              ctx.beginPath();
+              ctx.arc(cx, cy, baseR + rOffset - i * 11 * size, Math.PI, 0, false);
+              ctx.stroke();
+            }
+          }
+
+          // 光の雨（サンシャワー）
+          for (let i = 0; i < sim.particles.length; i++) {
+            const p = sim.particles[i];
+            p.y += p.vy * speed;
+            p.x -= 1.2 * speed;
+            if (p.y > h + 20) { p.y = -20; p.x = Math.random() * w * 1.1; }
+            if (p.bokeh) {
+              ctx.fillStyle = getArtColor(p.hue, 85, 75, 0.22 * glow, i);
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, p.r * size, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              ctx.strokeStyle = getArtColor(48, 90, 82, 0.45, i);
+              ctx.lineWidth = 1.2;
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(p.x + 3, p.y - p.len * size);
+              ctx.stroke();
+            }
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 17. 日食のダイヤモンドリング
+        // ------------------------------------------------------------------------
+        case 'eclipse': {
+          const cx = w * 0.5;
+          const cy = h * 0.5;
+          const r = Math.min(w, h) * 0.17 * size;
+
+          // コロナ光輪
+          const corona = ctx.createRadialGradient(cx, cy, r * 0.9, cx, cy, r * 3.2 * glow);
+          corona.addColorStop(0, getArtColor(42, 95, 78, 0.85, 0));
+          corona.addColorStop(0.35, getArtColor(210, 80, 65, 0.35, 1));
+          corona.addColorStop(1, 'transparent');
+          ctx.fillStyle = corona;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r * 3.2 * glow, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 太陽コロナ粒子
+          for (let i = 0; i < sim.particles.length; i++) {
+            const p = sim.particles[i];
+            p.angle += p.speed * speed;
+            const d = r * (1.02 + Math.sin(state.time * 2 + i) * 0.12 + (p.dist - 1) * 0.8);
+            const px = cx + Math.cos(p.angle) * d;
+            const py = cy + Math.sin(p.angle) * d;
+            ctx.fillStyle = getArtColor(45, 95, 75, 0.65, i);
+            ctx.beginPath();
+            ctx.arc(px, py, p.size * size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // 漆黒の月（遮蔽）
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.fillStyle = '#020308';
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fill();
+
+          // ダイヤモンドリングの閃光
+          ctx.globalCompositeOperation = 'lighter';
+          const ringAngle = ptr.active ? Math.atan2(ptr.y - cy, ptr.x - cx) : -Math.PI * 0.25 + Math.sin(state.time * 0.4) * 0.2;
+          const dx = cx + Math.cos(ringAngle) * r;
+          const dy = cy + Math.sin(ringAngle) * r;
+          drawStarburst(dx, dy, r * 0.85 * glow, getArtColor(45, 100, 82, 0.95, 0), 0.95);
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 18. 星屑のネビュラ星雲
+        // ------------------------------------------------------------------------
+        case 'nebula': {
+          const cx = w * 0.5;
+          const cy = h * 0.5;
+          for (let i = 0; i < sim.particles.length; i++) {
+            const p = sim.particles[i];
+            p.angle += p.speed * speed * 12;
+            const px = cx + Math.cos(p.angle) * p.radius * size;
+            const py = cy + Math.sin(p.angle) * p.radius * 0.68 * size;
+            if (p.cloud) {
+              const cr = 45 * size * glow;
+              const grad = ctx.createRadialGradient(px, py, 0, px, py, cr);
+              grad.addColorStop(0, getArtColor(p.hue, 88, 55, 0.14, i));
+              grad.addColorStop(1, 'transparent');
+              ctx.fillStyle = grad;
+              ctx.beginPath();
+              ctx.arc(px, py, cr, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              ctx.fillStyle = getArtColor(p.hue, 90, 78, 0.85, i);
+              ctx.beginPath();
+              ctx.arc(px, py, p.size * size * 0.6, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 19. 黄金のグリッター・ストリーム
+        // ------------------------------------------------------------------------
+        case 'glitter': {
+          // 黄金のシルク光線リボン
+          for (let ribbon = 0; ribbon < 3; ribbon++) {
+            ctx.beginPath();
+            for (let x = 0; x <= w; x += 18) {
+              const y = h * 0.5
+                + Math.sin(x * 0.005 + state.time * 1.4 * speed + ribbon * 1.2) * (h * 0.22)
+                + Math.cos(x * 0.008 - state.time * 0.9 * speed) * 45;
+              if (x === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = getArtColor(43 + ribbon * 6, 95, 65, 0.28 * glow, ribbon);
+            ctx.lineWidth = (18 - ribbon * 4) * size;
+            ctx.stroke();
+          }
+
+          // 舞い散る黄金のグリッター粒子
+          for (let i = 0; i < sim.particles.length; i++) {
+            const p = sim.particles[i];
+            p.x += p.speed * speed * 1.2;
+            p.y += Math.sin(state.time * 2 + p.phase) * 0.9 * speed;
+            if (ptr.active) {
+              const dx = ptr.x - p.x;
+              const dy = ptr.y - p.y;
+              const d = Math.hypot(dx, dy);
+              if (d < 160 * reactivity && d > 1) {
+                p.x += (dx / d) * 1.5;
+                p.y += (dy / d) * 1.5;
+              }
+            }
+            if (p.x > w + 10) { p.x = -10; p.y = Math.random() * h; }
+            const sparkle = 0.4 + 0.6 * Math.sin(state.time * 5 + p.phase);
+            drawStarburst(p.x, p.y, p.size * 3.2 * size * glow, getArtColor(p.hue, 95, 72, sparkle, i), sparkle);
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 20. 幻想ボケ光のイルミネーション
+        // ------------------------------------------------------------------------
+        case 'bokeh': {
+          const pxOffset = ptr.active ? (ptr.x - w * 0.5) * 0.08 * reactivity : 0;
+          const pyOffset = ptr.active ? (ptr.y - h * 0.5) * 0.08 * reactivity : 0;
+
+          for (let i = 0; i < sim.particles.length; i++) {
+            const b = sim.particles[i];
+            b.x += b.vx * speed;
+            b.y += b.vy * speed;
+            if (b.y < -60) { b.y = h + 60; b.x = Math.random() * w; }
+            if (b.x < -60) b.x = w + 60;
+            if (b.x > w + 60) b.x = -60;
+
+            const drawX = b.x + pxOffset * b.depth;
+            const drawY = b.y + pyOffset * b.depth;
+            const r = b.r * size * (0.9 + 0.1 * Math.sin(state.time + b.phase));
+            const alpha = (0.18 + 0.15 * Math.sin(state.time * 1.5 + b.phase)) * glow;
+
+            ctx.fillStyle = getArtColor(b.hue, 88, 68, alpha, i);
+            ctx.strokeStyle = getArtColor(b.hue, 92, 80, alpha * 1.4, i);
+            ctx.lineWidth = 1.5;
+
+            ctx.beginPath();
+            if (b.hex) {
+              for (let k = 0; k < 6; k++) {
+                const a = (k / 6) * Math.PI * 2;
+                const vx = drawX + Math.cos(a) * r;
+                const vy = drawY + Math.sin(a) * r;
+                if (k === 0) ctx.moveTo(vx, vy);
+                else ctx.lineTo(vx, vy);
+              }
+              ctx.closePath();
+            } else {
+              ctx.arc(drawX, drawY, r, 0, Math.PI * 2);
+            }
+            ctx.fill();
+            ctx.stroke();
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 21. 妖精の光の粉・フェアリーダスト
+        // ------------------------------------------------------------------------
+        case 'fairydust': {
+          const fx = ptr.active ? ptr.x : w * 0.5 + Math.cos(state.time * 1.3 * speed) * (w * 0.25);
+          const fy = ptr.active ? ptr.y : h * 0.5 + Math.sin(state.time * 1.9 * speed) * (h * 0.2);
+
+          // 妖精のコア光
+          drawStarburst(fx, fy, 32 * size * glow, getArtColor(state.time * 60, 95, 80, 0.95, 0), 0.95);
+
+          // 魔法の粉を生成
+          for (let k = 0; k < Math.ceil(3 * density); k++) {
+            sim.particles.push({
+              x: fx + (Math.random() - 0.5) * 16,
+              y: fy + (Math.random() - 0.5) * 16,
+              vx: (Math.random() - 0.5) * 2.5,
+              vy: (Math.random() - 0.5) * 2.5 + 0.4,
+              size: 1.5 + Math.random() * 3,
+              hue: (state.time * 80 + Math.random() * 90) % 360,
+              phase: Math.random() * Math.PI * 2,
+              life: 1.0
+            });
+          }
+          if (sim.particles.length > 350) sim.particles.splice(0, sim.particles.length - 350);
+
+          for (let i = sim.particles.length - 1; i >= 0; i--) {
+            const p = sim.particles[i];
+            p.x += p.vx * speed;
+            p.y += p.vy * speed;
+            if (p.life !== undefined) {
+              p.life -= dt * 0.7;
+              if (p.life <= 0) { sim.particles.splice(i, 1); continue; }
+            }
+            const a = p.life !== undefined ? p.life : (0.5 + 0.5 * Math.sin(state.time * 4 + p.phase));
+            drawStarburst(p.x, p.y, p.size * 2.6 * size * glow, getArtColor(p.hue, 92, 72, a, i), a);
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 22. ステンドグラスの聖なる光
+        // ------------------------------------------------------------------------
+        case 'stainedglass': {
+          const originX = ptr.active ? ptr.x : w * 0.5 + Math.sin(state.time * 0.3) * 80;
+          const originY = -40;
+          const rayColors = [45, 200, 330, 140, 275, 25];
+
+          for (let r = 0; r < 12; r++) {
+            const ang = Math.PI * 0.22 + (r / 11) * Math.PI * 0.56 + Math.sin(state.time * 0.5 + r) * 0.03;
+            const spread = 0.065 * size;
+            const len = Math.hypot(w, h) * 1.2;
+            const grad = ctx.createLinearGradient(originX, originY, originX + Math.cos(ang) * len, originY + Math.sin(ang) * len);
+            grad.addColorStop(0, getArtColor(rayColors[r % rayColors.length], 90, 70, 0.28 * glow, r));
+            grad.addColorStop(1, 'transparent');
+
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(originX, originY);
+            ctx.lineTo(originX + Math.cos(ang - spread) * len, originY + Math.sin(ang - spread) * len);
+            ctx.lineTo(originX + Math.cos(ang + spread) * len, originY + Math.sin(ang + spread) * len);
+            ctx.closePath();
+            ctx.fill();
+          }
+
+          // 光の中に舞う黄金の塵
+          for (let i = 0; i < sim.particles.length; i++) {
+            const p = sim.particles[i];
+            p.x += p.vx * speed;
+            p.y += p.vy * speed;
+            if (p.y < 0) { p.y = h; p.x = Math.random() * w; }
+            ctx.fillStyle = getArtColor(p.hue, 95, 80, 0.65, i);
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r * size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 23. 桜吹雪と月光の幻想夜
+        // ------------------------------------------------------------------------
+        case 'sakura': {
+          // 幻想的な満月
+          const moonX = w * 0.75;
+          const moonY = h * 0.24;
+          const moonR = Math.min(w, h) * 0.11 * size;
+          const moonHalo = ctx.createRadialGradient(moonX, moonY, moonR * 0.8, moonX, moonY, moonR * 3.5 * glow);
+          moonHalo.addColorStop(0, 'rgba(255, 245, 220, 0.85)');
+          moonHalo.addColorStop(0.3, getArtColor(340, 70, 75, 0.25, 0));
+          moonHalo.addColorStop(1, 'transparent');
+          ctx.fillStyle = moonHalo;
+          ctx.beginPath();
+          ctx.arc(moonX, moonY, moonR * 3.5 * glow, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 舞い散る発光桜の花びら
+          const count = Math.floor(sim.particles.length * Math.min(1, density));
+          for (let i = 0; i < count; i++) {
+            const p = sim.particles[i];
+            p.x += (p.vx + (ptr.isDown ? ptr.vx * 0.05 * reactivity : 0)) * speed;
+            p.y += (p.vy + (ptr.isDown ? ptr.vy * 0.05 * reactivity : 0)) * speed;
+            p.rot += p.rotSpeed * speed;
+            p.flip += 0.05 * speed;
+
+            if (p.x < -20) p.x = w + 20;
+            if (p.x > w + 20) p.x = -20;
+            if (p.y > h + 20) { p.y = -20; p.x = Math.random() * w; }
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.scale(1, Math.cos(p.flip));
+            const sz = p.size * size;
+            ctx.fillStyle = getArtColor(p.hue, 90, 78, 0.85 * glow, i);
+            ctx.beginPath();
+            ctx.moveTo(0, -sz);
+            ctx.bezierCurveTo(sz, -sz * 0.5, sz * 0.8, sz, 0, sz * 0.7);
+            ctx.bezierCurveTo(-sz * 0.8, sz, -sz, -sz * 0.5, 0, -sz);
+            ctx.fill();
+            ctx.restore();
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // 24. プリズム・クリスタル・シャンデリア
+        // ------------------------------------------------------------------------
+        case 'chandelier': {
+          const cx = w * 0.5;
+          const cy = h * 0.42;
+          const maxR = Math.min(w, h) * 0.38 * size;
+
+          for (let i = 0; i < sim.items.length; i++) {
+            const c = sim.items[i];
+            const dir = c.ring % 2 === 0 ? 1 : -1;
+            const ang = c.angle + state.time * 0.25 * dir * speed;
+            const rx = (c.ring / 4) * maxR;
+            const ry = rx * 0.48;
+            const px = cx + Math.cos(ang) * rx;
+            const py = cy + Math.sin(ang) * ry + c.ring * 18;
+
+            const pulse = 0.5 + 0.5 * Math.sin(state.time * 4 + c.sparkle);
+            const hue = (c.hue + state.time * 30 + (ptr.active ? ptr.x * 0.2 : 0)) % 360;
+            drawStarburst(px, py, c.size * (1.5 + pulse * 1.4) * glow, getArtColor(hue, 95, 78, 0.85, i), 0.85);
+          }
+          break;
+        }
+      }
+
+      // クリックフラグのリセット
+      ptr.justClicked = false;
+      ptr.vx *= 0.85;
+      ptr.vy *= 0.85;
+    }
+
+    // アニメーションループ管理
+    let lastTime = performance.now();
+    function animate(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+
+      if (!state.isPaused) {
+        state.time += dt * state.params.speed;
+        renderFrame(dt);
+      }
+      requestAnimationFrame(animate);
+    }
+
+    // ============================================================================
+    // UIインタラクション・ギャラリー生成・イベントリスナー
+    // ============================================================================
+    function renderGalleryGrid() {
+      artGrid.innerHTML = '';
+      const filtered = state.activeCategory === 'all'
+        ? ARTWORKS
+        : ARTWORKS.filter(a => a.cat === state.activeCategory);
+
+      filtered.forEach((art) => {
+        const idx = ARTWORKS.findIndex(item => item.id === art.id);
+        const isCurrent = idx === state.currentArtIndex;
+        const card = document.createElement('button');
+        card.className = `glass-card text-left rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden group ${isCurrent ? 'ring-2 ring-amber-300' : ''}`;
+        card.innerHTML = `
+          <div class="absolute inset-0 bg-gradient-to-br ${art.grad} opacity-50 group-hover:opacity-80 transition-opacity pointer-events-none"></div>
+          <div class="relative z-10">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <span class="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-black/40 text-slate-200 border border-white/10">
+                ${art.catLabel}
+              </span>
+              <span class="text-xs font-mono text-white/70">#${String(art.num).padStart(2, '0')}</span>
+            </div>
+            <h3 class="text-base font-bold text-white group-hover:text-amber-200 transition">${art.title}</h3>
+            <p class="text-[11px] text-slate-300/80 font-light mb-2">${art.en}</p>
+            <p class="text-xs text-slate-200/90 leading-relaxed line-clamp-2">${art.desc}</p>
+          </div>
+          <div class="relative z-10 mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[11px] text-amber-200">
+            <span>${isCurrent ? '● 鑑賞中' : 'タップして鑑賞する'}</span>
+            <span class="group-hover:translate-x-1 transition-transform">→</span>
+          </div>
+        `;
+        card.addEventListener('click', () => {
+          selectArtwork(idx);
+          closeGalleryMenu();
+        });
+        artGrid.appendChild(card);
+      });
+    }
+
+    function selectArtwork(index) {
+      state.currentArtIndex = index;
+      const art = ARTWORKS[index];
+      document.getElementById('hudCategoryBadge').textContent = art.catLabel;
+      document.getElementById('hudArtTitle').textContent = `${art.num}. ${art.title}`;
+      document.getElementById('hudArtHint').textContent = art.hint;
+      initCurrentArtwork();
+      renderGalleryGrid();
+    }
+
+    function openGalleryMenu() {
+      state.isMenuOpen = true;
+      galleryModal.classList.remove('opacity-0', 'pointer-events-none');
+      renderGalleryGrid();
+    }
+
+    function closeGalleryMenu() {
+      state.isMenuOpen = false;
+      galleryModal.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    function toggleControls(forceState) {
+      state.isControlsOpen = forceState !== undefined ? forceState : !state.isControlsOpen;
+      if (state.isControlsOpen) {
+        controlPanel.classList.remove('translate-y-full', 'sm:translate-x-[120%]');
+      } else {
+        controlPanel.classList.add('translate-y-full', 'sm:translate-x-[120%]');
+      }
+    }
+
+    // パラメータUIの同期
+    function syncParamUI() {
+      const p = state.params;
+      document.getElementById('paramHue').value = p.hueShift;
+      document.getElementById('valHue').textContent = `${p.hueShift}°`;
+
+      document.getElementById('paramDensity').value = Math.round(p.density * 100);
+      document.getElementById('valDensity').textContent = `${Math.round(p.density * 100)}%`;
+
+      document.getElementById('paramGlow').value = Math.round(p.glow * 100);
+      document.getElementById('valGlow').textContent = `${Math.round(p.glow * 100)}%`;
+
+      document.getElementById('paramSpeed').value = Math.round(p.speed * 100);
+      document.getElementById('valSpeed').textContent = `${p.speed.toFixed(1)}x`;
+
+      document.getElementById('paramSize').value = Math.round(p.size * 100);
+      document.getElementById('valSize').textContent = `${Math.round(p.size * 100)}%`;
+
+      document.getElementById('paramReact').value = Math.round(p.reactivity * 100);
+      document.getElementById('valReact').textContent = `${Math.round(p.reactivity * 100)}%`;
+
+      document.querySelectorAll('.palette-btn').forEach(btn => {
+        const active = btn.dataset.palette === p.palette;
+        btn.classList.toggle('bg-white/20', active);
+        btn.classList.toggle('border-white/40', active);
+        btn.classList.toggle('bg-white/5', !active);
+      });
+    }
+
+    // イベントバインド
+    document.getElementById('openMenuBtn').addEventListener('click', openGalleryMenu);
+    document.getElementById('closeMenuBtn').addEventListener('click', closeGalleryMenu);
+    document.getElementById('randomArtBtn').addEventListener('click', () => {
+      const nextIdx = Math.floor(Math.random() * ARTWORKS.length);
+      selectArtwork(nextIdx);
+      closeGalleryMenu();
+      showToast(`「${ARTWORKS[nextIdx].title}」を表示しました`);
+    });
+
+    // カテゴリタブ切り替え
+    document.querySelectorAll('.cat-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        state.activeCategory = tab.dataset.cat;
+        document.querySelectorAll('.cat-tab').forEach(t => {
+          t.classList.remove('bg-white', 'text-slate-950', 'shadow');
+          t.classList.add('bg-white/10', 'text-slate-200');
+        });
+        tab.classList.remove('bg-white/10', 'text-slate-200');
+        tab.classList.add('bg-white', 'text-slate-950', 'shadow');
+        renderGalleryGrid();
+      });
+    });
+
+    // コントロールパネル開閉
+    document.getElementById('toggleControlsBtn').addEventListener('click', () => toggleControls());
+    document.getElementById('closeControlsBtn').addEventListener('click', () => toggleControls(false));
+
+    // UI非表示・復帰
+    document.getElementById('hideUiBtn').addEventListener('click', () => {
+      state.isUiHidden = true;
+      topHud.classList.add('opacity-0', 'pointer-events-none');
+      toggleControls(false);
+      restoreUiBtn.classList.remove('opacity-0', 'pointer-events-none');
+      showToast('純粋鑑賞モード（右下のボタンでUI復帰）');
+    });
+    restoreUiBtn.addEventListener('click', () => {
+      state.isUiHidden = false;
+      topHud.classList.remove('opacity-0', 'pointer-events-none');
+      restoreUiBtn.classList.add('opacity-0', 'pointer-events-none');
+    });
+
+    // スクリーンショット保存
+    document.getElementById('screenshotBtn').addEventListener('click', () => {
+      try {
+        const link = document.createElement('a');
+        const art = ARTWORKS[state.currentArtIndex];
+        link.download = `luminous-${art.id}-${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showToast('美しい光景を画像として保存しました');
+      } catch (e) {
+        showToast('画像の保存に失敗しました');
+      }
+    });
+
+    // パレットボタン
+    document.querySelectorAll('.palette-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.params.palette = btn.dataset.palette;
+        syncParamUI();
+      });
+    });
+
+    // スライダー操作
+    document.getElementById('paramHue').addEventListener('input', (e) => {
+      state.params.hueShift = Number(e.target.value);
+      syncParamUI();
+    });
+    document.getElementById('paramDensity').addEventListener('input', (e) => {
+      state.params.density = Number(e.target.value) / 100;
+      initCurrentArtwork();
+      syncParamUI();
+    });
+    document.getElementById('paramGlow').addEventListener('input', (e) => {
+      state.params.glow = Number(e.target.value) / 100;
+      syncParamUI();
+    });
+    document.getElementById('paramSpeed').addEventListener('input', (e) => {
+      state.params.speed = Number(e.target.value) / 100;
+      syncParamUI();
+    });
+    document.getElementById('paramSize').addEventListener('input', (e) => {
+      state.params.size = Number(e.target.value) / 100;
+      syncParamUI();
+    });
+    document.getElementById('paramReact').addEventListener('input', (e) => {
+      state.params.reactivity = Number(e.target.value) / 100;
+      syncParamUI();
+    });
+
+    // ランダム・一時停止・リセット
+    document.getElementById('randomParamBtn').addEventListener('click', () => {
+      const palKeys = Object.keys(PALETTES);
+      state.params.palette = palKeys[Math.floor(Math.random() * palKeys.length)];
+      state.params.hueShift = Math.floor(Math.random() * 360);
+      state.params.density = Number((0.6 + Math.random() * 1.1).toFixed(2));
+      state.params.glow = Number((0.7 + Math.random() * 1.0).toFixed(2));
+      state.params.speed = Number((0.5 + Math.random() * 1.5).toFixed(1));
+      state.params.size = Number((0.7 + Math.random() * 0.8).toFixed(2));
+      initCurrentArtwork();
+      syncParamUI();
+      showToast('光のパラメータをランダムに設定しました');
+    });
+
+    document.getElementById('pauseBtn').addEventListener('click', (e) => {
+      state.isPaused = !state.isPaused;
+      e.target.textContent = state.isPaused ? '▶ 再生' : '⏸ 一時停止';
+    });
+
+    document.getElementById('resetParamBtn').addEventListener('click', () => {
+      state.params = {
+        palette: 'original',
+        hueShift: 0,
+        density: 1.0,
+        glow: 1.0,
+        speed: 1.0,
+        size: 1.0,
+        reactivity: 1.0
+      };
+      initCurrentArtwork();
+      syncParamUI();
+      showToast('パラメータを初期値に戻しました');
+    });
+
+    // ポインタ・タッチイベント（PCマウス・スマホマルチタッチ両対応）
+    function updatePointer(x, y, isDown, clicked = false) {
+      state.pointer.vx = x - state.pointer.x;
+      state.pointer.vy = y - state.pointer.y;
+      state.pointer.x = x;
+      state.pointer.y = y;
+      state.pointer.isDown = isDown;
+      state.pointer.active = true;
+      if (clicked) state.pointer.justClicked = true;
+    }
+
+    canvas.addEventListener('mousemove', (e) => {
+      updatePointer(e.clientX, e.clientY, e.buttons > 0, false);
+    });
+    canvas.addEventListener('mousedown', (e) => {
+      updatePointer(e.clientX, e.clientY, true, true);
+    });
+    window.addEventListener('mouseup', () => {
+      state.pointer.isDown = false;
+    });
+    canvas.addEventListener('mouseleave', () => {
+      state.pointer.active = false;
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 0) {
+        const t = e.touches[0];
+        updatePointer(t.clientX, t.clientY, true, true);
+      }
+    }, { passive: true });
+    canvas.addEventListener('touchmove', (e) => {
+      if (e.touches.length > 0) {
+        const t = e.touches[0];
+        updatePointer(t.clientX, t.clientY, true, false);
+      }
+    }, { passive: true });
+    canvas.addEventListener('touchend', () => {
+      state.pointer.isDown = false;
+      state.pointer.active = false;
+    });
+
+    // 起動処理
+    window.onload = function () {
+      resizeCanvas();
+      selectArtwork(0);
+      syncParamUI();
+      requestAnimationFrame(animate);
+    };
+  </script>
+</body>
+</html>
