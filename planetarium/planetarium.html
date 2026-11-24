@@ -272,19 +272,26 @@
                 <input id="slider-offset" type="range" min="-180" max="180" value="0" class="w-full" />
               </div>
 
-              <!-- Sensor response rate -->
+              <!-- Sensor sampling rate -->
               <div class="bg-slate-900/55 p-3 rounded-2xl border border-slate-700/50 space-y-2">
                 <div class="flex justify-between items-center gap-2 text-xs">
-                  <span class="text-slate-300 font-medium">センサー反映頻度</span>
-                  <span id="label-sensor-rate" class="font-mono text-emerald-300">1秒に1回</span>
+                  <span class="text-slate-300 font-medium">センサー読み取り頻度</span>
+                  <span id="label-sensor-rate" class="font-mono text-emerald-300">30 Hz</span>
                 </div>
-                <select id="select-sensor-rate" class="w-full bg-slate-800/90 border border-slate-600/60 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400">
-                  <option value="2000" selected>ゆっくり・安定（2秒に1回）</option>
-                  <option value="1000">標準（1秒に1回）</option>
-                  <option value="500">やや速い（0.5秒に1回）</option>
-                  <option value="250">速い（0.25秒に1回）</option>
-                </select>
-                <p class="text-[10px] leading-relaxed text-slate-400">小さな揺れは無視し、一定以上向きを変えたときだけ星空を更新します。端末に合わせて調整できます。</p>
+                <input id="slider-sensor-rate" type="range" min="5" max="60" step="1" value="30" class="w-full" />
+                <div class="flex justify-between text-[10px] text-slate-500"><span>低速・安定</span><span>高速・細かく追従</span></div>
+                <p class="text-[10px] leading-relaxed text-slate-400">1秒あたり5〜60回の範囲でセンサー値を取り込みます。画面は連続補間で滑らかに動き、細かな揺れは姿勢フィルターで抑えます。</p>
+              </div>
+
+              <!-- Star magnitude limit -->
+              <div class="bg-slate-900/55 p-3 rounded-2xl border border-slate-700/50 space-y-2">
+                <div class="flex justify-between items-center gap-2 text-xs">
+                  <span class="text-slate-300 font-medium">星の表示等級</span>
+                  <span id="label-magnitude-limit" class="font-mono text-amber-300">6.5等級まで</span>
+                </div>
+                <input id="slider-magnitude-limit" type="range" min="1.0" max="7.2" step="0.1" value="6.5" class="w-full" />
+                <div class="flex justify-between text-[10px] text-slate-500"><span>明るい星だけ</span><span>暗い星も表示</span></div>
+                <p class="text-[10px] leading-relaxed text-slate-400">数値を大きくするほど暗い星まで表示します。初期値は従来と同じ6.5等級です。主要星・星座線は星データに基づき、背景の微光星は密度表現用の補助星です。</p>
               </div>
             </div>
 
@@ -416,20 +423,17 @@
         targetAzimuth: 180.0,
         targetAltitude: 32.0,
         targetRoll: 0.0,
-        lastSensorEventAt: 0,
         hasSensorSample: false,
         sensorHeadingSamples: [],
         sensorAltitudeSamples: [],
-        sensorAnchorAzimuth: 180.0,
-        sensorAnchorAltitude: 32.0,
-        sensorFilteredAzimuth: 180.0,
-        sensorFilteredAltitude: 32.0,
-        sensorFilterTime: 0,
+        sensorRollSamples: [],
         sensorEventName: 'deviceorientation',
-        sensorApplyInterval: 1000,
-        lastSensorApplyAt: 0,
-        sensorDeadbandAzimuth: 4.5,
-        sensorDeadbandAltitude: 4.0,
+        sensorUpdateHz: 30,
+        sensorLastProcessedAt: 0,
+        sensorFilters: {},
+        sensorRelativeBaseline: null,
+        sensorRelativeWarningShown: false,
+        sensorMicroDeadband: 0.06,
 
         // カメラ状態
         cameraActive: false,
@@ -437,6 +441,7 @@
 
         // 視野角 (FOV in degrees: 20°〜105°)
         fov: 65.0,
+        starMagnitudeLimit: 6.5,
 
         // 表示オプション
         showLines: true,
@@ -770,9 +775,20 @@
         const ra = rand() * 24.0;
         // 球面一様分布のためのasin
         const dec = Math.asin(2 * rand() - 1) * (180 / Math.PI);
-        const mag = 3.2 + Math.pow(rand(), 0.7) * 3.3; // 3.2等〜6.5等
+        const mag = 3.2 + Math.pow(rand(), 0.7) * 3.3; // 3.2等〜6.5等（従来の表示分）
         const spec = SPECTRAL_TYPES[Math.floor(rand() * SPECTRAL_TYPES.length)];
         const twinklePhase = rand() * Math.PI * 2;
+        BACKGROUND_STARS.push({ ra, dec, mag, spec, twinklePhase });
+      }
+
+      // 6.5〜7.2等級の追加微光星。初期設定では非表示にして従来の密度を維持。
+      const faintRand = createSeededRandom(20261120);
+      for (let i = 0; i < 1100; i++) {
+        const ra = faintRand() * 24.0;
+        const dec = Math.asin(2 * faintRand() - 1) * (180 / Math.PI);
+        const mag = 6.5 + Math.pow(faintRand(), 0.72) * 0.7;
+        const spec = SPECTRAL_TYPES[Math.floor(faintRand() * SPECTRAL_TYPES.length)];
+        const twinklePhase = faintRand() * Math.PI * 2;
         BACKGROUND_STARS.push({ ra, dec, mag, spec, twinklePhase });
       }
 
@@ -1012,15 +1028,15 @@
         const fy = cosVAlt * Math.sin(vAz);
         const fz = Math.sin(vAlt);
 
-        // カメラ右方向ベクトル (Right = Forward x WorldUp)
+        // カメラ右方向ベクトル (Right = WorldUp x Forward)
         let rx = -Math.sin(vAz);
         let ry = Math.cos(vAz);
         let rz = 0;
 
-        // カメラ上方向ベクトル (Up = Right x Forward)
-        const ux = ry * fz - rz * fy;
-        const uy = rz * fx - rx * fz;
-        const uz = rx * fy - ry * fx;
+        // カメラ上方向ベクトル (Up = Forward x Right)
+        const ux = fy * rz - fz * ry;
+        const uy = fz * rx - fx * rz;
+        const uz = fx * ry - fy * rx;
 
         // カメラ座標系への内積
         const zCam = sx * fx + sy * fy + sz * fz; // 奥行き (前方 > 0)
@@ -1153,13 +1169,8 @@
         return ((to - from + 540) % 360) - 180;
       }
 
-      // 方位角の中央値。北(0度)をまたぐ角度も正しく扱う。
-      function circularMedianDegrees(values) {
-        if (!values.length) return null;
-        const reference = values[values.length - 1];
-        const unwrapped = values.map(v => reference + shortestAngleDiff(v, reference)).sort((a, b) => a - b);
-        const med = unwrapped[Math.floor(unwrapped.length / 2)];
-        return (med % 360 + 360) % 360;
+      function normalizeAngle(deg) {
+        return (deg % 360 + 360) % 360;
       }
 
       function median(values) {
@@ -1168,71 +1179,200 @@
         return sorted[Math.floor(sorted.length / 2)];
       }
 
+      function medianAngleDegrees(values) {
+        if (!values.length) return null;
+        const reference = values[values.length - 1];
+        const sorted = values
+          .map(v => reference + shortestAngleDiff(v, reference))
+          .sort((a, b) => a - b);
+        return normalizeAngle(sorted[Math.floor(sorted.length / 2)]);
+      }
+
+      function smoothingAlpha(cutoffHz, dt) {
+        const safeCutoff = Math.max(0.01, cutoffHz);
+        const tau = 1 / (2 * Math.PI * safeCutoff);
+        return 1 / (1 + tau / Math.max(0.001, dt));
+      }
+
+      // 1-Euro Filter: 静止時は揺れを強く抑え、動かした時は追従性を上げる。
+      function oneEuroFilter(value, key, now, isAngle = false) {
+        let filter = state.sensorFilters[key];
+        if (!filter) {
+          filter = { value, derivative: 0, lastTime: now };
+          state.sensorFilters[key] = filter;
+          return value;
+        }
+
+        const dt = Math.max(0.001, Math.min(0.25, (now - filter.lastTime) / 1000));
+        const delta = isAngle ? shortestAngleDiff(value, filter.value) : value - filter.value;
+        const rawDerivative = delta / dt;
+        const derivativeAlpha = smoothingAlpha(1.0, dt);
+        filter.derivative += derivativeAlpha * (rawDerivative - filter.derivative);
+
+        const minCutoff = 0.8;
+        const beta = 0.06;
+        const dynamicCutoff = minCutoff + beta * Math.abs(filter.derivative);
+        const valueAlpha = smoothingAlpha(dynamicCutoff, dt);
+        filter.value += valueAlpha * delta;
+        filter.lastTime = now;
+        return isAngle ? normalizeAngle(filter.value) : filter.value;
+      }
+
+      // DeviceOrientation の Z-X'-Y'' 回転を行列化し、背面カメラ軸（画面の裏向き）を取得。
+      // 方位・高度だけでなく、画面のロールも求めるため、傾けた状態でも方向が崩れにくい。
+      function getDeviceCameraPose(event) {
+        const alpha = event.alpha;
+        const beta = event.beta;
+        const gamma = event.gamma;
+        if (![alpha, beta, gamma].every(v => typeof v === 'number' && Number.isFinite(v))) return null;
+
+        const toRad = Math.PI / 180;
+        const a = alpha * toRad;
+        const b = beta * toRad;
+        const g = gamma * toRad;
+        const cA = Math.cos(a), sA = Math.sin(a);
+        const cB = Math.cos(b), sB = Math.sin(b);
+        const cG = Math.cos(g), sG = Math.sin(g);
+
+        // W3C Device Orientation の Z-X'-Y'' 回転行列。
+        const m11 = cA * cG - sA * sB * sG;
+        const m12 = -cB * sA;
+        const m13 = cG * sA * sB + cA * sG;
+        const m21 = cG * sA + cA * sB * sG;
+        const m22 = cA * cB;
+        const m23 = sA * sG - cA * cG * sB;
+        const m31 = -cB * sG;
+        const m32 = sB;
+        const m33 = cB * cG;
+
+        // W3C の地球座標は X=東、Y=北、Z=天頂。
+        // 背面カメラ方向は端末ローカル -Z。
+        let east = -m13;
+        let north = -m23;
+        let up = -m33;
+
+        // 画面の上方向ベクトル（端末ローカル +Y）と右方向（+X）。
+        let upEast = m12, upNorth = m22, upUp = m32;
+        let rightEast = m11, rightNorth = m21, rightUp = m31;
+
+        // iOS Safari の webkitCompassHeading は磁北基準の方位を優先し、姿勢行列全体を同じ角度だけ補正。
+        if (typeof event.webkitCompassHeading === 'number' && Number.isFinite(event.webkitCompassHeading)) {
+          const rawHeading = normalizeAngle(Math.atan2(east, north) / toRad);
+          const yawCorrection = shortestAngleDiff(event.webkitCompassHeading, rawHeading) * toRad;
+          const c = Math.cos(yawCorrection), si = Math.sin(yawCorrection);
+          const rotateHorizontal = (n, e) => ({
+            north: n * c - e * si,
+            east: n * si + e * c
+          });
+          const cameraNE = rotateHorizontal(north, east);
+          north = cameraNE.north; east = cameraNE.east;
+          const screenUpNE = rotateHorizontal(upNorth, upEast);
+          upNorth = screenUpNE.north; upEast = screenUpNE.east;
+          const screenRightNE = rotateHorizontal(rightNorth, rightEast);
+          rightNorth = screenRightNE.north; rightEast = screenRightNE.east;
+        }
+
+        const horizontalLength = Math.hypot(east, north);
+        let azimuth = normalizeAngle(Math.atan2(east, north) / toRad);
+        const altitude = Math.atan2(up, horizontalLength) / toRad;
+
+        // 画面の縦向きが端末の自然向きから回転している場合を反映。
+        const screenAngle = ((screen.orientation && screen.orientation.angle) ?? window.orientation ?? 0) * toRad;
+        const screenUpNorth = upNorth * Math.cos(screenAngle) + rightNorth * Math.sin(screenAngle);
+        const screenUpEast = upEast * Math.cos(screenAngle) + rightEast * Math.sin(screenAngle);
+        const screenUpUp = upUp * Math.cos(screenAngle) + rightUp * Math.sin(screenAngle);
+
+        // アプリ内の座標は North/East/Up。カメラ視線の理想的な右・上と実端末の上方向からロールを算出。
+        const azR = azimuth * toRad;
+        const altR = altitude * toRad;
+        const rightN = -Math.sin(azR), rightE = Math.cos(azR);
+        const idealUpN = -Math.sin(altR) * Math.cos(azR);
+        const idealUpE = -Math.sin(altR) * Math.sin(azR);
+        const idealUpU = Math.cos(altR);
+        const screenUpDotRight = screenUpNorth * rightN + screenUpEast * rightE;
+        const screenUpDotIdeal = screenUpNorth * idealUpN + screenUpEast * idealUpE + screenUpUp * idealUpU;
+        const roll = Math.atan2(screenUpDotRight, screenUpDotIdeal) / toRad;
+
+        const hasWebkitCompass = typeof event.webkitCompassHeading === 'number' && Number.isFinite(event.webkitCompassHeading);
+        const isAbsolute = event.absolute === true || state.sensorEventName === 'deviceorientationabsolute' || hasWebkitCompass;
+
+        if (isAbsolute) return { azimuth, altitude, roll, absolute: true };
+
+        // 絶対方位がない端末では、センサーON時の姿勢を基準に相対追従（真北との一致は保証されない）。
+        if (!state.sensorRelativeBaseline) {
+          state.sensorRelativeBaseline = {
+            azimuth, altitude, roll,
+            baseAzimuth: state.azimuth,
+            baseAltitude: state.altitude,
+            baseRoll: state.roll
+          };
+        }
+        const base = state.sensorRelativeBaseline;
+        return {
+          azimuth: normalizeAngle(base.baseAzimuth + shortestAngleDiff(azimuth, base.azimuth)),
+          altitude: Math.max(-89.9, Math.min(89.9, base.baseAltitude + (altitude - base.altitude))),
+          roll: normalizeAngle(base.baseRoll + shortestAngleDiff(roll, base.roll)),
+          absolute: false
+        };
+      }
+
       function handleDeviceOrientation(event) {
         if (!state.sensorEnabled) return;
 
-        // 生イベントは10Hzまでに間引き、細かなセンサー揺れを画面へ直結させない。
         const now = performance.now();
-        if (now - state.lastSensorEventAt < 100) return;
-        state.lastSensorEventAt = now;
+        const minInterval = 1000 / Math.max(5, state.sensorUpdateHz);
+        if (now - state.sensorLastProcessedAt < minInterval) return;
+        state.sensorLastProcessedAt = now;
 
-        let compassHeading = null;
-        if (typeof event.webkitCompassHeading === 'number' && Number.isFinite(event.webkitCompassHeading)) {
-          compassHeading = event.webkitCompassHeading;
-        } else if (typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
-          compassHeading = (360 - event.alpha) % 360;
-        }
-        if (compassHeading === null) return;
+        const pose = getDeviceCameraPose(event);
+        if (!pose || !Number.isFinite(pose.azimuth) || !Number.isFinite(pose.altitude) || !Number.isFinite(pose.roll)) return;
 
-        const beta = typeof event.beta === 'number' && Number.isFinite(event.beta) ? event.beta : 90;
-        const gamma = typeof event.gamma === 'number' && Number.isFinite(event.gamma) ? event.gamma : 0;
-        const screenOrientation = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
-        let altitude;
-        if (Math.abs(screenOrientation) === 90) {
-          altitude = Math.max(-89, Math.min(89,
-            (Math.abs(gamma) - 90) * (screenOrientation > 0 ? -1 : 1)));
-        } else {
-          altitude = Math.max(-89, Math.min(89, beta - 90));
-        }
+        // 3サンプルの中央値で単発ノイズを除去。長い履歴は使わず、動きへの遅れを小さく保つ。
+        state.sensorHeadingSamples.push(pose.azimuth);
+        state.sensorAltitudeSamples.push(pose.altitude);
+        state.sensorRollSamples.push(pose.roll);
+        if (state.sensorHeadingSamples.length > 3) state.sensorHeadingSamples.shift();
+        if (state.sensorAltitudeSamples.length > 3) state.sensorAltitudeSamples.shift();
+        if (state.sensorRollSamples.length > 3) state.sensorRollSamples.shift();
 
-        const nextAzimuth = (compassHeading + state.azimuthOffset + 360) % 360;
-        state.sensorHeadingSamples.push(nextAzimuth);
-        state.sensorAltitudeSamples.push(altitude);
-        // 約1.5秒分の履歴から中央値を取って瞬間的な磁気ノイズを除去。
-        if (state.sensorHeadingSamples.length > 15) state.sensorHeadingSamples.shift();
-        if (state.sensorAltitudeSamples.length > 15) state.sensorAltitudeSamples.shift();
+        const medianPose = {
+          azimuth: medianAngleDegrees(state.sensorHeadingSamples),
+          altitude: median(state.sensorAltitudeSamples),
+          roll: medianAngleDegrees(state.sensorRollSamples)
+        };
 
-        const stableAzimuth = circularMedianDegrees(state.sensorHeadingSamples);
-        const stableAltitude = median(state.sensorAltitudeSamples);
-        if (stableAzimuth === null || stableAltitude === null) return;
-
-        // 初回だけ現在の端末方向を基準にする。その後は頻度設定と大きな動きの条件を適用。
         if (!state.hasSensorSample) {
-          state.sensorAnchorAzimuth = stableAzimuth;
-          state.sensorAnchorAltitude = stableAltitude;
-          state.targetAzimuth = stableAzimuth;
-          state.targetAltitude = stableAltitude;
-          state.azimuth = stableAzimuth;
-          state.altitude = stableAltitude;
-          state.lastSensorApplyAt = now;
+          state.sensorFilters = {};
+          state.targetAzimuth = state.azimuth = medianPose.azimuth;
+          state.targetAltitude = state.altitude = medianPose.altitude;
+          state.targetRoll = state.roll = medianPose.roll;
+          // 初期値をフィルターの内部状態にセットする。
+          oneEuroFilter(medianPose.azimuth, 'azimuth', now, true);
+          oneEuroFilter(medianPose.altitude, 'altitude', now, false);
+          oneEuroFilter(medianPose.roll, 'roll', now, true);
           state.hasSensorSample = true;
+          if (!pose.absolute && !state.sensorRelativeWarningShown) {
+            showToast('この端末は絶対方位を取得できないため、センサーON時の向きを基準に追従します', 4500);
+            state.sensorRelativeWarningShown = true;
+          }
           return;
         }
 
-        // 基準点からの累積移動量で判定。小刻みな揺れでは基準を更新せず、画面を固定する。
-        const headingFromAnchor = shortestAngleDiff(stableAzimuth, state.sensorAnchorAzimuth);
-        const altitudeFromAnchor = stableAltitude - state.sensorAnchorAltitude;
-        const meaningfulMove =
-          Math.abs(headingFromAnchor) >= state.sensorDeadbandAzimuth ||
-          Math.abs(altitudeFromAnchor) >= state.sensorDeadbandAltitude;
+        const filteredPose = {
+          azimuth: oneEuroFilter(medianPose.azimuth, 'azimuth', now, true),
+          altitude: oneEuroFilter(medianPose.altitude, 'altitude', now, false),
+          roll: oneEuroFilter(medianPose.roll, 'roll', now, true)
+        };
 
-        // 指定された反映間隔に達し、かつ十分な移動があった場合のみ表示目標を更新。
-        if (meaningfulMove && now - state.lastSensorApplyAt >= state.sensorApplyInterval) {
-          state.targetAzimuth = stableAzimuth;
-          state.targetAltitude = stableAltitude;
-          state.sensorAnchorAzimuth = stableAzimuth;
-          state.sensorAnchorAltitude = stableAltitude;
-          state.lastSensorApplyAt = now;
+        // 極小差は反映しないが、比較対象は直近の採用値なので小さな移動は積み重なって追従する。
+        if (Math.abs(shortestAngleDiff(filteredPose.azimuth, state.targetAzimuth)) >= state.sensorMicroDeadband) {
+          state.targetAzimuth = filteredPose.azimuth;
+        }
+        if (Math.abs(filteredPose.altitude - state.targetAltitude) >= state.sensorMicroDeadband) {
+          state.targetAltitude = filteredPose.altitude;
+        }
+        if (Math.abs(shortestAngleDiff(filteredPose.roll, state.targetRoll)) >= state.sensorMicroDeadband) {
+          state.targetRoll = filteredPose.roll;
         }
       }
 
@@ -1249,7 +1389,7 @@
         // iOS 13+ センサー権限リクエスト
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
           try {
-            const response = await DeviceOrientationEvent.requestPermission();
+            const response = await DeviceOrientationEvent.requestPermission(true);
             if (response !== 'granted') {
               showToast('モーションセンサーの許可が拒否されました。ドラッグで操作できます。');
               return;
@@ -1268,11 +1408,12 @@
 
         state.sensorEnabled = true;
         state.hasSensorSample = false;
-        state.lastSensorEventAt = 0;
+        state.sensorLastProcessedAt = 0;
         state.sensorHeadingSamples = [];
         state.sensorAltitudeSamples = [];
-        state.sensorFilterTime = 0;
-        state.lastSensorApplyAt = 0;
+        state.sensorRollSamples = [];
+        state.sensorFilters = {};
+        state.sensorRelativeBaseline = null;
         // 絶対方位イベントがある端末ではそちらを優先。イベントの二重購読はしない。
         state.sensorEventName = ('ondeviceorientationabsolute' in window)
           ? 'deviceorientationabsolute'
@@ -1284,21 +1425,26 @@
       }
       btnSensor.addEventListener('click', toggleSensor);
 
-      // センサー反映頻度の設定
-      const sensorRateSelect = document.getElementById('select-sensor-rate');
+      // センサー読み取り頻度（Hz）のスライダー設定
+      const sensorRateSlider = document.getElementById('slider-sensor-rate');
       const sensorRateLabel = document.getElementById('label-sensor-rate');
       function updateSensorRate() {
-        state.sensorApplyInterval = Number(sensorRateSelect.value) || 1000;
-        const labels = {
-          2000: '2秒に1回',
-          1000: '1秒に1回',
-          500: '0.5秒に1回',
-          250: '0.25秒に1回'
-        };
-        sensorRateLabel.textContent = labels[state.sensorApplyInterval] || '1秒に1回';
+        state.sensorUpdateHz = Math.max(5, Math.min(60, Number(sensorRateSlider.value) || 30));
+        sensorRateLabel.textContent = `${state.sensorUpdateHz} Hz`;
+        state.sensorLastProcessedAt = 0;
       }
-      sensorRateSelect.addEventListener('change', updateSensorRate);
+      sensorRateSlider.addEventListener('input', updateSensorRate);
       updateSensorRate();
+
+      // 星の表示等級。値が大きいほど暗い星まで表示する。
+      const magnitudeSlider = document.getElementById('slider-magnitude-limit');
+      const magnitudeLabel = document.getElementById('label-magnitude-limit');
+      function updateMagnitudeLimit() {
+        state.starMagnitudeLimit = Number(magnitudeSlider.value) || 6.5;
+        magnitudeLabel.textContent = `${state.starMagnitudeLimit.toFixed(1)}等級まで`;
+      }
+      magnitudeSlider.addEventListener('input', updateMagnitudeLimit);
+      updateMagnitudeLimit();
 
       // --------------------------------------------------------------------------
       // 10. タッチ / マウスドラッグ & ピンチズーム操作
@@ -1675,12 +1821,14 @@
           }
         }
 
-        // フレームレートに依存しない指数平滑化。端末の向きへ遅れすぎず滑らかに追従。
+        // 描画側は毎フレーム補間。センサーの更新間隔とは独立して自然に追従させる。
         if (state.sensorEnabled && state.hasSensorSample) {
-          const smoothFactor = 1 - Math.exp(-Math.max(0, dt) / 0.55);
+          const smoothFactor = 1 - Math.exp(-Math.max(0, dt) / 0.10);
           const diffAz = shortestAngleDiff(state.targetAzimuth, state.azimuth);
-          state.azimuth = (state.azimuth + diffAz * smoothFactor + 360) % 360;
+          const diffRoll = shortestAngleDiff(state.targetRoll, state.roll);
+          state.azimuth = normalizeAngle(state.azimuth + diffAz * smoothFactor);
           state.altitude += (state.targetAltitude - state.altitude) * smoothFactor;
+          state.roll = normalizeAngle(state.roll + diffRoll * smoothFactor);
         }
 
         // HUDテキスト更新
@@ -1749,18 +1897,23 @@
           drawCoordinateGrid(globalAlpha);
         }
 
-        // 3) 背景の微光星 (Magnitude 3.2 〜 6.5)
+        // 3) 背景の微光星 (Magnitude 3.2 〜 7.2。設定した等級まで表示)
         const timeSec = now * 0.001;
         for (let i = 0; i < BACKGROUND_STARS.length; i++) {
           const s = BACKGROUND_STARS[i];
+          if (s.mag > state.starMagnitudeLimit) continue;
           const { alt, az } = raDecToAltAz(s.ra, s.dec, lst, state.lat);
           if (alt < -2) continue;
           const pt = projectAltAzToScreen(az, alt, state.azimuth, state.altitude, state.roll, canvasWidth, canvasHeight, state.fov);
           if (!pt || pt.x < 0 || pt.x > canvasWidth || pt.y < 0 || pt.y > canvasHeight) continue;
 
           const twinkle = 0.78 + 0.22 * Math.sin(timeSec * 2.5 + s.twinklePhase);
-          const brightness = Math.max(0.18, (6.8 - s.mag) / 3.8) * twinkle * globalAlpha;
-          const radius = Math.max(0.6, (6.6 - s.mag) * 0.38) * Math.pow(65 / state.fov, 0.25);
+          const baseBrightness = s.mag <= 6.5
+            ? Math.max(0.18, (6.8 - s.mag) / 3.8)
+            : Math.max(0.08, 0.18 - (s.mag - 6.5) * 0.14);
+          const brightness = baseBrightness * twinkle * globalAlpha;
+          const baseRadius = s.mag <= 6.5 ? Math.max(0.6, (6.6 - s.mag) * 0.38) : Math.max(0.42, (7.2 - s.mag) * 0.27);
+          const radius = baseRadius * Math.pow(65 / state.fov, 0.25);
           const col = getStarColor(s.spec);
 
           ctx.fillStyle = `rgba(${col.r}, ${col.g}, ${col.b}, ${brightness})`;
@@ -1776,9 +1929,10 @@
         BRIGHT_STARS.forEach((star, idx) => {
           const { alt, az } = raDecToAltAz(star.ra, star.dec, lst, state.lat);
           const pt = projectAltAzToScreen(az, alt, state.azimuth, state.altitude, state.roll, canvasWidth, canvasHeight, state.fov);
-          starScreenCache[star.id] = { pt, alt, az, star };
+          const visible = star.mag <= state.starMagnitudeLimit;
+          starScreenCache[star.id] = { pt, alt, az, star, visible };
 
-          if (pt && alt >= -5 && pt.x >= -30 && pt.x <= canvasWidth + 30 && pt.y >= -30 && pt.y <= canvasHeight + 30) {
+          if (visible && pt && alt >= -5 && pt.x >= -30 && pt.x <= canvasWidth + 30 && pt.y >= -30 && pt.y <= canvasHeight + 30) {
             state.projectedObjects.push({
               x: pt.x,
               y: pt.y,
@@ -1813,8 +1967,8 @@
         }
 
         // 6) 主要恒星の描画 (ハロー・回折スパイク・星名ラベル)
-        Object.values(starScreenCache).forEach(({ pt, alt, star }, idx) => {
-          if (!pt || alt < -5 || pt.x < -50 || pt.x > canvasWidth + 50 || pt.y < -50 || pt.y > canvasHeight + 50) return;
+        Object.values(starScreenCache).forEach(({ pt, alt, star, visible }, idx) => {
+          if (!visible || !pt || alt < -5 || pt.x < -50 || pt.x > canvasWidth + 50 || pt.y < -50 || pt.y > canvasHeight + 50) return;
 
           const col = getStarColor(star.spec);
           const twinkle = 0.9 + 0.1 * Math.sin(timeSec * 3.1 + idx * 1.7);
