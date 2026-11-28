@@ -33,63 +33,72 @@
     }
     /* カスタムスクロールバー */
     ::-webkit-scrollbar {
-      width: 5px;
-      height: 5px;
+      width: 6px;
+      height: 6px;
     }
     ::-webkit-scrollbar-track {
       background: rgba(15, 23, 42, 0.35);
     }
     ::-webkit-scrollbar-thumb {
-      background: rgba(148, 163, 184, 0.35);
+      background: rgba(148, 163, 184, 0.45);
       border-radius: 9999px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(148, 163, 184, 0.6);
+      background: rgba(148, 163, 184, 0.7);
     }
-    /* モバイルでも指で掴みやすいレンジスライダー */
-    input[type="range"] {
+
+    /* 1. スマホでの縦スクロール誤操作を防止しつつ指で掴みやすいレンジスライダー */
+    .slider-track-wrap {
+      touch-action: pan-y;
+      padding: 6px 0;
+    }
+    input[type="range"].guarded-slider {
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      height: 6px;
-      background: rgba(255, 255, 255, 0.16);
+      height: 7px;
+      background: rgba(255, 255, 255, 0.18);
       border-radius: 999px;
       outline: none;
       cursor: pointer;
+      touch-action: pan-y;
     }
-    input[type="range"]::-webkit-slider-thumb {
+    input[type="range"].guarded-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 18px;
-      height: 18px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       background: #ffffff;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.85), 0 2px 4px rgba(0, 0, 0, 0.5);
+      border: 2px solid rgba(56, 189, 248, 0.75);
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.9), 0 2px 6px rgba(0, 0, 0, 0.65);
       cursor: pointer;
-      transition: transform 0.15s ease;
+      transition: transform 0.12s ease, background-color 0.12s ease;
     }
-    input[type="range"]::-webkit-slider-thumb:active,
-    input[type="range"]::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
+    input[type="range"].guarded-slider:active::-webkit-slider-thumb,
+    input[type="range"].guarded-slider:hover::-webkit-slider-thumb {
+      transform: scale(1.16);
+      background: #fef08a;
     }
-    input[type="range"]::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
-      border: none;
+    input[type="range"].guarded-slider::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
+      border: 2px solid rgba(56, 189, 248, 0.75);
       border-radius: 50%;
       background: #ffffff;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.85);
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
       cursor: pointer;
     }
+
     .glass-panel {
-      background: rgba(10, 14, 26, 0.78);
+      background: rgba(10, 14, 26, 0.84);
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.78);
     }
     .glass-card {
-      background: rgba(20, 27, 46, 0.58);
+      background: rgba(20, 27, 46, 0.6);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.12);
@@ -175,103 +184,79 @@
     <span>UIを表示</span>
   </button>
 
-  <!-- パラメータ調整パネル（PC: 右サイドフローティング / スマホ: 下部ボトムシート） -->
-  <aside id="controlPanel" class="fixed z-30 bottom-0 left-0 right-0 md:top-20 md:bottom-5 md:left-auto md:right-5 md:w-80 glass-panel rounded-t-3xl md:rounded-3xl p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:pb-5 flex flex-col gap-4 max-h-[68dvh] md:max-h-[calc(100dvh-6.5rem)] overflow-y-auto transform translate-y-full md:translate-y-0 md:translate-x-[120%] transition-transform duration-300 ease-out">
-    <!-- モバイル用ドラッグハンドル表示 -->
-    <div class="w-10 h-1 rounded-full bg-white/25 mx-auto -mt-1.5 mb-0.5 md:hidden shrink-0"></div>
-
-    <div class="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
-      <div class="flex items-center gap-2">
-        <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-amber-300 to-cyan-300"></span>
-        <h2 class="text-sm font-semibold tracking-wide text-white">光のパラメータ調整</h2>
+  <!-- パラメータ調整パネル（PC: 右サイド / スマホ: 誤操作防止ボトムシート＋右端スクロール安全帯） -->
+  <aside id="controlPanel" class="fixed z-30 bottom-0 left-0 right-0 md:top-20 md:bottom-5 md:left-auto md:right-5 md:w-[360px] glass-panel rounded-t-3xl md:rounded-3xl flex flex-col max-h-[72dvh] md:max-h-[calc(100dvh-6.5rem)] transform translate-y-full md:translate-y-0 md:translate-x-[120%] transition-transform duration-300 ease-out">
+    <!-- 固定ヘッダー部（上下スワイプでも快適） -->
+    <div class="px-5 pt-3.5 pb-3 border-b border-white/10 shrink-0">
+      <div class="w-10 h-1 rounded-full bg-white/25 mx-auto mb-2 md:hidden"></div>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-amber-300 to-cyan-300"></span>
+          <h2 class="text-sm font-semibold tracking-wide text-white">光のパラメータ調整 (0%〜500%)</h2>
+        </div>
+        <button id="closeControlsBtn" aria-label="設定を閉じる" class="p-1.5 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
       </div>
-      <button id="closeControlsBtn" aria-label="設定を閉じる" class="p-1.5 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
-      </button>
+      <p class="text-[10px] text-slate-400 mt-1 md:hidden">※上下スワイプでスクロール／横スライドまたは「− ＋」で微調整</p>
     </div>
 
-    <!-- カラーテーマ選択（6種） -->
-    <div class="shrink-0">
-      <label class="block text-xs font-medium text-slate-300 mb-2">カラーパレット・雰囲気</label>
-      <div id="paletteSelector" class="grid grid-cols-3 gap-1.5">
-        <button data-palette="original" class="palette-btn active px-2 py-2 rounded-xl text-xs font-medium bg-white/20 border border-white/40 text-white transition">オリジナル</button>
-        <button data-palette="golden" class="palette-btn px-2 py-2 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-amber-200 hover:bg-white/15 transition">ゴールデン</button>
-        <button data-palette="aurora" class="palette-btn px-2 py-2 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-emerald-200 hover:bg-white/15 transition">オーロラ</button>
-        <button data-palette="sakura" class="palette-btn px-2 py-2 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-pink-200 hover:bg-white/15 transition">サクラ幻想</button>
-        <button data-palette="deepblue" class="palette-btn px-2 py-2 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-cyan-200 hover:bg-white/15 transition">ディープ海</button>
-        <button data-palette="prism" class="palette-btn px-2 py-2 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-purple-200 hover:bg-white/15 transition">プリズム虹</button>
-      </div>
-    </div>
+    <!-- スクロール領域（右端に指で安全にスクロールできる余白グリップ帯を確保） -->
+    <div id="controlScrollArea" class="flex-1 overflow-y-auto pl-5 pr-8 md:pr-5 py-4 pb-[calc(1.75rem+env(safe-area-inset-bottom))] space-y-5 relative" style="touch-action: pan-y;">
+      <!-- 右端スクロールガイドライン（スマホの親指スクロール専用ゾーン視覚補助） -->
+      <div class="md:hidden pointer-events-none fixed right-1.5 top-1/2 -translate-y-1/2 w-1.5 h-16 rounded-full bg-white/15"></div>
 
-    <!-- 6種のリアルタイムスライダー群 -->
-    <div class="space-y-3.5 text-xs">
-      <div>
-        <div class="flex justify-between text-slate-300 mb-1">
-          <span>色相シフト (Hue Shift)</span>
-          <span id="valHue" class="font-mono text-white">0°</span>
+      <!-- 4. 作品固有のメインパーツ別パラメータ（0%〜500%） -->
+      <div class="bg-white/[0.04] border border-amber-300/25 rounded-2xl p-3.5 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-amber-200 flex items-center gap-1.5">
+            <span>🎛️</span>
+            <span id="partSectionTitle">パーツ別サイズ・強さ調整</span>
+          </span>
+          <span class="text-[10px] text-slate-400">0%〜500%</span>
         </div>
-        <input type="range" id="paramHue" min="0" max="360" value="0" />
-      </div>
-
-      <div>
-        <div class="flex justify-between text-slate-300 mb-1">
-          <span>光の量・密度 (Density)</span>
-          <span id="valDensity" class="font-mono text-white">100%</span>
+        <div id="partControlsContainer" class="space-y-3 text-xs">
+          <!-- JavaScriptで現在選択中作品のパーツ別スライダーを動的生成 -->
         </div>
-        <input type="range" id="paramDensity" min="20" max="200" value="100" />
       </div>
 
+      <!-- カラーテーマ選択（6種） -->
       <div>
-        <div class="flex justify-between text-slate-300 mb-1">
-          <span>輝き・ブルーム強度 (Glow)</span>
-          <span id="valGlow" class="font-mono text-white">100%</span>
+        <label class="block text-xs font-medium text-slate-300 mb-2">カラーパレット・雰囲気</label>
+        <div id="paletteSelector" class="grid grid-cols-3 gap-1.5">
+          <button data-palette="original" class="palette-btn active px-2 py-2 rounded-xl text-xs font-medium bg-white/20 border border-white/40 text-white transition">オリジナル</button>
+          <button data-palette="golden" class="palette-btn px-2 py-2 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-amber-200 hover:bg-white/15 transition">ゴールデン</button>
+          <button data-palette="aurora" class="palette-btn px-2 py-2 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-emerald-200 hover:bg-white/15 transition">オーロラ</button>
+          <button data-palette="sakura" class="palette-btn px-2 py-2 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-pink-200 hover:bg-white/15 transition">サクラ幻想</button>
+          <button data-palette="deepblue" class="palette-btn px-2 py-2 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-cyan-200 hover:bg-white/15 transition">ディープ海</button>
+          <button data-palette="prism" class="palette-btn px-2 py-2 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-purple-200 hover:bg-white/15 transition">プリズム虹</button>
         </div>
-        <input type="range" id="paramGlow" min="20" max="200" value="100" />
       </div>
 
-      <div>
-        <div class="flex justify-between text-slate-300 mb-1">
-          <span>動きのスピード (Speed)</span>
-          <span id="valSpeed" class="font-mono text-white">1.0x</span>
-        </div>
-        <input type="range" id="paramSpeed" min="10" max="300" value="100" />
+      <!-- 2 & 3 & 10. 共通パラメータ群（下限0%〜上限500%、サイズとスケールを完全分離） -->
+      <div id="globalSlidersContainer" class="space-y-3.5 text-xs">
+        <!-- JavaScriptで共通スライダー群を生成（タッチガード＆−/＋ボタン付き） -->
       </div>
 
-      <div>
-        <div class="flex justify-between text-slate-300 mb-1">
-          <span>光のサイズ・スケール (Size)</span>
-          <span id="valSize" class="font-mono text-white">100%</span>
-        </div>
-        <input type="range" id="paramSize" min="40" max="200" value="100" />
+      <!-- アクションボタン -->
+      <div class="grid grid-cols-3 gap-2 pt-3 border-t border-white/10">
+        <button id="randomParamBtn" class="py-2.5 px-2 rounded-xl bg-gradient-to-r from-indigo-500/40 to-purple-500/40 hover:from-indigo-500/60 hover:to-purple-500/60 border border-white/20 text-xs font-medium text-white transition active:scale-95">
+          ✨ ランダム
+        </button>
+        <button id="pauseBtn" class="py-2.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-medium text-white transition active:scale-95">
+          ⏸ 一時停止
+        </button>
+        <button id="resetParamBtn" class="py-2.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-medium text-white transition active:scale-95">
+          ↺ 初期値
+        </button>
       </div>
-
-      <div>
-        <div class="flex justify-between text-slate-300 mb-1">
-          <span>タッチ・カーソル反応感度</span>
-          <span id="valReact" class="font-mono text-white">100%</span>
-        </div>
-        <input type="range" id="paramReact" min="0" max="200" value="100" />
-      </div>
-    </div>
-
-    <!-- アクションボタン -->
-    <div class="grid grid-cols-3 gap-2 pt-2 border-t border-white/10 shrink-0">
-      <button id="randomParamBtn" class="py-2.5 px-2 rounded-xl bg-gradient-to-r from-indigo-500/40 to-purple-500/40 hover:from-indigo-500/60 hover:to-purple-500/60 border border-white/20 text-xs font-medium text-white transition active:scale-95">
-        ✨ ランダム
-      </button>
-      <button id="pauseBtn" class="py-2.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-medium text-white transition active:scale-95">
-        ⏸ 一時停止
-      </button>
-      <button id="resetParamBtn" class="py-2.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-medium text-white transition active:scale-95">
-        ↺ 初期値
-      </button>
     </div>
   </aside>
 
   <!-- ギャラリーメニューオーバーレイ（トップ画面：全24作品選択画面） -->
-  <div id="galleryModal" class="fixed inset-0 z-40 bg-slate-950/88 backdrop-blur-xl flex flex-col transition-opacity duration-300">
+  <div id="galleryModal" class="fixed inset-0 z-40 bg-slate-950/90 backdrop-blur-xl flex flex-col transition-opacity duration-300">
     <!-- ヘッダー部 -->
     <div class="px-4 sm:px-8 pt-safe pb-3 border-b border-white/10 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shrink-0">
       <div>
@@ -323,11 +308,11 @@
   <script>
     /**
      * ============================================================================
-     * LUMINOUS SANCTUARY - 24種類の光と情景のデジタルアートエンジン（完全版）
+     * LUMINOUS SANCTUARY - 24種類の光と情景のデジタルアートエンジン（完全改修版）
      * ============================================================================
      */
 
-    // 全24作品の定義データ（カテゴリA〜D 各6作品）
+    // 全24作品の定義データ（各作品固有のメインパーツ別パラメータ定義を含む）
     const ARTWORKS = [
       // --- カテゴリA：デジタル空間 (6) ---
       {
@@ -339,7 +324,12 @@
         en: 'Forest of Resonating Lamps',
         desc: '無数のベネチアンガラス風ランプが空間に浮かび、触れたランプから隣へと光の波紋が伝播します。',
         hint: 'ランプに近づく・タップすると光の連鎖が広がります',
-        grad: 'from-amber-500/40 via-rose-500/30 to-purple-900/60'
+        grad: 'from-amber-500/40 via-rose-500/30 to-purple-900/60',
+        parts: [
+          { key: 'p1', label: '① ガラスランプ本体の大きさ', def: 100 },
+          { key: 'p2', label: '② 周囲ハロー光の広がり', def: 100 },
+          { key: 'p3', label: '③ 光の連鎖波紋の大きさ', def: 100 }
+        ]
       },
       {
         id: 'crystal',
@@ -350,7 +340,12 @@
         en: 'Borderless Crystal Universe',
         desc: '無限に広がる3D空間のLED光柱と光の粒が立体的に回転・明滅し、空間の境界を溶かします。',
         hint: 'ドラッグ・スワイプで3D光空間の視点を自由に回転できます',
-        grad: 'from-cyan-500/40 via-blue-600/30 to-indigo-950/70'
+        grad: 'from-cyan-500/40 via-blue-600/30 to-indigo-950/70',
+        parts: [
+          { key: 'p1', label: '① 結晶コア粒子の大きさ', def: 100 },
+          { key: 'p2', label: '② 垂直LED光柱の長さ', def: 100 },
+          { key: 'p3', label: '③ 3D結晶格子の間隔', def: 100 }
+        ]
       },
       {
         id: 'waterfall',
@@ -361,7 +356,12 @@
         en: 'Waterfall of Flowers & Light',
         desc: '岩肌を流れ落ちる光の滝。触れた場所を人が立つ岩のように避けて流れ、色とりどりの花びらが舞い散ります。',
         hint: '画面に触れると水流が分かれ、光の華が咲き誇ります',
-        grad: 'from-teal-400/40 via-pink-500/30 to-slate-900/70'
+        grad: 'from-teal-400/40 via-pink-500/30 to-slate-900/70',
+        parts: [
+          { key: 'p1', label: '① 滝の水流ラインの太さ・長さ', def: 100 },
+          { key: 'p2', label: '② 咲き誇る光の華の大きさ', def: 100 },
+          { key: 'p3', label: '③ 岩（障害物）の反発半径', def: 100 }
+        ]
       },
       {
         id: 'spheres',
@@ -372,7 +372,12 @@
         en: 'Floating Light Spheres',
         desc: '空間を漂う巨大な光の球体。触れられると色を変えながら弾み、周囲の球体へ光の波紋を響かせます。',
         hint: '光の球体をタップ・弾くと色と波紋が連鎖します',
-        grad: 'from-fuchsia-500/40 via-amber-400/30 to-indigo-950/70'
+        grad: 'from-fuchsia-500/40 via-amber-400/30 to-indigo-950/70',
+        parts: [
+          { key: 'p1', label: '① 光の球体そのものの半径', def: 100 },
+          { key: 'p2', label: '② 球体表面のオーラ層', def: 100 },
+          { key: 'p3', label: '③ タッチ時の弾み・脈動の強さ', def: 100 }
+        ]
       },
       {
         id: 'butterflies',
@@ -383,7 +388,12 @@
         en: 'Fluttering Digital Butterflies',
         desc: '光の軌跡を描きながら優美に羽ばたく無数のデジタル蝶。指先やカーソルに誘われて群れが舞い踊ります。',
         hint: '触れると光の鱗粉を散らしながら蝶の群れが旋回します',
-        grad: 'from-fuchsia-500/40 via-violet-600/30 to-slate-950/80'
+        grad: 'from-fuchsia-500/40 via-violet-600/30 to-slate-950/80',
+        parts: [
+          { key: 'p1', label: '① デジタル蝶の羽の大きさ', def: 100 },
+          { key: 'p2', label: '② 舞い散る光の鱗粉の輝き', def: 100 },
+          { key: 'p3', label: '③ 羽ばたきのリズム速度', def: 100 }
+        ]
       },
       {
         id: 'kaleidoscope',
@@ -394,7 +404,12 @@
         en: 'Kaleidoscope Prism',
         desc: '12角形の鏡面反射と屈折光が織りなす、万華鏡のように刻々と変化する極彩色の幾何学曼荼羅。',
         hint: 'カーソル位置・タップで万華鏡の結晶パターンが変化します',
-        grad: 'from-rose-500/40 via-amber-400/30 to-emerald-900/60'
+        grad: 'from-rose-500/40 via-amber-400/30 to-emerald-900/60',
+        parts: [
+          { key: 'p1', label: '① プリズム結晶片の大きさ', def: 100 },
+          { key: 'p2', label: '② 曼荼羅リングの広がり半径', def: 100 },
+          { key: 'p3', label: '③ 輪郭の光のエッジ強度', def: 100 }
+        ]
       },
 
       // --- カテゴリB：アクア・自然 (6) ---
@@ -405,9 +420,14 @@
         catLabel: 'アクア・自然',
         title: '幻想夜桜と光の桜吹雪',
         en: 'Luminous Sakura Blizzard',
-        desc: '淡く発光する無数の桜の花びらが3D回転・翻りながら夜風に乗って舞い散る幻想的な桜吹雪。',
-        hint: 'スワイプ・タップで春風の渦を起こすと桜吹雪が舞い上がります',
-        grad: 'from-pink-400/45 via-rose-500/30 to-indigo-950/85'
+        desc: 'ソメイヨシノ特有の先端の切れ込みを持つ自然な桜の花びらが、穏やかな夜風に乗って立体的に舞い散るリアルな桜吹雪。',
+        hint: 'スワイプ・タップで夜風の渦を起こすと桜吹雪が舞い上がります',
+        grad: 'from-pink-400/45 via-rose-500/30 to-indigo-950/85',
+        parts: [
+          { key: 'p1', label: '① 桜の花びら一枚の大きさ', def: 100 },
+          { key: 'p2', label: '② 夜空の淡い桜月光の広がり', def: 100 },
+          { key: 'p3', label: '③ 夜風のうねり・舞い上がり', def: 100 }
+        ]
       },
       {
         id: 'bioluminescence',
@@ -418,40 +438,60 @@
         en: 'Deep Sea Bioluminescence',
         desc: '漆黒の深海で青白く発光する夜光虫・プランクトンが渦を巻きながら軌跡を描いて舞います。',
         hint: '水をかき混ぜるように動かすと夜光虫が青白く輝きます',
-        grad: 'from-cyan-500/40 via-teal-600/30 to-slate-950/90'
+        grad: 'from-cyan-500/40 via-teal-600/30 to-slate-950/90',
+        parts: [
+          { key: 'p1', label: '① 夜光虫プランクトンの粒サイズ', def: 100 },
+          { key: 'p2', label: '② 青白い発光ハローの広がり', def: 100 },
+          { key: 'p3', label: '③ 深海海流の渦の強さ', def: 100 }
+        ]
       },
       {
         id: 'watercurtain',
         num: 9,
         cat: 'aqua',
         catLabel: 'アクア・自然',
-        title: 'ウォーターカーテン・イルミネーション',
-        en: 'Aqua Park Water Curtain Illumination',
-        desc: '色とりどりにライトアップされた水の幕と飛沫。触れると水流と水面の光の輪が華やかに変化します。',
-        hint: '触れた場所で光の噴水と水面の波紋が鮮やかに弾けます',
-        grad: 'from-sky-400/40 via-fuchsia-500/30 to-blue-950/80'
+        title: '静寂の夜雨と煌めく雨粒',
+        en: 'Nocturnal Rain & Luminous Droplets',
+        desc: '静かな夜空から降り注ぐ繊細な雨の線と光を宿す雨粒の煌めき、水面に弾ける雨しぶきと波紋の美しい情景。',
+        hint: '触れた場所に雨しぶきが弾け、水面の光の波紋が広がります',
+        grad: 'from-sky-400/40 via-cyan-500/30 to-slate-950/85',
+        parts: [
+          { key: 'p1', label: '① 雨の線の太さ・長さ', def: 100 },
+          { key: 'p2', label: '② 雨粒・水滴の煌めきサイズ', def: 100 },
+          { key: 'p3', label: '③ 水面の雨しぶき・波紋', def: 100 }
+        ]
       },
       {
-        id: 'seafirefly',
+        id: 'crystal_cavern',
         num: 10,
         cat: 'aqua',
         catLabel: 'アクア・自然',
-        title: '幻想のウミホタル・波打ち際',
-        en: 'Bioluminescent Sea Firefly Shoreline',
-        desc: '夜の砂浜に打ち寄せる波頭が、無数のウミホタルの刺激によって神秘的なエレクトリックブルーに輝きます。',
-        hint: '波打ち際をタップ・なぞると青白いウミホタルの足跡が光ります',
-        grad: 'from-blue-600/40 via-cyan-400/30 to-slate-950/95'
+        title: '万華鏡の鏡面クリスタル宮殿',
+        en: 'Mirrored Crystal Palace Reflections',
+        desc: '鏡面空間に無数の多面カットクリスタルが多重反射し、虹色のプリズム光と柔らかな光の粒が煌びやかに輝き合います。',
+        hint: 'カーソル・タッチで光源角度が変化し、無数の鏡面クリスタルが共鳴して輝きます',
+        grad: 'from-indigo-500/45 via-cyan-400/30 to-slate-950/95',
+        parts: [
+          { key: 'p1', label: '① クリスタル結晶の大きさ', def: 100 },
+          { key: 'p2', label: '② 鏡面多重反射・プリズム光', def: 100 },
+          { key: 'p3', label: '③ 煌めく光の粒（グリント）', def: 100 }
+        ]
       },
       {
         id: 'bluesky',
         num: 11,
         cat: 'aqua',
         catLabel: 'アクア・自然',
-        title: '蒼穹の青空と流れる光の雲',
-        en: 'Azure Sky & Flowing Clouds',
-        desc: '爽やかな青空のグラデーションをゆったり流れる立体的で柔らかな雲と、雲間から差し込む陽光と光の塵。',
-        hint: '空に触れると雲が揺らぎ、神々しい陽光の筋が差し込みます',
-        grad: 'from-sky-400/50 via-cyan-300/30 to-blue-900/70'
+        title: '蒼穹の青空と流れる積雲',
+        en: 'Azure Sky & Flowing Cumulus Clouds',
+        desc: 'フラクタルノイズで生成した水蒸気・煙のように柔らかな立体雲がゆったり流れ、タッチ位置の陽光が雲の縁を輝かせます。',
+        hint: 'タッチ・ドラッグで太陽光源を上下左右に動かせます',
+        grad: 'from-sky-400/50 via-cyan-300/30 to-blue-900/70',
+        parts: [
+          { key: 'p1', label: '① 太陽光源・後光の大きさ', def: 100 },
+          { key: 'p2', label: '② 流れる立体雲のボリューム', def: 100 },
+          { key: 'p3', label: '③ 雲間から差す陽光・光の塵', def: 100 }
+        ]
       },
       {
         id: 'sunset',
@@ -460,9 +500,14 @@
         catLabel: 'アクア・自然',
         title: '黄昏のマジックアワーと夕焼け雲',
         en: 'Twilight Magic Hour Sunset',
-        desc: '深い藍から茜色・黄金色へ溶け合う幻想的な夕焼け空、染まる雲、沈む夕日と水面に揺らぐ光の道。',
+        desc: '深い藍から茜・黄金へ溶け合う夕焼け空に、煙のようにたなびく有機的な夕焼け雲と海面の光の道が広がります。',
         hint: '水面に触れると夕映えの波紋が広がり空の輝きが深まります',
-        grad: 'from-orange-500/50 via-rose-500/35 to-indigo-950/90'
+        grad: 'from-orange-500/50 via-rose-500/35 to-indigo-950/90',
+        parts: [
+          { key: 'p1', label: '① 沈む夕日（太陽本体）の大きさ', def: 100 },
+          { key: 'p2', label: '② 夕焼け雲の広がり・厚み', def: 100 },
+          { key: 'p3', label: '③ 海面の光の道・波の輝き', def: 100 }
+        ]
       },
 
       // --- カテゴリC：天体・宇宙・風景 (6) ---
@@ -475,7 +520,12 @@
         en: 'Planetarium & Milky Way',
         desc: '繊細な星座線・天の川の星雲・流星群を360度パノラマ鑑賞。タップで願いの流星が夜空を走ります。',
         hint: 'ドラッグで星空を回転、タップで願いの流星を流せます',
-        grad: 'from-indigo-600/40 via-purple-700/30 to-slate-950/90'
+        grad: 'from-indigo-600/40 via-purple-700/30 to-slate-950/90',
+        parts: [
+          { key: 'p1', label: '① 恒星・一等星の輝きサイズ', def: 100 },
+          { key: 'p2', label: '② 天の川星雲帯の濃さ・幅', def: 100 },
+          { key: 'p3', label: '③ 流星の尾の長さ・頻度', def: 100 }
+        ]
       },
       {
         id: 'fireworks',
@@ -486,29 +536,44 @@
         en: 'Grand Fireworks Festival',
         desc: '菊・牡丹などの大輪花火が夜空に咲き誇り、タップ位置に特大の打ち上げ花火が開きます。',
         hint: '夜空をタップした場所に特大の打ち上げ花火が開きます',
-        grad: 'from-amber-500/40 via-red-500/30 to-slate-950/90'
+        grad: 'from-amber-500/40 via-red-500/30 to-slate-950/90',
+        parts: [
+          { key: 'p1', label: '① 大輪花火の開花半径', def: 100 },
+          { key: 'p2', label: '② 火花の粒サイズ・残光', def: 100 },
+          { key: 'p3', label: '③ 打ち上げの頻度', def: 100 }
+        ]
       },
       {
         id: 'momiji',
         num: 15,
         cat: 'cosmos',
         catLabel: '天体・宇宙・風景',
-        title: '夜空に舞うライトアップ紅葉',
-        en: 'Illuminated Autumn Maple Leaves',
-        desc: '漆黒の夜空に下からのライトアップ光線に照らされて輝く真紅・橙・黄金のモミジの葉が舞い散ります。',
-        hint: '触れるとスポットライトが揺らめき、紅葉が舞い上がります',
-        grad: 'from-red-600/45 via-amber-500/35 to-stone-950/90'
+        title: '錦秋の紅葉・枝垂れと舞い散る落葉',
+        en: 'Illuminated Autumn Maple Branches',
+        desc: '画面上部と左右から枝垂れる重厚なカエデの樹冠が深紅・朱・黄金のグラデーションに輝き、静かに落葉が舞い散ります。',
+        hint: '触れると枝葉がそよぎ、紅葉の透過光と落葉の舞いが美しく揺らめきます',
+        grad: 'from-red-600/45 via-amber-500/35 to-stone-950/90',
+        parts: [
+          { key: 'p1', label: '① 枝垂れる紅葉の葉群サイズ', def: 100 },
+          { key: 'p2', label: '② 舞い散る紅葉の落葉サイズ', def: 100 },
+          { key: 'p3', label: '③ 紅葉の透過光・鮮やかな輝き', def: 100 }
+        ]
       },
       {
         id: 'galaxy_canal',
         num: 16,
         cat: 'cosmos',
         catLabel: '天体・宇宙・風景',
-        title: '星屑が流れる銀河の運河',
-        en: 'Starlight Galaxy Canal',
-        desc: '宇宙の運河のように空間をうねりながら流れる無数の星屑と星雲の光の川。なぞると光の渦が発生します。',
-        hint: '光の川をなぞると星屑の流れに美しい光の渦が生まれます',
-        grad: 'from-indigo-500/45 via-cyan-400/30 to-purple-950/90'
+        title: '銀河・運河の中心への突入',
+        en: 'Galactic Core & Starlight Canal',
+        desc: '無数の恒星が密集する黄金〜青白の銀河中心核と淡く輝く星雲の光の帯の中へ、奥行きを持って突入する3D宇宙体験。',
+        hint: '視点を動かすと銀河の渦の中心へと突入する軌道が変化します',
+        grad: 'from-indigo-500/45 via-amber-300/30 to-purple-950/90',
+        parts: [
+          { key: 'p1', label: '① 銀河バルジ（中心核）の輝き', def: 100 },
+          { key: 'p2', label: '② 光の運河・星雲アームの広がり', def: 100 },
+          { key: 'p3', label: '③ 突入する恒星ストリームの粒', def: 100 }
+        ]
       },
       {
         id: 'eclipse',
@@ -517,9 +582,14 @@
         catLabel: '天体・宇宙・風景',
         title: '日食のダイヤモンドリング',
         en: 'Solar Eclipse & Corona',
-        desc: '皆既日食のコロナと月の縁から溢れる眩いダイヤモンドリング・レンズフレア。',
+        desc: '皆既日食のコロナと月の縁から溢れる眩いダイヤモンドリング。月・コロナ・閃光をそれぞれ個別に調整可能。',
         hint: 'カーソル移動で太陽と月の重なりとフレアが変化します',
-        grad: 'from-amber-400/40 via-orange-600/30 to-slate-950/95'
+        grad: 'from-amber-400/40 via-orange-600/30 to-slate-950/95',
+        parts: [
+          { key: 'p1', label: '① 漆黒の月（遮蔽円盤）の大きさ', def: 100 },
+          { key: 'p2', label: '② 太陽コロナの広がり', def: 100 },
+          { key: 'p3', label: '③ ダイヤモンドリング閃光の強さ', def: 100 }
+        ]
       },
       {
         id: 'nebula',
@@ -530,7 +600,12 @@
         en: 'Cosmic Nebula Cloud',
         desc: '極彩色の宇宙ガスと星々が渦を巻く深宇宙の星雲。触れると星間ガスが渦を巻き新たな星が生まれます。',
         hint: '触れると宇宙の星間ガスが渦を巻き星が生まれます',
-        grad: 'from-fuchsia-600/40 via-indigo-600/30 to-slate-950/90'
+        grad: 'from-fuchsia-600/40 via-indigo-600/30 to-slate-950/90',
+        parts: [
+          { key: 'p1', label: '① 星間ガス雲の広がり', def: 100 },
+          { key: 'p2', label: '② 新生星の輝きサイズ', def: 100 },
+          { key: 'p3', label: '③ 螺旋アームの巻き込み半径', def: 100 }
+        ]
       },
 
       // --- カテゴリD：黄金グリッター・幻想光 (6) ---
@@ -539,11 +614,16 @@
         num: 19,
         cat: 'glitter',
         catLabel: '黄金グリッター・幻想光',
-        title: '黄金のグリッター・ストリーム',
-        en: 'Golden Glitter Stream',
-        desc: '金色のシルク光線リボンと微細な黄金グリッター粒子が舞うラグジュアリーな光景。',
-        hint: '指やカーソルの軌跡に沿って黄金の光の帯が舞います',
-        grad: 'from-amber-400/50 via-yellow-600/30 to-stone-950/90'
+        title: '黄金のグリッター・ウェーブ',
+        en: 'Golden Glitter Silk Waves',
+        desc: '幾重にも重なりうねる黄金の光のシルクウェーブと、波頭から弾ける微細な金粉の煌めきだけに研ぎ澄ました極上の光景。',
+        hint: '指やカーソルでなぞると黄金の光の波が優雅にうねります',
+        grad: 'from-amber-400/50 via-yellow-600/30 to-stone-950/90',
+        parts: [
+          { key: 'p1', label: '① 黄金シルクウェーブの波高・幅', def: 100 },
+          { key: 'p2', label: '② 波の層・グラデーションの輝き', def: 100 },
+          { key: 'p3', label: '③ 波頭から弾ける金粉グリッター', def: 100 }
+        ]
       },
       {
         id: 'diamond',
@@ -554,7 +634,12 @@
         en: 'Diamond Prism Brilliance',
         desc: '多面カットされたダイヤモンドのファセット反射と、虹色のファイア・鋭いスターバースト閃光。',
         hint: '視点を動かすとカット面の光の角度が変わり虹色の閃光が走ります',
-        grad: 'from-cyan-200/45 via-amber-200/30 to-slate-950/90'
+        grad: 'from-cyan-200/45 via-amber-200/30 to-slate-950/90',
+        parts: [
+          { key: 'p1', label: '① ダイヤモンドカット結晶の大きさ', def: 100 },
+          { key: 'p2', label: '② 虹色ファイアの反射強度', def: 100 },
+          { key: 'p3', label: '③ 十字ブリリアンス閃光の長さ', def: 100 }
+        ]
       },
       {
         id: 'fairydust',
@@ -565,7 +650,12 @@
         en: 'Fairy Dust Swirl',
         desc: '七色の魔法の粉と星屑が渦を巻いて追従し、触れるたびに新しい光の妖精たちが舞い踊ります。',
         hint: 'カーソルを動かすと魔法の光の粉が渦を巻いて追従します',
-        grad: 'from-pink-400/40 via-amber-300/30 to-indigo-950/80'
+        grad: 'from-pink-400/40 via-amber-300/30 to-indigo-950/80',
+        parts: [
+          { key: 'p1', label: '① 光の妖精コアの輝き', def: 100 },
+          { key: 'p2', label: '② 舞い散る魔法の粉の大きさ', def: 100 },
+          { key: 'p3', label: '③ 軌跡の広がり・拡散幅', def: 100 }
+        ]
       },
       {
         id: 'radial_rays',
@@ -576,7 +666,12 @@
         en: 'Sacred Radial Light Beams',
         desc: '光源から放射状に伸びる無数の光線ビームと光の粒子。ポインタ位置に光源が移動し輝きが増幅します。',
         hint: '触れた場所へ光源が移動し、放射状の光線がドラマチックに回転します',
-        grad: 'from-amber-300/50 via-sky-400/30 to-slate-950/90'
+        grad: 'from-amber-300/50 via-sky-400/30 to-slate-950/90',
+        parts: [
+          { key: 'p1', label: '① 中心光源フレアの大きさ', def: 100 },
+          { key: 'p2', label: '② 放射状ビームの太さ・強さ', def: 100 },
+          { key: 'p3', label: '③ 放射状に飛び散る光粒サイズ', def: 100 }
+        ]
       },
       {
         id: 'blackhole',
@@ -585,9 +680,14 @@
         catLabel: '黄金グリッター・幻想光',
         title: '深淵のブラックホールと降着円盤',
         en: 'Abyssal Black Hole & Accretion Disk',
-        desc: '漆黒の事象の地平面と光子球、重力レンズ効果で上下に湾曲して見える灼熱の降着円盤と相対論的ジェット。',
+        desc: '漆黒の事象の地平面と光子球の鋭いリング、重力レンズ効果で上下に湾曲しながら回転する灼熱の降着円盤。',
         hint: '触れると時空の歪みと降着円盤のプラズマエネルギーが増幅します',
-        grad: 'from-orange-500/45 via-amber-400/30 to-black/95'
+        grad: 'from-orange-500/45 via-amber-400/30 to-black/95',
+        parts: [
+          { key: 'p1', label: '① 事象の地平面（黒い核）半径', def: 100 },
+          { key: 'p2', label: '② 降着円盤の広がり・プラズマ粒', def: 100 },
+          { key: 'p3', label: '③ 重力レンズ効果・光子球の輪', def: 100 }
+        ]
       },
       {
         id: 'chandelier',
@@ -598,7 +698,12 @@
         en: 'Crystal Chandelier Refraction',
         desc: '回転するカットガラスが虹色の分光と鋭い十字スターバースト光を放つ幻想的なシャンデリア空間。',
         hint: '触れるとクリスタルが揺れ、虹色の閃光が空間に広がります',
-        grad: 'from-amber-200/40 via-cyan-300/30 to-slate-950/90'
+        grad: 'from-amber-200/40 via-cyan-300/30 to-slate-950/90',
+        parts: [
+          { key: 'p1', label: '① クリスタルプリズムの粒サイズ', def: 100 },
+          { key: 'p2', label: '② シャンデリアリングの広がり', def: 100 },
+          { key: 'p3', label: '③ 十字スターバースト閃光', def: 100 }
+        ]
       }
     ];
 
@@ -612,7 +717,18 @@
       prism:    { baseHue: 0,   spread: 360, sat: 92, light: 65 }
     };
 
-    // アプリケーション全体状態（起動時はトップ画面のギャラリーモーダルが開いた状態）
+    // 共通スライダー定義（下限0%〜上限500%、サイズとスケールを完全分離）
+    const GLOBAL_SLIDERS = [
+      { key: 'hueShift',   label: '色相シフト (Hue Shift)',         min: 0, max: 360, step: 1,  unit: '°',  def: 0 },
+      { key: 'size',       label: '光のサイズ (Light Size)',         min: 0, max: 500, step: 5,  unit: '%',  def: 100, isPct: true },
+      { key: 'scale',      label: '空間スケール (Scene Scale)',      min: 0, max: 500, step: 5,  unit: '%',  def: 100, isPct: true },
+      { key: 'density',    label: '光の量・密度 (Density)',          min: 0, max: 500, step: 5,  unit: '%',  def: 100, isPct: true, reinit: true },
+      { key: 'glow',       label: '輝き・ブルーム強度 (Glow)',       min: 0, max: 500, step: 5,  unit: '%',  def: 100, isPct: true },
+      { key: 'speed',      label: '動きのスピード (Speed)',          min: 0, max: 500, step: 5,  unit: '%',  def: 100, isPct: true },
+      { key: 'reactivity', label: 'タッチ・カーソル反応感度',        min: 0, max: 500, step: 5,  unit: '%',  def: 100, isPct: true }
+    ];
+
+    // アプリケーション全体状態
     const state = {
       currentArtIndex: 0,
       isPaused: false,
@@ -623,11 +739,13 @@
       params: {
         palette: 'original',
         hueShift: 0,
+        size: 1.0,       // 光の粒・要素個別のサイズ倍率
+        scale: 1.0,      // 空間全体のズーム・スケール倍率
         density: 1.0,
         glow: 1.0,
         speed: 1.0,
-        size: 1.0,
-        reactivity: 1.0
+        reactivity: 1.0,
+        parts: { p1: 1.0, p2: 1.0, p3: 1.0 } // 作品固有パーツ別パラメータ
       },
       pointer: {
         x: 0,
@@ -682,10 +800,11 @@
         l = (l + pal.light) * 0.5;
       }
       h = (h + state.params.hueShift + 360) % 360;
-      return `hsla(${h.toFixed(1)}, ${s.toFixed(0)}%, ${l.toFixed(0)}%, ${alpha.toFixed(3)})`;
+      const safeAlpha = Math.max(0, Math.min(1, alpha));
+      return `hsla(${h.toFixed(1)}, ${s.toFixed(0)}%, ${l.toFixed(0)}%, ${safeAlpha.toFixed(3)})`;
     }
 
-    // Canvasのリサイズ処理（Retina / スマホ高精細対応）
+    // Canvasのリサイズ処理
     function resizeCanvas() {
       state.dpr = Math.min(window.devicePixelRatio || 1, 2);
       state.width = window.innerWidth;
@@ -698,21 +817,253 @@
     window.addEventListener('resize', resizeCanvas);
 
     // ============================================================================
+    // 1. スマホでの上下スクロール誤操作を防止するスライダー生成＆タッチガード
+    // ============================================================================
+    function createGuardedSliderRow({ id, label, min, max, step, value, unit, onChange }) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'space-y-1';
+
+      const header = document.createElement('div');
+      header.className = 'flex items-center justify-between gap-2';
+      header.innerHTML = `
+        <span class="text-slate-200 font-medium truncate">${label}</span>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" data-step="-${step}" class="step-btn w-6 h-6 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white font-bold flex items-center justify-center text-xs transition">−</button>
+          <span id="${id}_val" class="font-mono text-amber-200 w-12 text-right">${value}${unit}</span>
+          <button type="button" data-step="${step}" class="step-btn w-6 h-6 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/30 text-white font-bold flex items-center justify-center text-xs transition">＋</button>
+        </div>
+      `;
+
+      const trackWrap = document.createElement('div');
+      trackWrap.className = 'slider-track-wrap';
+
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.id = id;
+      input.className = 'guarded-slider';
+      input.min = min;
+      input.max = max;
+      input.step = step;
+      input.value = value;
+
+      // タッチ時の縦スクロール誤反応防止ガード
+      let startX = 0;
+      let startY = 0;
+      let lockedValue = value;
+      let gestureMode = 'undecided'; // 'undecided' | 'scroll' | 'slide'
+
+      input.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 0) {
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          lockedValue = Number(input.value);
+          gestureMode = 'undecided';
+        }
+      }, { passive: true });
+
+      input.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 0) {
+          const dx = Math.abs(e.touches[0].clientX - startX);
+          const dy = Math.abs(e.touches[0].clientY - startY);
+          if (gestureMode === 'undecided' && (dx > 6 || dy > 6)) {
+            gestureMode = dy > dx * 1.1 ? 'scroll' : 'slide';
+          }
+          if (gestureMode === 'scroll') {
+            // 縦スクロールと判定された場合は値をロックして戻す
+            input.value = lockedValue;
+          }
+        }
+      }, { passive: true });
+
+      input.addEventListener('input', () => {
+        if (gestureMode === 'scroll') {
+          input.value = lockedValue;
+          return;
+        }
+        const v = Number(input.value);
+        document.getElementById(`${id}_val`).textContent = `${v}${unit}`;
+        onChange(v);
+      });
+
+      // 「−」「＋」微調整ボタンのイベント
+      header.querySelectorAll('.step-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const delta = Number(btn.dataset.step);
+          const next = Math.max(min, Math.min(max, Number(input.value) + delta));
+          input.value = next;
+          document.getElementById(`${id}_val`).textContent = `${next}${unit}`;
+          onChange(next);
+        });
+      });
+
+      trackWrap.appendChild(input);
+      wrapper.appendChild(header);
+      wrapper.appendChild(trackWrap);
+      return wrapper;
+    }
+
+    function buildControlSliders() {
+      // 作品固有パーツ別スライダー
+      const art = ARTWORKS[state.currentArtIndex];
+      const partContainer = document.getElementById('partControlsContainer');
+      document.getElementById('partSectionTitle').textContent = `パーツ別調整：${art.title}`;
+      partContainer.innerHTML = '';
+
+      art.parts.forEach((pt) => {
+        const curPct = Math.round((state.params.parts[pt.key] ?? 1.0) * 100);
+        const row = createGuardedSliderRow({
+          id: `part_${pt.key}`,
+          label: pt.label,
+          min: 0,
+          max: 500,
+          step: 5,
+          value: curPct,
+          unit: '%',
+          onChange: (val) => {
+            state.params.parts[pt.key] = val / 100;
+          }
+        });
+        partContainer.appendChild(row);
+      });
+
+      // 共通スライダー（0%〜500%）
+      const globalContainer = document.getElementById('globalSlidersContainer');
+      globalContainer.innerHTML = '';
+      GLOBAL_SLIDERS.forEach((gs) => {
+        const curVal = gs.isPct ? Math.round(state.params[gs.key] * 100) : state.params[gs.key];
+        const row = createGuardedSliderRow({
+          id: `global_${gs.key}`,
+          label: gs.label,
+          min: gs.min,
+          max: gs.max,
+          step: gs.step,
+          value: curVal,
+          unit: gs.unit,
+          onChange: (val) => {
+            state.params[gs.key] = gs.isPct ? val / 100 : val;
+            if (gs.reinit) initCurrentArtwork();
+          }
+        });
+        globalContainer.appendChild(row);
+      });
+
+      // パレットボタンの同期
+      document.querySelectorAll('.palette-btn').forEach(btn => {
+        const active = btn.dataset.palette === state.params.palette;
+        btn.classList.toggle('bg-white/20', active);
+        btn.classList.toggle('border-white/40', active);
+        btn.classList.toggle('bg-white/5', !active);
+      });
+    }
+
+    // ============================================================================
     // 各アートワークの内部状態・初期化ロジック（全24種）
     // ============================================================================
     let sim = {};
+
+    // フラクタルノイズ（fBm）を用いたリアルな雲テクスチャ生成キャッシュ（作品11・12用）
+    const cloudSpriteCache = new Map();
+
+    function hash2D(ix, iy, seed) {
+      const n = Math.sin(ix * 127.1 + iy * 311.7 + seed * 74.7) * 43758.5453123;
+      return n - Math.floor(n);
+    }
+
+    function valueNoise2D(x, y, seed) {
+      const ix = Math.floor(x);
+      const iy = Math.floor(y);
+      const fx = x - ix;
+      const fy = y - iy;
+      const ux = fx * fx * (3.0 - 2.0 * fx);
+      const uy = fy * fy * (3.0 - 2.0 * fy);
+      const a = hash2D(ix, iy, seed);
+      const b = hash2D(ix + 1, iy, seed);
+      const c = hash2D(ix, iy + 1, seed);
+      const d = hash2D(ix + 1, iy + 1, seed);
+      return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
+    }
+
+    function fbm2D(x, y, seed, octaves = 5) {
+      let val = 0;
+      let amp = 0.5;
+      let freq = 1.0;
+      for (let i = 0; i < octaves; i++) {
+        val += amp * valueNoise2D(x * freq, y * freq, seed + i * 19.3);
+        freq *= 2.04;
+        amp *= 0.5;
+      }
+      return val;
+    }
+
+    // 煙・水蒸気のように繊細な輪郭と明暗を持つオフスクリーン雲スプライトを生成
+    function getRealisticCloudSprite(seed, isSunset = false) {
+      const key = `${seed}_${isSunset ? 'sunset' : 'sky'}`;
+      if (cloudSpriteCache.has(key)) return cloudSpriteCache.get(key);
+
+      const cw = 300;
+      const ch = 150;
+      const off = document.createElement('canvas');
+      off.width = cw;
+      off.height = ch;
+      const octx = off.getContext('2d');
+      const img = octx.createImageData(cw, ch);
+      const data = img.data;
+
+      for (let py = 0; py < ch; py++) {
+        const ny = (py / ch) * 2 - 1; // -1(上端) 〜 +1(下端)
+        for (let px = 0; px < cw; px++) {
+          const nx = (px / cw) * 2 - 1; // -1(左端) 〜 +1(右端)
+
+          // ドメインワーピング（煙のようなうねり）＋多層fBmノイズ
+          const warpX = fbm2D(px * 0.016, py * 0.022, seed + 3.1, 3) - 0.5;
+          const warpY = fbm2D(px * 0.016 + 7.2, py * 0.022, seed + 8.4, 3) - 0.5;
+          const n = fbm2D(px * 0.024 + warpX * 1.4, py * 0.032 + warpY * 1.2, seed, 5);
+          const detail = fbm2D(px * 0.065, py * 0.08, seed + 41.2, 3);
+
+          // 積雲・層積雲らしい平らな底面とモクモクした上部シルエットのマスク
+          const flatBottom = ny > 0.25 ? Math.pow((ny - 0.25) / 0.75, 1.5) * 1.35 : 0;
+          const radialDist = Math.sqrt(nx * nx * 0.95 + Math.pow(Math.min(0, ny) * 1.15, 2) + flatBottom);
+          const mask = Math.max(0, 1.0 - Math.pow(radialDist, 1.75));
+
+          const densityVal = (n * 0.78 + detail * 0.22) * mask * 1.65 - 0.26;
+          const idx = (py * cw + px) * 4;
+
+          if (densityVal <= 0) {
+            data[idx + 3] = 0;
+          } else {
+            const alpha = Math.min(1, Math.pow(densityVal, 1.25) * 1.25);
+            // 上部ほど太陽光を浴びて明るく、下部ほど水蒸気の厚みで柔らかな陰影になるグラデーション
+            const lightFactor = Math.max(0, Math.min(1, 0.55 - ny * 0.42 + (detail - 0.5) * 0.35));
+            if (isSunset) {
+              // 夕焼け雲：縁は黄金〜茜、厚みのある中心・下部は深紫〜ローズの陰影
+              data[idx]     = Math.min(255, Math.round(145 + lightFactor * 110));
+              data[idx + 1] = Math.min(255, Math.round(58 + lightFactor * 125));
+              data[idx + 2] = Math.min(255, Math.round(88 + lightFactor * 75));
+            } else {
+              // 青空の積雲：上部は純白、下部は爽やかなスカイグレーブルーの陰影
+              data[idx]     = Math.min(255, Math.round(205 + lightFactor * 50));
+              data[idx + 1] = Math.min(255, Math.round(218 + lightFactor * 37));
+              data[idx + 2] = Math.min(255, Math.round(238 + lightFactor * 17));
+            }
+            data[idx + 3] = Math.round(alpha * 235);
+          }
+        }
+      }
+      octx.putImageData(img, 0, 0);
+      cloudSpriteCache.set(key, off);
+      return off;
+    }
 
     function initCurrentArtwork() {
       const art = ARTWORKS[state.currentArtIndex];
       const w = state.width;
       const h = state.height;
-      const d = state.params.density;
+      const d = Math.max(0.05, state.params.density);
       sim = { particles: [], items: [], ripples: [], extra: {} };
 
       switch (art.id) {
         case 'lamps': {
-          // #1: 呼応するランプの森
-          const count = Math.max(12, Math.floor(((w * h) / 14000 + 18) * d));
+          const count = Math.min(260, Math.max(4, Math.floor(((w * h) / 14000 + 18) * d)));
           for (let i = 0; i < count; i++) {
             sim.items.push({
               x: Math.random() * w,
@@ -728,10 +1079,9 @@
           break;
         }
         case 'crystal': {
-          // #2: 境界のない結晶世界
           sim.extra.rotX = 0.2;
           sim.extra.rotY = 0;
-          const cols = d > 1.3 ? 8 : 7;
+          const cols = d > 1.8 ? 9 : (d > 1.2 ? 8 : 6);
           for (let x = -cols; x <= cols; x += 2) {
             for (let z = -cols; z <= cols; z += 2) {
               for (let y = -4; y <= 4; y += 2) {
@@ -748,8 +1098,7 @@
           break;
         }
         case 'waterfall': {
-          // #3: 花と人のデジタル滝
-          const count = Math.floor(450 * d);
+          const count = Math.min(1500, Math.floor(450 * d));
           for (let i = 0; i < count; i++) {
             sim.particles.push({
               x: Math.random() * w,
@@ -763,8 +1112,7 @@
           break;
         }
         case 'spheres': {
-          // #4: 浮遊する光の球体群
-          const count = Math.max(5, Math.floor(Math.min(18, Math.max(8, Math.floor(w / 85))) * d));
+          const count = Math.min(60, Math.max(2, Math.floor(Math.min(18, Math.max(8, Math.floor(w / 85))) * d)));
           for (let i = 0; i < count; i++) {
             const r = (Math.min(w, h) * 0.055) + Math.random() * 25;
             sim.items.push({
@@ -780,8 +1128,7 @@
           break;
         }
         case 'butterflies': {
-          // #5: 群蝶のデジタル空間
-          const count = Math.max(14, Math.floor(60 * d));
+          const count = Math.min(240, Math.max(3, Math.floor(60 * d)));
           for (let i = 0; i < count; i++) {
             sim.items.push({
               x: Math.random() * w,
@@ -797,8 +1144,7 @@
           break;
         }
         case 'kaleidoscope': {
-          // #6: 万華鏡の幾何学プリズム
-          const count = Math.max(15, Math.floor(45 * d));
+          const count = Math.min(140, Math.max(4, Math.floor(45 * d)));
           for (let i = 0; i < count; i++) {
             sim.items.push({
               dist: 20 + Math.random() * (Math.min(w, h) * 0.48),
@@ -813,28 +1159,33 @@
           break;
         }
         case 'sakura_blizzard': {
-          // #7: 幻想夜桜と光の桜吹雪
-          const count = Math.floor(210 * d);
+          // 1. 作品7：実際のソメイヨシノの基本花びら形状に一本化（開閉アニメーションなし、自然な個体差と立体回転）
+          const count = Math.min(900, Math.floor(220 * d));
           for (let i = 0; i < count; i++) {
             sim.particles.push({
               x: Math.random() * w,
               y: Math.random() * h,
-              vx: -0.9 - Math.random() * 1.6,
-              vy: 0.6 + Math.random() * 1.4,
+              vx: -0.75 - Math.random() * 1.35,
+              vy: 0.55 + Math.random() * 1.25,
               rot: Math.random() * Math.PI * 2,
-              rotSpeed: (Math.random() - 0.5) * 0.07,
-              flip: Math.random() * Math.PI * 2,
-              flipSpeed: 0.04 + Math.random() * 0.05,
+              rotSpeed: (Math.random() - 0.5) * 0.045,
+              // 空間での緩やかな傾き（完全には閉じず自然な立体傾斜を保つ）
+              tiltAngle: Math.random() * Math.PI * 2,
+              tiltSpeed: 0.02 + Math.random() * 0.03,
               swayPhase: Math.random() * Math.PI * 2,
-              size: 6 + Math.random() * 8,
-              hue: 332 + Math.random() * 24
+              size: 6.5 + Math.random() * 8.5,
+              // 同一の花びら形状内での自然な個体差（縦横比・切れ込み深さ・わずかな湾曲）
+              aspect: 0.72 + Math.random() * 0.24,
+              notchDepth: 0.20 + Math.random() * 0.08,
+              curveSkew: (Math.random() - 0.5) * 0.14,
+              hue: 338 + Math.random() * 14,
+              lightness: 78 + Math.random() * 14
             });
           }
           break;
         }
         case 'bioluminescence': {
-          // #8: 深海のバイオルミネッセンス
-          const count = Math.floor(220 * d);
+          const count = Math.min(900, Math.floor(220 * d));
           for (let i = 0; i < count; i++) {
             sim.particles.push({
               x: Math.random() * w,
@@ -849,63 +1200,71 @@
           break;
         }
         case 'watercurtain': {
-          // #9: ウォーターカーテン・イルミネーション
-          const count = Math.floor(250 * d);
+          // 2. 作品9：虹のカーテンを廃止し、繊細な雨の線と雨粒・水面しぶきに特化
+          const count = Math.min(1100, Math.floor(280 * d));
           for (let i = 0; i < count; i++) {
+            const isDroplet = i % 5 === 0;
             sim.particles.push({
               x: Math.random() * w,
               y: Math.random() * h,
-              vy: 4.5 + Math.random() * 5.5,
-              len: 14 + Math.random() * 24,
-              hue: 185 + Math.random() * 35
+              vy: isDroplet ? (4.2 + Math.random() * 4.2) : (6.5 + Math.random() * 6.5),
+              len: 16 + Math.random() * 26,
+              dropR: 1.5 + Math.random() * 2.5,
+              isDroplet,
+              phase: Math.random() * Math.PI * 2,
+              hue: 196 + Math.random() * 24
             });
           }
           break;
         }
-        case 'seafirefly': {
-          // #10: 幻想のウミホタル・波打ち際
-          const count = Math.floor(260 * d);
-          for (let i = 0; i < count; i++) {
-            sim.particles.push({
-              x: Math.random() * w,
-              y: h * (0.45 + Math.random() * 0.55),
-              vx: (Math.random() - 0.5) * 0.4,
-              vy: (Math.random() - 0.5) * 0.4,
-              charge: Math.random() * 0.6,
-              r: 1.5 + Math.random() * 2.5,
-              phase: Math.random() * Math.PI * 2,
-              hue: 195 + Math.random() * 22
+        case 'crystal_cavern': {
+          // 作品10：鏡面空間に広がる多数の多面クリスタル結晶群（二重リング＋ランダム群で煌びやかに配置）
+          const baseCount = Math.min(96, Math.max(18, Math.floor(46 * d)));
+          for (let i = 0; i < baseCount; i++) {
+            const layer = i % 3;
+            const ringAngle = (i / baseCount) * Math.PI * 2 + layer * 0.4;
+            const distRatio = layer === 0 ? 0.18 + (i % 5) * 0.04
+                            : layer === 1 ? 0.34 + (i % 7) * 0.03
+                            : 0.46 + (i % 9) * 0.025;
+            const cx = w * 0.5 + Math.cos(ringAngle) * (w * distRatio * 0.92);
+            const cy = h * 0.5 + Math.sin(ringAngle) * (h * distRatio * 0.88);
+            const scaleFactor = layer === 0 ? 1.15 : (layer === 1 ? 0.9 : 0.7);
+            sim.items.push({
+              x: cx,
+              y: cy,
+              height: (54 + (i % 6) * 16) * scaleFactor,
+              width: (13 + (i % 5) * 4) * scaleFactor,
+              tilt: ringAngle + Math.PI * 0.5 + ((i % 3) - 1) * 0.18,
+              hue: [190, 218, 275, 325, 45, 175][i % 6] + (i * 7) % 24,
+              phase: i * 0.65,
+              layer
             });
           }
           break;
         }
         case 'bluesky': {
-          // #11: 蒼穹の青空と流れる光の雲
-          const cloudCount = Math.max(8, Math.floor(16 * d));
+          // 4. 作品11：フラクタルノイズ雲スプライトを用いたリアルな流れる積雲＆可動太陽光源
+          sim.extra.sunX = w * 0.22;
+          sim.extra.sunY = h * 0.20;
+          const cloudCount = Math.min(36, Math.max(4, Math.floor(14 * d)));
           for (let i = 0; i < cloudCount; i++) {
-            const puffs = [];
-            const numPuffs = 5 + Math.floor(Math.random() * 5);
-            for (let p = 0; p < numPuffs; p++) {
-              puffs.push({
-                ox: (p - numPuffs * 0.5) * (24 + Math.random() * 18),
-                oy: (Math.random() - 0.5) * 24,
-                r: 32 + Math.random() * 38
-              });
-            }
+            const depth = 0.35 + (i / cloudCount) * 0.65;
             sim.items.push({
-              x: Math.random() * (w + 300) - 150,
-              y: h * (0.12 + Math.random() * 0.68),
-              vx: 0.35 + Math.random() * 0.65,
-              scale: 0.7 + Math.random() * 0.85,
-              alpha: 0.38 + Math.random() * 0.32,
-              puffs
+              x: Math.random() * (w + 500) - 250,
+              y: h * (0.14 + (1 - depth) * 0.54 + Math.random() * 0.12),
+              vx: (0.26 + Math.random() * 0.42) * depth,
+              scaleW: (220 + Math.random() * 210) * depth,
+              scaleH: (110 + Math.random() * 105) * depth,
+              depth,
+              alpha: 0.58 + depth * 0.38,
+              seed: (i % 8) + 1
             });
           }
-          for (let i = 0; i < Math.floor(65 * d); i++) {
+          for (let i = 0; i < Math.min(250, Math.floor(65 * d)); i++) {
             sim.particles.push({
               x: Math.random() * w,
               y: Math.random() * h,
-              vx: 0.5 + Math.random() * 0.8,
+              vx: 0.4 + Math.random() * 0.7,
               r: 1 + Math.random() * 2.2,
               phase: Math.random() * Math.PI * 2
             });
@@ -913,31 +1272,33 @@
           break;
         }
         case 'sunset': {
-          // #12: 黄昏のマジックアワーと夕焼け雲
-          for (let i = 0; i < Math.max(5, Math.floor(11 * d)); i++) {
+          // 5. 作品12：フラクタルノイズ雲スプライトを用いた煙のように繊細な夕焼け雲
+          const cloudCount = Math.min(34, Math.max(3, Math.floor(13 * d)));
+          for (let i = 0; i < cloudCount; i++) {
+            const depth = 0.4 + (i / cloudCount) * 0.6;
             sim.items.push({
-              x: Math.random() * w,
-              y: h * (0.14 + Math.random() * 0.38),
-              vx: 0.25 + Math.random() * 0.45,
-              w: 110 + Math.random() * 160,
-              h: 16 + Math.random() * 20,
-              hue: 12 + Math.random() * 28
+              x: Math.random() * (w + 500) - 250,
+              y: h * (0.12 + Math.random() * 0.44),
+              vx: (0.20 + Math.random() * 0.38) * depth,
+              scaleW: (250 + Math.random() * 240) * depth,
+              scaleH: (95 + Math.random() * 90) * depth,
+              alpha: 0.48 + depth * 0.42,
+              seed: (i % 8) + 11
             });
           }
-          for (let i = 0; i < Math.floor(75 * d); i++) {
+          for (let i = 0; i < Math.min(300, Math.floor(85 * d)); i++) {
             sim.particles.push({
               x: Math.random() * w,
               y: h * (0.64 + Math.random() * 0.36),
-              w: 16 + Math.random() * 44,
+              w: 16 + Math.random() * 46,
               phase: Math.random() * Math.PI * 2
             });
           }
           break;
         }
         case 'planetarium': {
-          // #13: 満天のプラネタリウムと天の川
           sim.extra.rot = 0;
-          const count = Math.floor(360 * d);
+          const count = Math.min(1400, Math.floor(360 * d));
           for (let i = 0; i < count; i++) {
             const isMilkyWay = i < count * 0.45;
             const angle = Math.random() * Math.PI * 2;
@@ -954,47 +1315,96 @@
           break;
         }
         case 'fireworks': {
-          // #14: 夜空の大輪・打ち上げ花火
           sim.extra.rockets = [];
           sim.extra.sparks = [];
           break;
         }
         case 'momiji': {
-          // #15: 夜空に舞うライトアップ紅葉
-          const count = Math.floor(135 * d);
-          for (let i = 0; i < count; i++) {
+          // 6. 作品15：スポットライトビームと空中浮遊葉を廃止し、画面上部・左右の枝垂れ樹冠と舞い散る落葉のみで構成
+          const paletteHues = [354, 3, 12, 24, 36, 45]; // 深紅・真紅・朱・橙・山吹・黄金
+          // 画面上部と左右端から枝垂れる木の枝スジを生成
+          sim.extra.branches = [];
+          const branchCount = 11;
+          for (let b = 0; b < branchCount; b++) {
+            const isLeft = b < 4;
+            const isRight = b >= 7;
+            const startX = isLeft ? -20 : (isRight ? w + 20 : w * (0.15 + (b - 4) * 0.24));
+            const startY = (isLeft || isRight) ? h * (0.06 + (b % 4) * 0.13) : -15;
+            const endX = isLeft ? w * (0.24 + Math.random() * 0.2) : (isRight ? w * (0.56 + Math.random() * 0.2) : startX + (Math.random() - 0.5) * 160);
+            const endY = (isLeft || isRight) ? startY + 70 + Math.random() * 90 : h * (0.22 + Math.random() * 0.16);
+            sim.extra.branches.push({
+              startX, startY, endX, endY,
+              cpX: (startX + endX) * 0.5 + (Math.random() - 0.5) * 60,
+              cpY: Math.min(startY, endY) - 20,
+              swayPhase: Math.random() * Math.PI * 2
+            });
+          }
+
+          // 枝に沿って密に茂る紅葉の葉群（空中に孤立して浮かない配置）
+          const canopyCount = Math.min(420, Math.max(30, Math.floor(180 * d)));
+          for (let i = 0; i < canopyCount; i++) {
+            const br = sim.extra.branches[i % sim.extra.branches.length];
+            const t = 0.15 + Math.random() * 0.85;
+            const invT = 1 - t;
+            const bx = invT * invT * br.startX + 2 * invT * t * br.cpX + t * t * br.endX;
+            const by = invT * invT * br.startY + 2 * invT * t * br.cpY + t * t * br.endY;
+            const spread = 24 + t * 44;
+            const depth = 0.45 + Math.random() * 0.65;
+            sim.items.push({
+              baseX: bx + (Math.random() - 0.5) * spread * 2.1,
+              baseY: by + (Math.random() - 0.45) * spread * 1.4,
+              swayPhase: br.swayPhase + t * 2.0 + Math.random() * 0.6,
+              rot: (Math.random() - 0.5) * 1.6,
+              size: (11 + Math.random() * 13) * depth,
+              lobes: Math.random() > 0.25 ? 7 : 5,
+              hue: paletteHues[i % paletteHues.length] + (Math.random() - 0.5) * 7,
+              lightness: 30 + depth * 34
+            });
+          }
+
+          // 樹冠から静かに舞い散る紅葉の落葉
+          const fallingCount = Math.min(260, Math.floor(65 * d));
+          for (let i = 0; i < fallingCount; i++) {
             sim.particles.push({
               x: Math.random() * w,
               y: Math.random() * h,
-              vx: -0.4 - Math.random() * 0.9,
-              vy: 0.65 + Math.random() * 1.2,
+              vx: -0.35 - Math.random() * 0.75,
+              vy: 0.55 + Math.random() * 1.05,
               rot: Math.random() * Math.PI * 2,
-              rotSpeed: (Math.random() - 0.5) * 0.05,
+              rotSpeed: (Math.random() - 0.5) * 0.045,
               swayPhase: Math.random() * Math.PI * 2,
-              size: 9 + Math.random() * 9,
-              hue: [4, 16, 28, 38, 352][i % 5] + Math.random() * 8
+              size: 8 + Math.random() * 8,
+              lobes: Math.random() > 0.3 ? 7 : 5,
+              hue: paletteHues[i % paletteHues.length]
             });
           }
           break;
         }
         case 'galaxy_canal': {
-          // #16: 星屑が流れる銀河の運河
-          const count = Math.floor(340 * d);
-          for (let i = 0; i < count; i++) {
+          // 7. 作品16：黒い塊（暗黒星雲の黒いブロブ）を削除し、恒星群と淡く輝く星間ガス雲の運河に純化
+          const starCount = Math.min(1600, Math.floor(520 * d));
+          for (let i = 0; i < starCount; i++) {
+            const arm = i % 4;
+            const z = Math.random();
+            const baseR = 25 + Math.pow(Math.random(), 0.75) * (Math.max(w, h) * 0.58);
+            const spiralAngle = (arm * (Math.PI * 0.5)) + baseR * 0.0085 + (Math.random() - 0.5) * 0.85;
+            const isNebulaGlow = i % 9 === 0;
+            const isPinkHII = i % 11 === 0;
             sim.particles.push({
-              x: Math.random() * w,
-              offsetY: (Math.random() - 0.5) * (h * 0.34),
-              speed: 0.8 + Math.random() * 1.9,
-              size: 1.0 + Math.random() * 2.8,
-              phase: Math.random() * Math.PI * 2,
-              hue: [195, 225, 265, 310, 48][i % 5] + Math.random() * 25
+              baseR,
+              angle: spiralAngle,
+              z,
+              vz: 0.0025 + Math.random() * 0.0045,
+              size: isNebulaGlow ? (16 + Math.random() * 22) : (1.0 + Math.random() * 2.6),
+              isNebulaGlow,
+              hue: isPinkHII ? 328 : (baseR < 150 ? (38 + Math.random() * 22) : (205 + Math.random() * 45)),
+              phase: Math.random() * Math.PI * 2
             });
           }
           break;
         }
         case 'eclipse': {
-          // #17: 日食のダイヤモンドリング
-          for (let i = 0; i < Math.floor(140 * d); i++) {
+          for (let i = 0; i < Math.min(500, Math.floor(140 * d)); i++) {
             sim.particles.push({
               angle: Math.random() * Math.PI * 2,
               dist: 1 + Math.random() * 0.8,
@@ -1005,8 +1415,7 @@
           break;
         }
         case 'nebula': {
-          // #18: 星屑のネビュラ星雲
-          for (let i = 0; i < Math.floor(240 * d); i++) {
+          for (let i = 0; i < Math.min(900, Math.floor(240 * d)); i++) {
             const arm = i % 3;
             const radius = 15 + Math.random() * (Math.min(w, h) * 0.45);
             const angle = (arm * (Math.PI * 2 / 3)) + radius * 0.012 + (Math.random() - 0.5) * 0.7;
@@ -1022,22 +1431,22 @@
           break;
         }
         case 'glitter': {
-          // #19: 黄金のグリッター・ストリーム
-          for (let i = 0; i < Math.floor(260 * d); i++) {
+          // 5. 作品19：黄金のグリッター・ウェーブ（波と波頭の金粉に一本化）
+          for (let i = 0; i < Math.min(900, Math.floor(280 * d)); i++) {
             sim.particles.push({
               x: Math.random() * w,
-              y: Math.random() * h,
+              waveIdx: i % 5,
+              offsetY: (Math.random() - 0.5) * 32,
               phase: Math.random() * Math.PI * 2,
-              speed: 0.8 + Math.random() * 1.8,
-              size: 1 + Math.random() * 3.5,
-              hue: 38 + Math.random() * 20
+              speed: 0.6 + Math.random() * 1.4,
+              size: 0.8 + Math.random() * 2.6,
+              hue: 40 + Math.random() * 16
             });
           }
           break;
         }
         case 'diamond': {
-          // #20: ダイヤモンドのプリズム閃光
-          const facetCount = Math.max(14, Math.floor(32 * d));
+          const facetCount = Math.min(110, Math.max(6, Math.floor(32 * d)));
           for (let i = 0; i < facetCount; i++) {
             const ring = (i % 4) + 1;
             sim.items.push({
@@ -1050,7 +1459,7 @@
               hue: (i * 53) % 360
             });
           }
-          for (let i = 0; i < Math.floor(90 * d); i++) {
+          for (let i = 0; i < Math.min(350, Math.floor(90 * d)); i++) {
             sim.particles.push({
               x: Math.random() * w,
               y: Math.random() * h,
@@ -1062,9 +1471,8 @@
           break;
         }
         case 'fairydust': {
-          // #21: 妖精の光の粉・フェアリーダスト
           sim.extra.trail = [];
-          for (let i = 0; i < Math.floor(150 * d); i++) {
+          for (let i = 0; i < Math.min(500, Math.floor(150 * d)); i++) {
             sim.particles.push({
               x: Math.random() * w,
               y: Math.random() * h,
@@ -1078,8 +1486,7 @@
           break;
         }
         case 'radial_rays': {
-          // #22: 聖なる光の放射線・ゴッドレイ
-          const rayCount = Math.max(16, Math.floor(38 * d));
+          const rayCount = Math.min(120, Math.max(8, Math.floor(38 * d)));
           for (let i = 0; i < rayCount; i++) {
             sim.items.push({
               angle: (i / rayCount) * Math.PI * 2,
@@ -1089,7 +1496,7 @@
               hue: 36 + (i * 19) % 180
             });
           }
-          for (let i = 0; i < Math.floor(110 * d); i++) {
+          for (let i = 0; i < Math.min(400, Math.floor(110 * d)); i++) {
             sim.particles.push({
               dist: 20 + Math.random() * (Math.hypot(w, h) * 0.6),
               angle: Math.random() * Math.PI * 2,
@@ -1101,8 +1508,7 @@
           break;
         }
         case 'blackhole': {
-          // #23: 深淵のブラックホールと降着円盤
-          const count = Math.floor(320 * d);
+          const count = Math.min(1100, Math.floor(320 * d));
           for (let i = 0; i < count; i++) {
             const orbitR = 1.18 + Math.pow(Math.random(), 1.4) * 2.4;
             sim.particles.push({
@@ -1116,9 +1522,8 @@
           break;
         }
         case 'chandelier': {
-          // #24: プリズム・クリスタル・シャンデリア
           for (let ring = 1; ring <= 4; ring++) {
-            const count = Math.max(6, Math.floor(ring * 10 * d));
+            const count = Math.min(90, Math.max(4, Math.floor(ring * 10 * d)));
             for (let i = 0; i < count; i++) {
               sim.items.push({
                 ring,
@@ -1136,7 +1541,7 @@
 
     // 十字スターバースト描画ヘルパー
     function drawStarburst(x, y, radius, color, alpha = 0.8) {
-      if (radius <= 0.4) return;
+      if (radius <= 0.4 || alpha <= 0.01) return;
       ctx.save();
       ctx.translate(x, y);
       ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
@@ -1149,7 +1554,6 @@
       ctx.arc(0, 0, radius, 0, Math.PI * 2);
       ctx.fill();
 
-      // 鋭い十字の閃光
       ctx.strokeStyle = color;
       ctx.lineWidth = Math.max(1, radius * 0.06);
       ctx.beginPath();
@@ -1161,26 +1565,67 @@
       ctx.restore();
     }
 
+    // リアルなモミジ（カエデ）の葉を描画するヘルパー
+    function drawMapleLeaf(x, y, sz, rot, lobes, fillStyle, strokeStyle = null) {
+      if (sz <= 0.5) return;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rot);
+      ctx.fillStyle = fillStyle;
+      ctx.beginPath();
+      // 葉柄（茎）
+      ctx.moveTo(0, sz * 1.25);
+      ctx.lineTo(0, sz * 0.55);
+
+      const totalTips = lobes * 2 - 1;
+      for (let k = 0; k < totalTips; k++) {
+        const t = k / (totalTips - 1);
+        const ang = -Math.PI * 0.85 + t * Math.PI * 1.7 - Math.PI * 0.5;
+        const isTip = k % 2 === 0;
+        const centerFactor = 1 - Math.abs(t - 0.5) * 0.65;
+        const r = isTip ? sz * (0.72 + centerFactor * 0.45) : sz * 0.28;
+        const px = Math.cos(ang) * r;
+        const py = Math.sin(ang) * r;
+        ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      if (strokeStyle) {
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth = 0.7;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     // ============================================================================
-    // メイン描画ループ（全24作品のレンダリングスイッチ — 省略なし完全実装）
+    // メイン描画ループ（全24作品のレンダリングスイッチ）
     // ============================================================================
     function renderFrame(dt) {
       const art = ARTWORKS[state.currentArtIndex];
       const w = state.width;
       const h = state.height;
-      const { density, glow, speed, size, reactivity } = state.params;
+      const { density, glow, speed, size, scale, reactivity, parts } = state.params;
+      const { p1, p2, p3 } = parts;
       const ptr = state.pointer;
 
-      // 背景クリア（残像効果のある作品は半透明オーバーレイ）
+      // 背景クリア
       ctx.globalCompositeOperation = 'source-over';
-      if (art.id === 'fireworks' || art.id === 'glitter' || art.id === 'fairydust' || art.id === 'butterflies') {
+      if (art.id === 'fireworks' || art.id === 'fairydust' || art.id === 'butterflies') {
         ctx.fillStyle = 'rgba(3, 5, 12, 0.22)';
-      } else if (art.id === 'bioluminescence' || art.id === 'nebula' || art.id === 'seafirefly') {
+      } else if (art.id === 'bioluminescence' || art.id === 'nebula') {
         ctx.fillStyle = 'rgba(2, 6, 16, 0.26)';
       } else {
         ctx.fillStyle = '#03050c';
       }
       ctx.fillRect(0, 0, w, h);
+
+      // 空間スケール（Scene Scale）の適用（中央基準ズーム）
+      ctx.save();
+      const safeScale = Math.max(0.01, scale);
+      ctx.translate(w * 0.5, h * 0.5);
+      ctx.scale(safeScale, safeScale);
+      ctx.translate(-w * 0.5, -h * 0.5);
 
       ctx.globalCompositeOperation = 'lighter';
 
@@ -1202,19 +1647,19 @@
               lamp.energy = 1.0;
               lamp.hue = (lamp.hue + 55) % 360;
               lamp.cooldown = 0.8;
-              sim.ripples.push({ x: lamp.x, y: lamp.y, r: lamp.radius, maxR: 260, hue: lamp.hue, alpha: 0.9 });
+              sim.ripples.push({ x: lamp.x, y: lamp.y, r: lamp.radius * p1, maxR: 260, hue: lamp.hue, alpha: 0.9 });
             }
             lamp.energy = Math.max(0.22, lamp.energy - dt * 0.45);
 
+            const r = Math.max(0.5, lamp.radius * size * p1 * (0.9 + lamp.energy * 0.45));
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(lamp.x, 0);
-            ctx.lineTo(lamp.x, lamp.y - lamp.radius * size);
+            ctx.lineTo(lamp.x, lamp.y - r);
             ctx.stroke();
 
-            const r = lamp.radius * size * (0.9 + lamp.energy * 0.45);
-            const haloR = r * (3.2 * glow);
+            const haloR = Math.max(1, r * (3.2 * glow * p2));
             const grad = ctx.createRadialGradient(lamp.x, lamp.y, r * 0.1, lamp.x, lamp.y, haloR);
             grad.addColorStop(0, '#ffffff');
             grad.addColorStop(0.25, getArtColor(lamp.hue, 90, 62, 0.85 * lamp.energy, i));
@@ -1236,7 +1681,7 @@
             rp.alpha -= dt * 0.7;
             for (const lamp of items) {
               const d = Math.hypot(lamp.x - rp.x, lamp.y - rp.y);
-              if (Math.abs(d - rp.r) < 18 && lamp.cooldown <= 0) {
+              if (Math.abs(d - rp.r * p3) < 18 && lamp.cooldown <= 0) {
                 lamp.energy = 1.0;
                 lamp.hue = (rp.hue + 25) % 360;
                 lamp.cooldown = 1.1;
@@ -1245,10 +1690,10 @@
             if (rp.alpha <= 0) {
               sim.ripples.splice(i, 1);
             } else {
-              ctx.strokeStyle = getArtColor(rp.hue, 90, 65, rp.alpha * 0.45);
-              ctx.lineWidth = 2.5;
+              ctx.strokeStyle = getArtColor(rp.hue, 90, 65, rp.alpha * 0.45 * glow, i);
+              ctx.lineWidth = 2.5 * p3;
               ctx.beginPath();
-              ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
+              ctx.arc(rp.x, rp.y, rp.r * p3, 0, Math.PI * 2);
               ctx.stroke();
             }
           }
@@ -1269,35 +1714,43 @@
 
           for (let i = 0; i < sim.particles.length; i++) {
             const p = sim.particles[i];
-            let x1 = p.x * cosY - p.z * sinY;
-            let z1 = p.z * cosY + p.x * sinY;
-            let y1 = p.y * cosX - z1 * sinX;
-            let z2 = z1 * cosX + p.y * sinX + 550;
+            const px3 = p.x * p3;
+            const py3 = p.y * p3;
+            const pz3 = p.z * p3;
+
+            const x1 = px3 * cosY - pz3 * sinY;
+            const z1 = pz3 * cosY + px3 * sinY;
+            const y1 = py3 * cosX - z1 * sinX;
+            const z2 = z1 * cosX + py3 * sinX + 550;
 
             if (z2 < 40) continue;
-            const scale = fov / z2;
-            const sx = w * 0.5 + x1 * scale;
-            const sy = h * 0.5 + y1 * scale;
+            const persp = fov / z2;
+            const sx = w * 0.5 + x1 * persp;
+            const sy = h * 0.5 + y1 * persp;
 
             const pulse = 0.5 + 0.5 * Math.sin(state.time * 3 + p.phase);
-            const r = (2.5 + pulse * 4) * scale * size;
+            const r = (2.5 + pulse * 4) * persp * size * p1;
+            const lineH = 55 * persp * glow * p2;
 
-            const lineH = 55 * scale * glow;
-            const grad = ctx.createLinearGradient(sx, sy - lineH, sx, sy + lineH);
-            grad.addColorStop(0, 'transparent');
-            grad.addColorStop(0.5, getArtColor(p.hue + state.time * 25, 90, 68, 0.55 * pulse, i));
-            grad.addColorStop(1, 'transparent');
-            ctx.strokeStyle = grad;
-            ctx.lineWidth = Math.max(1, r * 0.7);
-            ctx.beginPath();
-            ctx.moveTo(sx, sy - lineH);
-            ctx.lineTo(sx, sy + lineH);
-            ctx.stroke();
+            if (lineH > 0.5) {
+              const grad = ctx.createLinearGradient(sx, sy - lineH, sx, sy + lineH);
+              grad.addColorStop(0, 'transparent');
+              grad.addColorStop(0.5, getArtColor(p.hue + state.time * 25, 90, 68, 0.55 * pulse, i));
+              grad.addColorStop(1, 'transparent');
+              ctx.strokeStyle = grad;
+              ctx.lineWidth = Math.max(1, r * 0.7);
+              ctx.beginPath();
+              ctx.moveTo(sx, sy - lineH);
+              ctx.lineTo(sx, sy + lineH);
+              ctx.stroke();
+            }
 
-            ctx.fillStyle = getArtColor(p.hue + state.time * 25, 80, 82, 0.9, i);
-            ctx.beginPath();
-            ctx.arc(sx, sy, r, 0, Math.PI * 2);
-            ctx.fill();
+            if (r > 0.2) {
+              ctx.fillStyle = getArtColor(p.hue + state.time * 25, 80, 82, 0.9, i);
+              ctx.beginPath();
+              ctx.arc(sx, sy, r, 0, Math.PI * 2);
+              ctx.fill();
+            }
           }
           break;
         }
@@ -1316,10 +1769,10 @@
               const dx = p.x - ptr.x;
               const dy = p.y - ptr.y;
               const dist = Math.hypot(dx, dy);
-              const blockR = 65 * reactivity;
+              const blockR = 65 * reactivity * p3;
               if (dist < blockR && dist > 0.1) {
                 p.vx += (dx / dist) * 2.2;
-                if (Math.random() < 0.04) {
+                if (Math.random() < 0.045) {
                   sim.items.push({
                     x: p.x,
                     y: p.y,
@@ -1340,10 +1793,10 @@
             }
 
             ctx.strokeStyle = getArtColor(p.hue, 85, 65, 0.45 * glow, i);
-            ctx.lineWidth = 2 * size;
+            ctx.lineWidth = 2 * size * p1;
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p.x - p.vx * 1.5, p.y - p.len * size);
+            ctx.lineTo(p.x - p.vx * 1.5, p.y - p.len * size * p1);
             ctx.stroke();
           }
 
@@ -1356,7 +1809,7 @@
             if (fl.life <= 0) {
               sim.items.splice(i, 1);
             } else {
-              drawStarburst(fl.x, fl.y, fl.r * size * 1.6, getArtColor(fl.hue, 90, 70, fl.life, i), fl.life);
+              drawStarburst(fl.x, fl.y, fl.r * size * p2 * 1.6, getArtColor(fl.hue, 90, 70, fl.life, i), fl.life);
             }
           }
           break;
@@ -1369,7 +1822,7 @@
           const items = sim.items;
           for (let i = 0; i < items.length; i++) {
             const s = items[i];
-            const rad = s.r * size;
+            const rad = Math.max(2, s.r * size * p1);
             s.x += s.vx * speed;
             s.y += s.vy * speed;
 
@@ -1383,8 +1836,8 @@
               const dy = s.y - ptr.y;
               const d = Math.hypot(dx, dy);
               if (d < rad + 45 * reactivity && d > 0.1) {
-                s.vx += (dx / d) * 0.45 * reactivity;
-                s.vy += (dy / d) * 0.45 * reactivity;
+                s.vx += (dx / d) * 0.45 * reactivity * p3;
+                s.vy += (dy / d) * 0.45 * reactivity * p3;
                 s.hue = (s.hue + 3) % 360;
                 s.pulse = 1.0;
               }
@@ -1393,8 +1846,9 @@
             s.vy *= 0.992;
             s.pulse = Math.max(0, s.pulse - dt * 1.5);
 
-            const drawR = rad * (1 + s.pulse * 0.25);
-            const grad = ctx.createRadialGradient(s.x - drawR * 0.3, s.y - drawR * 0.3, drawR * 0.05, s.x, s.y, drawR * (1.3 * glow));
+            const drawR = rad * (1 + s.pulse * 0.25 * p3);
+            const outerR = Math.max(2, drawR * (1.3 * glow * p2));
+            const grad = ctx.createRadialGradient(s.x - drawR * 0.3, s.y - drawR * 0.3, drawR * 0.05, s.x, s.y, outerR);
             grad.addColorStop(0, '#ffffff');
             grad.addColorStop(0.35, getArtColor(s.hue, 90, 65, 0.85, i));
             grad.addColorStop(0.75, getArtColor(s.hue + 30, 85, 45, 0.4, i));
@@ -1402,7 +1856,7 @@
 
             ctx.fillStyle = grad;
             ctx.beginPath();
-            ctx.arc(s.x, s.y, drawR * 1.3 * glow, 0, Math.PI * 2);
+            ctx.arc(s.x, s.y, outerR, 0, Math.PI * 2);
             ctx.fill();
           }
           break;
@@ -1413,47 +1867,52 @@
         // ------------------------------------------------------------------------
         case 'butterflies': {
           for (let i = 0; i < sim.items.length; i++) {
-            const b = sim.items[i];
+            const bf = sim.items[i];
+            bf.wingPhase += bf.wingSpeed * dt * speed * p3;
+            const flap = Math.cos(bf.wingPhase);
+
             if (ptr.active) {
-              const targetAngle = Math.atan2(ptr.y - b.y, ptr.x - b.x);
-              const diff = Math.atan2(Math.sin(targetAngle - b.angle), Math.cos(targetAngle - b.angle));
-              b.angle += diff * 0.04 * reactivity;
+              const dx = ptr.x - bf.x;
+              const dy = ptr.y - bf.y;
+              const dist = Math.hypot(dx, dy);
+              if (dist > 30) {
+                const targetAngle = Math.atan2(dy, dx) + Math.sin(state.time * 2 + i) * 0.5;
+                bf.angle += Math.sin(targetAngle - bf.angle) * 0.04 * reactivity;
+              }
             } else {
-              b.angle += Math.sin(state.time * 1.4 + i) * 0.03;
+              bf.angle += Math.sin(state.time * 1.2 + i * 0.7) * 0.03 * speed;
             }
 
-            b.x += Math.cos(b.angle) * b.speed * speed;
-            b.y += Math.sin(b.angle) * b.speed * speed;
-            if (b.x < -30) b.x = w + 30;
-            if (b.x > w + 30) b.x = -30;
-            if (b.y < -30) b.y = h + 30;
-            if (b.y > h + 30) b.y = -30;
+            bf.x += Math.cos(bf.angle) * bf.speed * speed;
+            bf.y += Math.sin(bf.angle) * bf.speed * speed;
+            if (bf.x < -40) bf.x = w + 40;
+            if (bf.x > w + 40) bf.x = -40;
+            if (bf.y < -40) bf.y = h + 40;
+            if (bf.y > h + 40) bf.y = -40;
 
-            const flap = Math.abs(Math.sin(state.time * b.wingSpeed * speed + b.wingPhase));
-            const sz = b.size * size;
-            const col = getArtColor(b.hue + Math.sin(state.time + i) * 20, 92, 68, 0.78 * glow, i);
-
+            const sz = bf.size * size * p1;
+            const wingW = Math.max(0.2, Math.abs(flap) * sz);
             ctx.save();
-            ctx.translate(b.x, b.y);
-            ctx.rotate(b.angle + Math.PI * 0.5);
-            ctx.fillStyle = col;
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 0.8;
+            ctx.translate(bf.x, bf.y);
+            ctx.rotate(bf.angle + Math.PI * 0.5);
 
-            // 左右の羽
-            for (const side of [-1, 1]) {
-              ctx.save();
-              ctx.scale(side * (0.25 + flap * 0.85), 1);
+            ctx.fillStyle = getArtColor(bf.hue, 92, 68, 0.72 * glow, i);
+            ctx.strokeStyle = getArtColor(bf.hue + 30, 95, 82, 0.9, i);
+            ctx.lineWidth = 1;
+
+            [-1, 1].forEach((side) => {
               ctx.beginPath();
               ctx.moveTo(0, 0);
-              ctx.bezierCurveTo(sz * 1.4, -sz * 1.2, sz * 1.6, sz * 0.3, 0, sz * 0.3);
-              ctx.bezierCurveTo(sz * 1.2, sz * 0.5, sz * 0.9, sz * 1.4, 0, sz * 0.8);
-              ctx.closePath();
+              ctx.bezierCurveTo(side * wingW * 1.4, -sz * 1.1, side * wingW * 1.6, sz * 0.2, 0, sz * 0.3);
+              ctx.bezierCurveTo(side * wingW * 1.1, sz * 0.5, side * wingW * 0.9, sz * 1.2, 0, sz * 0.8);
               ctx.fill();
               ctx.stroke();
-              ctx.restore();
-            }
+            });
             ctx.restore();
+
+            if (p2 > 0.05 && Math.random() < 0.25) {
+              drawStarburst(bf.x, bf.y, 4 * size * p2 * glow, getArtColor(bf.hue + 20, 95, 80, 0.75, i), 0.75);
+            }
           }
           break;
         }
@@ -1476,17 +1935,17 @@
             for (let i = 0; i < sim.items.length; i++) {
               const it = sim.items[i];
               const rot = it.rot + state.time * it.rotSpeed * 35 * speed;
-              const dist = it.dist * (0.85 + 0.15 * Math.sin(state.time + i));
+              const dist = it.dist * p2 * (0.85 + 0.15 * Math.sin(state.time + i));
               const px = Math.cos(it.angle + state.time * 0.2 * speed) * dist;
               const py = Math.sin(it.angle + state.time * 0.2 * speed) * dist;
-              const sz = it.size * size;
+              const sz = it.size * size * p1;
 
               ctx.save();
               ctx.translate(px, py);
               ctx.rotate(rot);
               ctx.fillStyle = getArtColor(it.hue + state.time * 20, 90, 62, 0.28 * glow, i);
-              ctx.strokeStyle = getArtColor(it.hue + state.time * 20, 95, 78, 0.65, i);
-              ctx.lineWidth = 1.2;
+              ctx.strokeStyle = getArtColor(it.hue + state.time * 20, 95, 78, 0.65 * p3, i);
+              ctx.lineWidth = 1.2 * p3;
               ctx.beginPath();
               for (let k = 0; k < it.sides; k++) {
                 const a = (k / it.sides) * Math.PI * 2;
@@ -1506,22 +1965,23 @@
         }
 
         // ------------------------------------------------------------------------
-        // #7: 【差し替え】幻想夜桜と光の桜吹雪
+        // #7: 幻想夜桜と光の桜吹雪
         // ------------------------------------------------------------------------
         case 'sakura_blizzard': {
-          const bgHalo = ctx.createRadialGradient(w * 0.5, h * 0.35, 10, w * 0.5, h * 0.35, Math.max(w, h) * 0.65);
-          bgHalo.addColorStop(0, getArtColor(340, 75, 45, 0.22 * glow, 0));
+          const haloR = Math.max(10, Math.max(w, h) * 0.6 * p2);
+          const bgHalo = ctx.createRadialGradient(w * 0.5, h * 0.35, 10, w * 0.5, h * 0.35, haloR);
+          bgHalo.addColorStop(0, getArtColor(340, 75, 48, 0.24 * glow, 0));
           bgHalo.addColorStop(1, 'transparent');
           ctx.fillStyle = bgHalo;
-          ctx.fillRect(0, 0, w, h);
+          ctx.fillRect(-w, -h, w * 3, h * 3);
 
           for (let i = 0; i < sim.particles.length; i++) {
             const p = sim.particles[i];
-            const windX = Math.sin(state.time * 0.9 + p.swayPhase) * 0.55;
+            const windX = Math.sin(state.time * 0.9 + p.swayPhase) * 0.65 * p3;
             p.x += (p.vx + windX + (ptr.isDown ? ptr.vx * 0.06 * reactivity : 0)) * speed;
-            p.y += (p.vy + Math.cos(state.time * 1.1 + p.swayPhase) * 0.25 + (ptr.isDown ? ptr.vy * 0.05 * reactivity : 0)) * speed;
+            p.y += (p.vy + Math.cos(state.time * 1.1 + p.swayPhase) * 0.28 * p3 + (ptr.isDown ? ptr.vy * 0.05 * reactivity : 0)) * speed;
             p.rot += p.rotSpeed * speed;
-            p.flip += p.flipSpeed * speed;
+            p.tiltAngle += p.tiltSpeed * speed;
 
             if (ptr.active) {
               const dx = p.x - ptr.x;
@@ -1533,22 +1993,38 @@
               }
             }
 
-            if (p.x < -25) p.x = w + 25;
-            if (p.x > w + 25) p.x = -25;
-            if (p.y > h + 25) { p.y = -25; p.x = Math.random() * w; }
-            if (p.y < -25) p.y = h + 25;
+            if (p.x < -30) p.x = w + 30;
+            if (p.x > w + 30) p.x = -30;
+            if (p.y > h + 30) { p.y = -30; p.x = Math.random() * w; }
+            if (p.y < -30) p.y = h + 30;
+
+            const tiltScaleX = 0.62 + 0.38 * Math.abs(Math.cos(p.tiltAngle));
+            const tiltScaleY = 0.68 + 0.32 * Math.abs(Math.sin(p.tiltAngle * 0.8 + p.swayPhase));
+            const sz = p.size * size * p1;
+            const pw = sz * p.aspect * tiltScaleX;
+            const ph = sz * tiltScaleY;
 
             ctx.save();
             ctx.translate(p.x, p.y);
             ctx.rotate(p.rot);
-            ctx.scale(1, Math.max(0.18, Math.abs(Math.cos(p.flip))));
-            const sz = p.size * size;
-            ctx.fillStyle = getArtColor(p.hue, 92, 78, Math.min(1, 0.85 * glow), i);
+
+            const pGrad = ctx.createLinearGradient(0, ph, 0, -ph);
+            pGrad.addColorStop(0, getArtColor(p.hue - 4, 60, 95, 0.92 * glow, i));
+            pGrad.addColorStop(0.55, getArtColor(p.hue, 86, p.lightness, 0.9 * glow, i));
+            pGrad.addColorStop(1, getArtColor(p.hue + 4, 92, p.lightness - 7, 0.95 * glow, i));
+            ctx.fillStyle = pGrad;
+
+            const notch = ph * p.notchDepth;
+            const skew = pw * p.curveSkew;
             ctx.beginPath();
-            ctx.moveTo(0, -sz);
-            ctx.bezierCurveTo(sz * 0.95, -sz * 0.55, sz * 0.85, sz * 0.85, 0, sz * 0.65);
-            ctx.bezierCurveTo(-sz * 0.85, sz * 0.85, -sz * 0.95, -sz * 0.55, 0, -sz);
+            ctx.moveTo(0, ph);
+            ctx.bezierCurveTo(pw * 0.78 + skew, ph * 0.48, pw * 0.94 + skew, -ph * 0.42, pw * 0.24, -ph);
+            ctx.lineTo(0, -ph + notch);
+            ctx.lineTo(-pw * 0.24, -ph);
+            ctx.bezierCurveTo(-pw * 0.94 + skew, -ph * 0.42, -pw * 0.78 + skew, ph * 0.48, 0, ph);
+            ctx.closePath();
             ctx.fill();
+
             ctx.restore();
           }
           break;
@@ -1568,8 +2044,8 @@
               const dy = p.y - ptr.y;
               const d = Math.hypot(dx, dy);
               if (d < 150 * reactivity && d > 1) {
-                p.vx += (-dy / d) * 0.18 * reactivity;
-                p.vy += (dx / d) * 0.18 * reactivity;
+                p.vx += (-dy / d) * 0.18 * reactivity * p3;
+                p.vy += (dx / d) * 0.18 * reactivity * p3;
               }
             }
             p.vx *= 0.97;
@@ -1581,169 +2057,328 @@
             if (p.y > h) p.y = 0;
 
             const alpha = 0.4 + 0.6 * Math.sin(state.time * 3 + p.phase);
-            drawStarburst(p.x, p.y, p.r * 3.5 * size * glow, getArtColor(p.hue, 95, 65, alpha, i), alpha);
+            drawStarburst(p.x, p.y, p.r * 3.5 * size * p1 * p2 * glow, getArtColor(p.hue, 95, 65, alpha, i), alpha);
           }
           break;
         }
 
         // ------------------------------------------------------------------------
-        // #9: ウォーターカーテン・イルミネーション
+        // #9: 静寂の夜雨と煌めく雨粒
         // ------------------------------------------------------------------------
         case 'watercurtain': {
-          const spotColors = [195, 325, 275, 45, 160];
-          for (let s = 0; s < 5; s++) {
-            const sx = (w / 4) * s + Math.sin(state.time * 0.8 * speed + s) * 40;
-            const beam = ctx.createLinearGradient(sx, 0, sx, h * 0.88);
-            beam.addColorStop(0, getArtColor(spotColors[s] + state.time * 25, 92, 62, 0.25 * glow, s));
-            beam.addColorStop(1, 'transparent');
-            ctx.fillStyle = beam;
-            ctx.fillRect(sx - w * 0.14, 0, w * 0.28, h * 0.88);
-          }
+          const floorY = h * 0.84;
+          ctx.globalCompositeOperation = 'source-over';
+          const waterGrad = ctx.createLinearGradient(0, floorY, 0, h);
+          waterGrad.addColorStop(0, getArtColor(210, 65, 10, 1, 0));
+          waterGrad.addColorStop(1, '#02040a');
+          ctx.fillStyle = waterGrad;
+          ctx.fillRect(-w, floorY, w * 3, h * 2);
 
-          const floorY = h * 0.86;
+          ctx.globalCompositeOperation = 'lighter';
+
           for (let i = 0; i < sim.particles.length; i++) {
             const p = sim.particles[i];
             p.y += p.vy * speed * 1.35;
-            if (ptr.active && Math.hypot(p.x - ptr.x, p.y - ptr.y) < 90 * reactivity) {
-              p.x += Math.sign(p.x - ptr.x) * 3.5;
+            p.x -= 0.45 * speed;
+
+            if (ptr.active && Math.hypot(p.x - ptr.x, p.y - ptr.y) < 85 * reactivity) {
+              p.x += Math.sign(p.x - ptr.x) * 2.8;
             }
+
             if (p.y >= floorY) {
-              if (Math.random() < 0.16) {
-                sim.ripples.push({ x: p.x, y: floorY + Math.random() * (h - floorY), rx: 4, ry: 1.5, alpha: 0.85, hue: p.hue + state.time * 30 });
+              if (p3 > 0.05 && Math.random() < 0.24) {
+                sim.ripples.push({
+                  x: p.x,
+                  y: floorY + Math.random() * (h - floorY) * 0.85,
+                  rx: 3,
+                  ry: 1.1,
+                  splashH: (6 + Math.random() * 10) * p3,
+                  alpha: 0.85,
+                  hue: p.hue
+                });
               }
               p.y = -20;
-              p.x = Math.random() * w;
+              p.x = Math.random() * (w + 40);
             }
-            ctx.strokeStyle = getArtColor(p.hue + state.time * 25, 90, 72, 0.55 * glow, i);
-            ctx.lineWidth = 1.6 * size;
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p.x, p.y - p.len * size);
-            ctx.stroke();
+            if (p.x < -20) p.x = w + 20;
+
+            if (p.isDroplet && p2 > 0.02) {
+              const tw = 0.55 + 0.45 * Math.sin(state.time * 4 + p.phase);
+              const dr = p.dropR * size * p2;
+              drawStarburst(p.x, p.y, dr * 2.6 * glow, getArtColor(p.hue, 90, 82, tw, i), tw);
+            } else if (p1 > 0.02) {
+              const rLen = p.len * size * p1;
+              const rGrad = ctx.createLinearGradient(p.x, p.y, p.x + 2, p.y - rLen);
+              rGrad.addColorStop(0, getArtColor(p.hue, 85, 78, 0.62 * glow, i));
+              rGrad.addColorStop(1, 'transparent');
+              ctx.strokeStyle = rGrad;
+              ctx.lineWidth = Math.max(0.8, 1.35 * size * p1);
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(p.x + 2, p.y - rLen);
+              ctx.stroke();
+            }
           }
 
-          if (ptr.justClicked) {
-            sim.ripples.push({ x: ptr.x, y: Math.max(floorY, ptr.y), rx: 12, ry: 3, alpha: 1.0, hue: 320 });
+          if (ptr.justClicked && p3 > 0.05) {
+            sim.ripples.push({
+              x: ptr.x,
+              y: Math.max(floorY, ptr.y),
+              rx: 10,
+              ry: 2.8,
+              splashH: 18 * p3,
+              alpha: 1.0,
+              hue: 198
+            });
           }
 
           for (let i = sim.ripples.length - 1; i >= 0; i--) {
             const rp = sim.ripples[i];
-            rp.rx += 85 * dt * speed;
-            rp.ry += 22 * dt * speed;
-            rp.alpha -= dt * 0.8;
-            if (rp.alpha <= 0) sim.ripples.splice(i, 1);
-            else {
-              ctx.strokeStyle = getArtColor(rp.hue, 92, 74, rp.alpha * glow, i);
-              ctx.lineWidth = 1.5;
+            rp.rx += 75 * dt * speed;
+            rp.ry += 20 * dt * speed;
+            rp.alpha -= dt * 0.85;
+            if (rp.alpha <= 0) {
+              sim.ripples.splice(i, 1);
+            } else {
+              ctx.strokeStyle = getArtColor(rp.hue, 88, 76, rp.alpha * glow * p3, i);
+              ctx.lineWidth = 1.3;
               ctx.beginPath();
-              ctx.ellipse(rp.x, rp.y, rp.rx * size, rp.ry * size, 0, 0, Math.PI * 2);
+              ctx.ellipse(rp.x, rp.y, rp.rx * size * p3, rp.ry * size * p3, 0, 0, Math.PI * 2);
+              ctx.stroke();
+
+              if (rp.alpha > 0.45) {
+                const lift = (1 - rp.alpha) * rp.splashH * size;
+                ctx.fillStyle = getArtColor(rp.hue, 92, 86, rp.alpha * glow, i);
+                ctx.beginPath();
+                ctx.arc(rp.x - rp.rx * 0.35, rp.y - lift, 1.4 * size * p3, 0, Math.PI * 2);
+                ctx.arc(rp.x + rp.rx * 0.35, rp.y - lift, 1.4 * size * p3, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+          }
+          break;
+        }
+
+        // ------------------------------------------------------------------------
+        // #10: 万華鏡の鏡面クリスタル宮殿（ばつ印なし・鏡面多重反射＋多数の煌びやかなクリスタル）
+        // ------------------------------------------------------------------------
+        case 'crystal_cavern': {
+          const lightX = ptr.active ? ptr.x : w * 0.5 + Math.cos(state.time * 0.55 * speed) * (w * 0.34);
+          const lightY = ptr.active ? ptr.y : h * 0.45 + Math.sin(state.time * 0.72 * speed) * (h * 0.26);
+
+          // 鏡面宮殿の華やかな環境光ハロー
+          const envGrad = ctx.createRadialGradient(lightX, lightY, 6, lightX, lightY, Math.max(w, h) * 0.65);
+          envGrad.addColorStop(0, getArtColor(200, 92, 74, 0.24 * glow, 0));
+          envGrad.addColorStop(0.45, getArtColor(280, 82, 52, 0.12 * glow, 1));
+          envGrad.addColorStop(1, 'transparent');
+          ctx.fillStyle = envGrad;
+          ctx.fillRect(-w, -h, w * 3, h * 3);
+
+          // 鏡面反射の放射状ライトカーテン（奥行きのある鏡の回廊）
+          if (p2 > 0.05) {
+            const mirrorSlices = 8;
+            for (let m = 0; m < mirrorSlices; m++) {
+              const mAng = (m / mirrorSlices) * Math.PI * 2 + state.time * 0.08 * speed;
+              const beamLen = Math.max(w, h) * 0.75;
+              const bGrad = ctx.createLinearGradient(w * 0.5, h * 0.5, w * 0.5 + Math.cos(mAng) * beamLen, h * 0.5 + Math.sin(mAng) * beamLen);
+              bGrad.addColorStop(0, getArtColor(210 + m * 25, 88, 70, 0.12 * glow * p2, m));
+              bGrad.addColorStop(1, 'transparent');
+              ctx.strokeStyle = bGrad;
+              ctx.lineWidth = 22 * p2;
+              ctx.beginPath();
+              ctx.moveTo(w * 0.5, h * 0.5);
+              ctx.lineTo(w * 0.5 + Math.cos(mAng) * beamLen, h * 0.5 + Math.sin(mAng) * beamLen);
               ctx.stroke();
             }
           }
+
+          // 多面カットクリスタル結晶の描画（メイン結晶＋鏡面ゴースト反射）
+          for (let i = 0; i < sim.items.length; i++) {
+            const cr = sim.items[i];
+            const cw = cr.width * size * p1;
+            const ch = cr.height * size * p1;
+            const dist = Math.hypot(lightX - cr.x, lightY - cr.y);
+            const incidentAngle = Math.atan2(lightY - cr.y, lightX - cr.x);
+            const angleDiff = Math.cos(incidentAngle - cr.tilt + cr.phase + state.time * 0.4);
+            const proximity = Math.max(0, 1 - dist / (Math.max(w, h) * 0.72));
+            const reflPower = (0.42 + 0.58 * Math.max(0, angleDiff)) * (0.45 + proximity * 0.95 * reactivity);
+
+            const drawCrystalUnit = (ux, uy, uTilt, uScale, alphaMult, hueShiftExtra) => {
+              const wUnit = cw * uScale;
+              const hUnit = ch * uScale;
+              const halfH = hUnit * 0.5;
+              const tipOffset = wUnit * 0.95;
+
+              ctx.save();
+              ctx.translate(ux, uy);
+              ctx.rotate(uTilt);
+
+              const faces = [
+                { x1: -wUnit, x2: -wUnit * 0.35, light: 48 + reflPower * 30, hueOff: -14 + hueShiftExtra },
+                { x1: -wUnit * 0.35, x2: wUnit * 0.35, light: 68 + reflPower * 28, hueOff: 0 + hueShiftExtra },
+                { x1: wUnit * 0.35, x2: wUnit, light: 52 + reflPower * 28, hueOff: 18 + hueShiftExtra }
+              ];
+
+              faces.forEach((fc, fIdx) => {
+                const fAlpha = Math.min(0.95, (0.34 + reflPower * 0.52 * p2) * glow * alphaMult);
+                const fGrad = ctx.createLinearGradient(fc.x1, -halfH - tipOffset, fc.x2, halfH + tipOffset);
+                fGrad.addColorStop(0, getArtColor(cr.hue + fc.hueOff, 94, Math.min(92, fc.light + 14), fAlpha, i + fIdx));
+                fGrad.addColorStop(0.5, getArtColor(cr.hue + fc.hueOff + 12, 90, fc.light, fAlpha * 0.9, i + fIdx));
+                fGrad.addColorStop(1, getArtColor(cr.hue + fc.hueOff - 10, 94, Math.min(92, fc.light + 12), fAlpha, i + fIdx));
+                ctx.fillStyle = fGrad;
+
+                ctx.beginPath();
+                ctx.moveTo(0, -halfH - tipOffset);
+                ctx.lineTo(fc.x2, -halfH);
+                ctx.lineTo(fc.x2, halfH);
+                ctx.lineTo(0, halfH + tipOffset);
+                ctx.lineTo(fc.x1, halfH);
+                ctx.lineTo(fc.x1, -halfH);
+                ctx.closePath();
+                ctx.fill();
+              });
+
+              // ファセット稜線（縦のカット面境界と上下ピラミッド稜線のみ・ばつ印の斜め交差線は一切描画しない）
+              ctx.strokeStyle = getArtColor(cr.hue + hueShiftExtra + 15, 98, 90, Math.min(0.95, (0.45 + reflPower * 0.45) * glow * alphaMult), i);
+              ctx.lineWidth = Math.max(0.9, 1.2 * uScale);
+              ctx.beginPath();
+              // 外周輪郭
+              ctx.moveTo(0, -halfH - tipOffset);
+              ctx.lineTo(wUnit, -halfH);
+              ctx.lineTo(wUnit, halfH);
+              ctx.lineTo(0, halfH + tipOffset);
+              ctx.lineTo(-wUnit, halfH);
+              ctx.lineTo(-wUnit, -halfH);
+              ctx.closePath();
+              // 縦ファセット稜線
+              ctx.moveTo(0, -halfH - tipOffset);
+              ctx.lineTo(-wUnit * 0.35, -halfH);
+              ctx.lineTo(-wUnit * 0.35, halfH);
+              ctx.lineTo(0, halfH + tipOffset);
+              ctx.moveTo(0, -halfH - tipOffset);
+              ctx.lineTo(wUnit * 0.35, -halfH);
+              ctx.lineTo(wUnit * 0.35, halfH);
+              ctx.lineTo(0, halfH + tipOffset);
+              ctx.stroke();
+
+              // 内部のスペキュラハイライト帯（滑らかな光沢グラデーション）
+              if (p2 > 0.05) {
+                const sheenGrad = ctx.createLinearGradient(-wUnit * 0.5, -halfH * 0.5, wUnit * 0.5, halfH * 0.5);
+                sheenGrad.addColorStop(0, 'transparent');
+                sheenGrad.addColorStop(0.5, `rgba(255, 255, 255, ${Math.min(0.55, 0.32 * reflPower * glow * p2 * alphaMult)})`);
+                sheenGrad.addColorStop(1, 'transparent');
+                ctx.fillStyle = sheenGrad;
+                ctx.beginPath();
+                ctx.moveTo(-wUnit * 0.35, -halfH);
+                ctx.lineTo(wUnit * 0.35, -halfH);
+                ctx.lineTo(wUnit * 0.35, halfH);
+                ctx.lineTo(-wUnit * 0.35, halfH);
+                ctx.closePath();
+                ctx.fill();
+              }
+
+              ctx.restore();
+            };
+
+            // メインクリスタル描画
+            drawCrystalUnit(cr.x, cr.y, cr.tilt, 1.0, 1.0, 0);
+
+            // 鏡面多重反射ゴースト（鏡の奥に映り込む対称クリスタル像）
+            if (p2 > 0.15) {
+              const mirrorX = w - cr.x;
+              const mirrorY = h - cr.y;
+              drawCrystalUnit(mirrorX, mirrorY, -cr.tilt, 0.68, 0.42 * Math.min(1.5, p2), 28);
+            }
+
+            // パーツ③：クリスタル先端の煌めく丸型・六角プリズムグリント（ばつ印なし）
+            if (reflPower > 0.45 && p3 > 0.05) {
+              const halfH = ch * 0.5;
+              const tipOffset = cw * 0.95;
+              const tipX = cr.x + Math.sin(cr.tilt) * (halfH + tipOffset);
+              const tipY = cr.y - Math.cos(cr.tilt) * (halfH + tipOffset);
+              const glintR = Math.max(2, cw * (0.9 + reflPower * 1.1) * glow * p3);
+
+              const gGrad = ctx.createRadialGradient(tipX, tipY, 0, tipX, tipY, glintR * 1.8);
+              gGrad.addColorStop(0, 'rgba(255, 255, 255, 0.96)');
+              gGrad.addColorStop(0.3, getArtColor(cr.hue + 35, 98, 82, 0.72 * reflPower, i));
+              gGrad.addColorStop(1, 'transparent');
+              ctx.fillStyle = gGrad;
+              ctx.beginPath();
+              ctx.arc(tipX, tipY, glintR * 1.8, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
           break;
         }
 
         // ------------------------------------------------------------------------
-        // #10: 幻想のウミホタル・波打ち際
-        // ------------------------------------------------------------------------
-        case 'seafirefly': {
-          const waveY = (x) => h * 0.58 + Math.sin(x * 0.008 + state.time * 1.4 * speed) * 28 + Math.sin(state.time * 0.9 * speed) * 42;
-
-          // 波打ち際の光の泡沫ライン
-          ctx.beginPath();
-          for (let x = 0; x <= w; x += 16) {
-            const y = waveY(x);
-            if (x === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-          }
-          ctx.strokeStyle = getArtColor(200, 95, 72, 0.45 * glow, 0);
-          ctx.lineWidth = 4 * size;
-          ctx.stroke();
-
-          // ウミホタル粒子
-          for (let i = 0; i < sim.particles.length; i++) {
-            const p = sim.particles[i];
-            p.x += p.vx * speed;
-            p.y += p.vy * speed;
-            const wy = waveY(p.x);
-            if (Math.abs(p.y - wy) < 24) {
-              p.charge = Math.min(1.0, p.charge + dt * 1.8);
-            }
-            if (ptr.active && Math.hypot(p.x - ptr.x, p.y - ptr.y) < 110 * reactivity) {
-              p.charge = 1.0;
-            }
-            p.charge = Math.max(0.18, p.charge - dt * 0.45);
-
-            if (p.x < 0) p.x = w;
-            if (p.x > w) p.x = 0;
-            if (p.y < h * 0.45) p.y = h;
-            if (p.y > h) p.y = h * 0.45;
-
-            drawStarburst(p.x, p.y, p.r * 3.2 * size * glow * p.charge, getArtColor(p.hue, 98, 68, p.charge, i), p.charge);
-          }
-          break;
-        }
-
-        // ------------------------------------------------------------------------
-        // #11: 【差し替え】蒼穹の青空と流れる光の雲
+        // #11: 蒼穹の青空と流れる積雲
         // ------------------------------------------------------------------------
         case 'bluesky': {
           ctx.globalCompositeOperation = 'source-over';
           const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
-          skyGrad.addColorStop(0, getArtColor(212, 85, 36, 1, 0));
-          skyGrad.addColorStop(0.55, getArtColor(202, 88, 54, 1, 1));
+          skyGrad.addColorStop(0, getArtColor(214, 86, 36, 1, 0));
+          skyGrad.addColorStop(0.55, getArtColor(203, 88, 54, 1, 1));
           skyGrad.addColorStop(1, getArtColor(194, 82, 74, 1, 2));
           ctx.fillStyle = skyGrad;
-          ctx.fillRect(0, 0, w, h);
+          ctx.fillRect(-w, -h, w * 3, h * 3);
+
+          const targetSunX = ptr.active ? ptr.x : w * 0.24 + Math.cos(state.time * 0.25) * 40;
+          const targetSunY = ptr.active ? ptr.y : h * 0.20 + Math.sin(state.time * 0.35) * 25;
+          sim.extra.sunX += (targetSunX - sim.extra.sunX) * Math.min(1, 0.08 * Math.max(0.2, reactivity));
+          sim.extra.sunY += (targetSunY - sim.extra.sunY) * Math.min(1, 0.08 * Math.max(0.2, reactivity));
+
+          const sunX = sim.extra.sunX;
+          const sunY = sim.extra.sunY;
 
           ctx.globalCompositeOperation = 'lighter';
-          const sunX = ptr.active ? w * 0.25 + (ptr.x - w * 0.5) * 0.2 : w * 0.22;
-          const sunY = h * 0.18;
-          const sunGlow = ctx.createRadialGradient(sunX, sunY, 5, sunX, sunY, Math.max(w, h) * 0.45 * glow);
-          sunGlow.addColorStop(0, 'rgba(255, 252, 235, 0.92)');
-          sunGlow.addColorStop(0.2, getArtColor(48, 95, 80, 0.42, 0));
+          const sunR = Math.max(10, Math.max(w, h) * 0.42 * size * p1 * glow);
+          const sunGlow = ctx.createRadialGradient(sunX, sunY, 4, sunX, sunY, sunR);
+          sunGlow.addColorStop(0, 'rgba(255, 253, 240, 0.96)');
+          sunGlow.addColorStop(0.18, getArtColor(48, 95, 82, 0.48, 0));
+          sunGlow.addColorStop(0.55, getArtColor(195, 85, 72, 0.16, 1));
           sunGlow.addColorStop(1, 'transparent');
           ctx.fillStyle = sunGlow;
           ctx.beginPath();
-          ctx.arc(sunX, sunY, Math.max(w, h) * 0.45 * glow, 0, Math.PI * 2);
+          ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2);
           ctx.fill();
 
+          ctx.globalCompositeOperation = 'source-over';
           for (let i = 0; i < sim.items.length; i++) {
             const cl = sim.items[i];
-            const windBoost = ptr.active && Math.hypot(ptr.x - cl.x, ptr.y - cl.y) < 160 * reactivity ? 1.8 : 1.0;
-            cl.x += cl.vx * speed * windBoost;
-            if (cl.x > w + 220) cl.x = -220;
+            cl.x += cl.vx * speed;
+            if (cl.x > w + 320) cl.x = -320;
 
-            for (const pf of cl.puffs) {
-              const px = cl.x + pf.ox * cl.scale * size;
-              const py = cl.y + pf.oy * cl.scale * size + Math.sin(state.time * 0.5 + i) * 4;
-              const pr = pf.r * cl.scale * size;
-              const cg = ctx.createRadialGradient(px, py - pr * 0.2, pr * 0.1, px, py, pr);
-              cg.addColorStop(0, `rgba(255, 255, 255, ${cl.alpha * 0.95})`);
-              cg.addColorStop(0.6, getArtColor(205, 45, 92, cl.alpha * 0.55, i));
-              cg.addColorStop(1, 'transparent');
-              ctx.fillStyle = cg;
-              ctx.beginPath();
-              ctx.arc(px, py, pr, 0, Math.PI * 2);
-              ctx.fill();
-            }
+            const cw = cl.scaleW * size * p2;
+            const ch = cl.scaleH * size * p2;
+            if (cw <= 2 || ch <= 2) continue;
+
+            const sprite = getRealisticCloudSprite(cl.seed, false);
+            const distToSun = Math.hypot(cl.x - sunX, cl.y - sunY);
+            const sunProximity = Math.max(0, 1 - distToSun / (Math.max(w, h) * 0.65));
+
+            ctx.save();
+            ctx.globalAlpha = Math.min(0.98, cl.alpha * (0.88 + sunProximity * 0.22));
+            ctx.drawImage(sprite, cl.x - cw * 0.5, cl.y - ch * 0.5 + Math.sin(state.time * 0.4 + i) * 3, cw, ch);
+            ctx.restore();
           }
 
+          ctx.globalCompositeOperation = 'lighter';
           for (let i = 0; i < sim.particles.length; i++) {
             const p = sim.particles[i];
             p.x += p.vx * speed * 1.4;
             if (p.x > w) p.x = 0;
             const tw = 0.35 + 0.65 * Math.sin(state.time * 2.5 + p.phase);
-            ctx.fillStyle = `rgba(255, 255, 240, ${tw * 0.6 * glow})`;
+            ctx.fillStyle = `rgba(255, 255, 240, ${tw * 0.65 * glow * p3})`;
             ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r * size, 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, p.r * size * p3, 0, Math.PI * 2);
             ctx.fill();
           }
           break;
         }
 
         // ------------------------------------------------------------------------
-        // #12: 【差し替え】黄昏のマジックアワーと夕焼け雲
+        // #12: 黄昏のマジックアワーと夕焼け雲
         // ------------------------------------------------------------------------
         case 'sunset': {
           const horizonY = h * 0.64;
@@ -1754,48 +2389,52 @@
           skyGrad.addColorStop(0.78, getArtColor(18, 92, 52, 1, 2));
           skyGrad.addColorStop(1, getArtColor(42, 98, 66, 1, 3));
           ctx.fillStyle = skyGrad;
-          ctx.fillRect(0, 0, w, horizonY);
+          ctx.fillRect(-w, -h, w * 3, horizonY + h);
 
           const seaGrad = ctx.createLinearGradient(0, horizonY, 0, h);
           seaGrad.addColorStop(0, getArtColor(26, 88, 36, 1, 4));
           seaGrad.addColorStop(1, getArtColor(245, 70, 12, 1, 5));
           ctx.fillStyle = seaGrad;
-          ctx.fillRect(0, horizonY, w, h - horizonY);
+          ctx.fillRect(-w, horizonY, w * 3, h * 2);
 
           ctx.globalCompositeOperation = 'lighter';
           const sunX = w * 0.5 + (ptr.active ? (ptr.x - w * 0.5) * 0.25 * reactivity : 0);
           const sunY = horizonY - Math.min(w, h) * 0.05;
-          const sunR = Math.min(w, h) * 0.11 * size;
 
-          const sunHalo = ctx.createRadialGradient(sunX, sunY, sunR * 0.4, sunX, sunY, sunR * 4.2 * glow);
-          sunHalo.addColorStop(0, 'rgba(255, 248, 210, 0.95)');
-          sunHalo.addColorStop(0.28, getArtColor(34, 98, 62, 0.55, 0));
+          const sunR = Math.max(2, Math.min(w, h) * 0.095 * size * p1);
+          const sunHalo = ctx.createRadialGradient(sunX, sunY, sunR * 0.35, sunX, sunY, sunR * 3.8 * glow);
+          sunHalo.addColorStop(0, 'rgba(255, 250, 220, 0.96)');
+          sunHalo.addColorStop(0.28, getArtColor(34, 98, 62, 0.58, 0));
           sunHalo.addColorStop(1, 'transparent');
           ctx.fillStyle = sunHalo;
           ctx.beginPath();
-          ctx.arc(sunX, sunY, sunR * 4.2 * glow, 0, Math.PI * 2);
+          ctx.arc(sunX, sunY, sunR * 3.8 * glow, 0, Math.PI * 2);
           ctx.fill();
 
+          ctx.globalCompositeOperation = 'source-over';
           for (let i = 0; i < sim.items.length; i++) {
             const cl = sim.items[i];
             cl.x += cl.vx * speed;
-            if (cl.x > w + 180) cl.x = -180;
-            const cg = ctx.createRadialGradient(cl.x, cl.y, 4, cl.x, cl.y, cl.w * size);
-            cg.addColorStop(0, getArtColor(cl.hue, 95, 65, 0.42 * glow, i));
-            cg.addColorStop(1, 'transparent');
-            ctx.fillStyle = cg;
-            ctx.beginPath();
-            ctx.ellipse(cl.x, cl.y, cl.w * size, cl.h * size, 0, 0, Math.PI * 2);
-            ctx.fill();
+            if (cl.x > w + 320) cl.x = -320;
+            const cw = cl.scaleW * p2;
+            const ch = cl.scaleH * p2;
+            if (cw <= 2 || ch <= 2) continue;
+
+            const sprite = getRealisticCloudSprite(cl.seed, true);
+            ctx.save();
+            ctx.globalAlpha = Math.min(0.95, cl.alpha * (0.75 + 0.25 * Math.min(1.5, glow)));
+            ctx.drawImage(sprite, cl.x - cw * 0.5, cl.y - ch * 0.5, cw, ch);
+            ctx.restore();
           }
 
+          ctx.globalCompositeOperation = 'lighter';
           for (let i = 0; i < sim.particles.length; i++) {
             const rp = sim.particles[i];
             const ratio = (rp.y - horizonY) / (h - horizonY);
             const rx = sunX + Math.sin(state.time * 1.8 * speed + rp.phase) * (25 + ratio * 95);
-            const rw = rp.w * (0.5 + ratio * 1.4) * size;
+            const rw = rp.w * (0.5 + ratio * 1.4) * p3;
             ctx.fillStyle = getArtColor(38, 98, 72, (0.35 + 0.35 * Math.sin(state.time * 3 + rp.phase)) * glow, i);
-            ctx.fillRect(rx - rw * 0.5, rp.y, rw, 2.2 * size);
+            ctx.fillRect(rx - rw * 0.5, rp.y, rw, 2.2 * p3);
           }
 
           if (ptr.justClicked && ptr.y >= horizonY) {
@@ -1811,7 +2450,7 @@
               ctx.strokeStyle = getArtColor(42, 95, 76, r.alpha * glow, i);
               ctx.lineWidth = 1.5;
               ctx.beginPath();
-              ctx.ellipse(r.x, r.y, r.rx * size, r.ry * size, 0, 0, Math.PI * 2);
+              ctx.ellipse(r.x, r.y, r.rx * p3, r.ry * p3, 0, 0, Math.PI * 2);
               ctx.stroke();
             }
           }
@@ -1825,7 +2464,7 @@
           sim.extra.rot += 0.06 * dt * speed + (ptr.isDown ? ptr.vx * 0.003 : 0);
           const cx = w * 0.5;
           const cy = h * 0.55;
-          const maxR = Math.hypot(w, h) * 0.65;
+          const maxR = Math.hypot(w, h) * 0.65 * p2;
 
           for (let i = 0; i < sim.particles.length; i++) {
             const st = sim.particles[i];
@@ -1836,11 +2475,11 @@
             const tw = 0.5 + 0.5 * Math.sin(state.time * 2.5 + st.twinkle);
             ctx.fillStyle = getArtColor(st.hue, 85, 80, tw * glow, i);
             ctx.beginPath();
-            ctx.arc(sx, sy, st.r * size, 0, Math.PI * 2);
+            ctx.arc(sx, sy, st.r * size * p1, 0, Math.PI * 2);
             ctx.fill();
           }
 
-          if (Math.random() < 0.03 * speed || ptr.justClicked) {
+          if (Math.random() < 0.03 * speed * p3 || ptr.justClicked) {
             sim.extra.meteors.push({
               x: ptr.justClicked ? ptr.x : Math.random() * w,
               y: ptr.justClicked ? ptr.y : Math.random() * h * 0.4,
@@ -1857,14 +2496,15 @@
             if (m.life <= 0) {
               sim.extra.meteors.splice(i, 1);
             } else {
-              const grad = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * 12, m.y - m.vy * 12);
+              const tail = 12 * p3;
+              const grad = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * tail, m.y - m.vy * tail);
               grad.addColorStop(0, '#ffffff');
               grad.addColorStop(1, 'transparent');
               ctx.strokeStyle = grad;
               ctx.lineWidth = 2.5 * size;
               ctx.beginPath();
               ctx.moveTo(m.x, m.y);
-              ctx.lineTo(m.x - m.vx * 12, m.y - m.vy * 12);
+              ctx.lineTo(m.x - m.vx * tail, m.y - m.vy * tail);
               ctx.stroke();
             }
           }
@@ -1885,7 +2525,7 @@
             });
           };
           if (ptr.justClicked) launch(ptr.x, ptr.y);
-          if (Math.random() < 0.035 * speed * density) {
+          if (Math.random() < 0.035 * speed * Math.max(0.2, density) * p3) {
             launch(w * 0.15 + Math.random() * w * 0.7, h * 0.15 + Math.random() * h * 0.42);
           }
 
@@ -1895,14 +2535,14 @@
             rk.y += (rk.ty - rk.y) * 0.08 * speed;
             ctx.fillStyle = '#fff3c4';
             ctx.beginPath();
-            ctx.arc(rk.x, rk.y, 2.5 * size, 0, Math.PI * 2);
+            ctx.arc(rk.x, rk.y, 2.5 * size * p2, 0, Math.PI * 2);
             ctx.fill();
 
             if (Math.hypot(rk.tx - rk.x, rk.ty - rk.y) < 12) {
-              const sparkCount = Math.floor(85 * density);
+              const sparkCount = Math.min(240, Math.max(12, Math.floor(85 * Math.max(0.2, density))));
               for (let k = 0; k < sparkCount; k++) {
                 const ang = (k / sparkCount) * Math.PI * 2 + Math.random() * 0.1;
-                const spd = 1.5 + Math.random() * 4.5;
+                const spd = (1.5 + Math.random() * 4.5) * p1;
                 sim.extra.sparks.push({
                   x: rk.x,
                   y: rk.y,
@@ -1929,7 +2569,7 @@
             } else {
               ctx.fillStyle = getArtColor(sp.hue, 95, 65, sp.life * glow, i);
               ctx.beginPath();
-              ctx.arc(sp.x, sp.y, 2.2 * size, 0, Math.PI * 2);
+              ctx.arc(sp.x, sp.y, 2.2 * size * p2, 0, Math.PI * 2);
               ctx.fill();
             }
           }
@@ -1937,103 +2577,120 @@
         }
 
         // ------------------------------------------------------------------------
-        // #15: 【差し替え】夜空に舞うライトアップ紅葉
+        // #15: 錦秋の紅葉・枝垂れと舞い散る落葉
         // ------------------------------------------------------------------------
         case 'momiji': {
-          for (let b = 0; b < 4; b++) {
-            const bx = w * (0.2 + b * 0.2) + (ptr.active ? (ptr.x - w * 0.5) * 0.12 * reactivity : 0);
-            const sway = Math.sin(state.time * 0.7 * speed + b * 1.5) * 65;
-            const beam = ctx.createLinearGradient(bx, h, bx + sway, h * 0.12);
-            beam.addColorStop(0, getArtColor(36 + b * 6, 95, 65, 0.28 * glow, b));
-            beam.addColorStop(1, 'transparent');
-            ctx.fillStyle = beam;
+          ctx.globalCompositeOperation = 'source-over';
+          const bgGrad = ctx.createRadialGradient(w * 0.5, h * 0.25, 20, w * 0.5, h * 0.4, Math.max(w, h) * 0.8);
+          bgGrad.addColorStop(0, getArtColor(16, 65, 13, 1, 0));
+          bgGrad.addColorStop(1, '#040307');
+          ctx.fillStyle = bgGrad;
+          ctx.fillRect(-w, -h, w * 3, h * 3);
+
+          ctx.strokeStyle = 'rgba(32, 18, 16, 0.85)';
+          ctx.lineCap = 'round';
+          for (let b = 0; b < sim.extra.branches.length; b++) {
+            const br = sim.extra.branches[b];
+            const sway = Math.sin(state.time * 1.1 * speed + br.swayPhase) * 8;
+            ctx.lineWidth = 3.2;
             ctx.beginPath();
-            ctx.moveTo(bx - 22, h);
-            ctx.lineTo(bx + 22, h);
-            ctx.lineTo(bx + sway + 140 * size, h * 0.1);
-            ctx.lineTo(bx + sway - 140 * size, h * 0.1);
-            ctx.closePath();
-            ctx.fill();
+            ctx.moveTo(br.startX, br.startY);
+            ctx.quadraticCurveTo(br.cpX + sway * 0.5, br.cpY, br.endX + sway, br.endY);
+            ctx.stroke();
+          }
+
+          ctx.globalCompositeOperation = 'lighter';
+          for (let i = 0; i < sim.items.length; i++) {
+            const lf = sim.items[i];
+            const swayX = Math.sin(state.time * 1.1 * speed + lf.swayPhase) * 6;
+            const swayRot = lf.rot + Math.sin(state.time * 1.4 * speed + lf.swayPhase) * 0.14;
+            const lx = lf.baseX + swayX;
+            const ly = lf.baseY;
+            const sz = lf.size * size * p1;
+
+            const distCursor = ptr.active ? Math.hypot(lx - ptr.x, ly - ptr.y) : 9999;
+            const touchGlow = distCursor < 170 * reactivity ? (1 - distCursor / (170 * reactivity)) * 22 : 0;
+
+            const lightVal = Math.min(76, lf.lightness * (0.75 + 0.25 * p3) + touchGlow);
+            const fillCol = getArtColor(lf.hue, 94, lightVal, Math.min(0.95, 0.78 * glow), i);
+            const edgeCol = getArtColor(lf.hue + 14, 98, Math.min(84, lightVal + 14), Math.min(0.85, 0.45 * glow * p3), i);
+
+            drawMapleLeaf(lx, ly, sz, swayRot, lf.lobes, fillCol, edgeCol);
           }
 
           for (let i = 0; i < sim.particles.length; i++) {
-            const lf = sim.particles[i];
-            lf.x += (lf.vx + Math.sin(state.time * 1.2 + lf.swayPhase) * 0.45) * speed;
-            lf.y += lf.vy * speed;
-            lf.rot += lf.rotSpeed * speed;
-
-            if (ptr.active) {
-              const dx = lf.x - ptr.x;
-              const dy = lf.y - ptr.y;
-              const d = Math.hypot(dx, dy);
-              if (d < 130 * reactivity && d > 1) {
-                lf.x += (dx / d) * 1.8;
-                lf.y -= 1.8;
-              }
+            const fl = sim.particles[i];
+            fl.x += (fl.vx + Math.sin(state.time * 1.2 + fl.swayPhase) * 0.45 + (ptr.isDown ? ptr.vx * 0.04 * reactivity : 0)) * speed;
+            fl.y += fl.vy * speed;
+            fl.rot += fl.rotSpeed * speed;
+            if (fl.y > h + 25) {
+              fl.y = -20;
+              fl.x = Math.random() * w;
             }
+            if (fl.x < -30) fl.x = w + 30;
+            if (fl.x > w + 30) fl.x = -30;
 
-            if (lf.x < -30) lf.x = w + 30;
-            if (lf.x > w + 30) lf.x = -30;
-            if (lf.y > h + 30) { lf.y = -30; lf.x = Math.random() * w; }
-
-            const sz = lf.size * size;
-            ctx.save();
-            ctx.translate(lf.x, lf.y);
-            ctx.rotate(lf.rot);
-            ctx.fillStyle = getArtColor(lf.hue, 95, 62, Math.min(1, 0.88 * glow), i);
-            ctx.beginPath();
-            const lobes = 5;
-            for (let k = 0; k < lobes * 2; k++) {
-              const ang = -Math.PI * 0.5 + (k / (lobes * 2)) * Math.PI * 1.5 - Math.PI * 0.25;
-              const rad = k % 2 === 0 ? sz : sz * 0.35;
-              const px = Math.cos(ang) * rad;
-              const py = Math.sin(ang) * rad;
-              if (k === 0) ctx.moveTo(px, py);
-              else ctx.lineTo(px, py);
-            }
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
+            const col = getArtColor(fl.hue, 95, Math.min(78, 56 + 12 * p3), Math.min(0.96, 0.88 * glow), i);
+            drawMapleLeaf(fl.x, fl.y, fl.size * size * p2, fl.rot, fl.lobes, col, null);
           }
           break;
         }
 
         // ------------------------------------------------------------------------
-        // #16: 【差し替え】星屑が流れる銀河の運河
+        // #16: 銀河・運河の中心への突入
         // ------------------------------------------------------------------------
         case 'galaxy_canal': {
-          const canalCenterY = (x) => h * 0.5 + Math.sin(x * 0.0035 + state.time * 0.35 * speed) * (h * 0.18) - (x - w * 0.5) * 0.16;
+          const cx = w * 0.5 + (ptr.active ? (ptr.x - w * 0.5) * 0.35 * reactivity : 0);
+          const cy = h * 0.5 + (ptr.active ? (ptr.y - h * 0.5) * 0.35 * reactivity : 0);
 
-          for (let layer = 0; layer < 3; layer++) {
-            ctx.beginPath();
-            for (let x = 0; x <= w; x += 24) {
-              const y = canalCenterY(x) + (layer - 1) * 36 * size;
-              if (x === 0) ctx.moveTo(x, y);
-              else ctx.lineTo(x, y);
-            }
-            ctx.strokeStyle = getArtColor(210 + layer * 42, 88, 58, 0.18 * glow, layer);
-            ctx.lineWidth = (110 - layer * 25) * size;
-            ctx.stroke();
-          }
+          const coreR = Math.max(10, Math.min(w, h) * 0.36 * size * p1);
+          const coreGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreR * glow);
+          coreGrad.addColorStop(0, 'rgba(255, 253, 242, 0.98)');
+          coreGrad.addColorStop(0.18, getArtColor(42, 95, 78, 0.78, 0));
+          coreGrad.addColorStop(0.48, getArtColor(28, 90, 52, 0.35, 1));
+          coreGrad.addColorStop(0.78, getArtColor(225, 85, 38, 0.16, 2));
+          coreGrad.addColorStop(1, 'transparent');
+          ctx.fillStyle = coreGrad;
+          ctx.beginPath();
+          ctx.arc(cx, cy, coreR * glow, 0, Math.PI * 2);
+          ctx.fill();
 
           for (let i = 0; i < sim.particles.length; i++) {
-            const p = sim.particles[i];
-            p.x += p.speed * speed * 1.35;
-            if (p.x > w + 20) p.x = -20;
-
-            let py = canalCenterY(p.x) + p.offsetY * size + Math.sin(state.time * 1.6 + p.phase) * 14;
-            if (ptr.active) {
-              const dx = p.x - ptr.x;
-              const dy = py - ptr.y;
-              const d = Math.hypot(dx, dy);
-              if (d < 150 * reactivity && d > 1) {
-                const swirl = (1 - d / (150 * reactivity)) * 32;
-                py += Math.sin(d * 0.06 - state.time * 4) * swirl;
-              }
+            const st = sim.particles[i];
+            st.z -= st.vz * speed * 1.4;
+            st.angle += 0.12 * dt * speed;
+            if (st.z <= 0.04) {
+              st.z = 1.0;
             }
 
-            const tw = 0.5 + 0.5 * Math.sin(state.time * 3 + p.phase);
-            drawStarburst(p.x, py, p.size * 2.4 * size * glow, getArtColor(p.hue, 92, 76, tw, i), tw);
+            const perspective = 1 / (st.z * 2.4 + 0.15);
+            const r = st.baseR * perspective * 0.42 * p2;
+            const px = cx + Math.cos(st.angle) * r * 1.32;
+            const py = cy + Math.sin(st.angle) * r * 0.68;
+
+            if (px < -80 || px > w + 80 || py < -80 || py > h + 80) continue;
+
+            if (st.isNebulaGlow) {
+              const nr = Math.max(2, st.size * perspective * 0.55 * p2);
+              const nGrad = ctx.createRadialGradient(px, py, 1, px, py, nr);
+              nGrad.addColorStop(0, getArtColor(st.hue, 88, 62, 0.13 * glow, i));
+              nGrad.addColorStop(1, 'transparent');
+              ctx.fillStyle = nGrad;
+              ctx.beginPath();
+              ctx.arc(px, py, nr, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              const starR = Math.max(0.5, st.size * perspective * 0.42 * size * p3);
+              const alpha = Math.min(1, (1.1 - st.z) * 0.95 * glow);
+              if (starR > 2.2) {
+                drawStarburst(px, py, starR * 2.2, getArtColor(st.hue, 92, 80, alpha, i), alpha);
+              } else {
+                ctx.fillStyle = getArtColor(st.hue, 90, 82, alpha, i);
+                ctx.beginPath();
+                ctx.arc(px, py, starR, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
           }
           break;
         }
@@ -2044,21 +2701,22 @@
         case 'eclipse': {
           const cx = w * 0.5;
           const cy = h * 0.5;
-          const r = Math.min(w, h) * 0.17 * size;
+          const r = Math.max(2, Math.min(w, h) * 0.17 * size * p1);
 
-          const corona = ctx.createRadialGradient(cx, cy, r * 0.9, cx, cy, r * 3.2 * glow);
+          const coronaR = Math.max(4, r * 3.2 * glow * p2);
+          const corona = ctx.createRadialGradient(cx, cy, r * 0.9, cx, cy, coronaR);
           corona.addColorStop(0, getArtColor(42, 95, 78, 0.85, 0));
           corona.addColorStop(0.35, getArtColor(210, 80, 65, 0.35, 1));
           corona.addColorStop(1, 'transparent');
           ctx.fillStyle = corona;
           ctx.beginPath();
-          ctx.arc(cx, cy, r * 3.2 * glow, 0, Math.PI * 2);
+          ctx.arc(cx, cy, coronaR, 0, Math.PI * 2);
           ctx.fill();
 
           for (let i = 0; i < sim.particles.length; i++) {
             const p = sim.particles[i];
             p.angle += p.speed * speed;
-            const d = r * (1.02 + Math.sin(state.time * 2 + i) * 0.12 + (p.dist - 1) * 0.8);
+            const d = r * (1.02 + Math.sin(state.time * 2 + i) * 0.12 + (p.dist - 1) * 0.8 * p2);
             const px = cx + Math.cos(p.angle) * d;
             const py = cy + Math.sin(p.angle) * d;
             ctx.fillStyle = getArtColor(45, 95, 75, 0.65, i);
@@ -2077,7 +2735,7 @@
           const ringAngle = ptr.active ? Math.atan2(ptr.y - cy, ptr.x - cx) : -Math.PI * 0.25 + Math.sin(state.time * 0.4) * 0.2;
           const dx = cx + Math.cos(ringAngle) * r;
           const dy = cy + Math.sin(ringAngle) * r;
-          drawStarburst(dx, dy, r * 0.85 * glow, getArtColor(45, 100, 82, 0.95, 0), 0.95);
+          drawStarburst(dx, dy, r * 0.85 * glow * p3, getArtColor(45, 100, 82, 0.95, 0), 0.95);
           break;
         }
 
@@ -2090,10 +2748,11 @@
           for (let i = 0; i < sim.particles.length; i++) {
             const p = sim.particles[i];
             p.angle += p.speed * speed * 12;
-            const px = cx + Math.cos(p.angle) * p.radius * size;
-            const py = cy + Math.sin(p.angle) * p.radius * 0.68 * size;
+            const rad = p.radius * p3;
+            const px = cx + Math.cos(p.angle) * rad;
+            const py = cy + Math.sin(p.angle) * rad * 0.68;
             if (p.cloud) {
-              const cr = 45 * size * glow;
+              const cr = Math.max(2, 45 * size * p1 * glow);
               const grad = ctx.createRadialGradient(px, py, 0, px, py, cr);
               grad.addColorStop(0, getArtColor(p.hue, 88, 55, 0.14, i));
               grad.addColorStop(1, 'transparent');
@@ -2104,7 +2763,7 @@
             } else {
               ctx.fillStyle = getArtColor(p.hue, 90, 78, 0.85, i);
               ctx.beginPath();
-              ctx.arc(px, py, p.size * size * 0.6, 0, Math.PI * 2);
+              ctx.arc(px, py, p.size * size * p2 * 0.6, 0, Math.PI * 2);
               ctx.fill();
             }
           }
@@ -2112,95 +2771,117 @@
         }
 
         // ------------------------------------------------------------------------
-        // #19: 黄金のグリッター・ストリーム
+        // #19: 黄金のグリッター・ウェーブ
         // ------------------------------------------------------------------------
         case 'glitter': {
-          for (let ribbon = 0; ribbon < 3; ribbon++) {
+          const waveCount = 5;
+          for (let ribbon = 0; ribbon < waveCount; ribbon++) {
+            const baseOffset = (ribbon - 2) * 34 * p1;
+            const amp1 = h * 0.14 * p1;
+            const amp2 = 36 * p1;
+
             ctx.beginPath();
-            for (let x = 0; x <= w; x += 18) {
-              const y = h * 0.5
-                + Math.sin(x * 0.005 + state.time * 1.4 * speed + ribbon * 1.2) * (h * 0.22)
-                + Math.cos(x * 0.008 - state.time * 0.9 * speed) * 45;
+            for (let x = 0; x <= w; x += 14) {
+              const cursorPull = ptr.active
+                ? Math.exp(-Math.pow((x - ptr.x) / 220, 2)) * (ptr.y - h * 0.5) * 0.45 * reactivity
+                : 0;
+              const y = h * 0.5 + baseOffset
+                + Math.sin(x * 0.0045 + state.time * 1.15 * speed + ribbon * 0.85) * amp1
+                + Math.cos(x * 0.0095 - state.time * 0.75 * speed + ribbon * 0.4) * amp2
+                + cursorPull;
               if (x === 0) ctx.moveTo(x, y);
               else ctx.lineTo(x, y);
             }
-            ctx.strokeStyle = getArtColor(43 + ribbon * 6, 95, 65, 0.28 * glow, ribbon);
-            ctx.lineWidth = (18 - ribbon * 4) * size;
+
+            ctx.strokeStyle = getArtColor(41 + ribbon * 4, 96, 56 + ribbon * 4, 0.16 * glow * p2, ribbon);
+            ctx.lineWidth = (24 - ribbon * 2.5) * size * p1;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            ctx.strokeStyle = getArtColor(46 + ribbon * 3, 100, 78, 0.42 * glow * p2, ribbon);
+            ctx.lineWidth = Math.max(0.8, (3.2 - ribbon * 0.35) * size);
             ctx.stroke();
           }
 
-          for (let i = 0; i < sim.particles.length; i++) {
-            const p = sim.particles[i];
-            p.x += p.speed * speed * 1.2;
-            p.y += Math.sin(state.time * 2 + p.phase) * 0.9 * speed;
-            if (ptr.active) {
-              const dx = ptr.x - p.x;
-              const dy = ptr.y - p.y;
-              const d = Math.hypot(dx, dy);
-              if (d < 160 * reactivity && d > 1) {
-                p.x += (dx / d) * 1.5;
-                p.y += (dy / d) * 1.5;
-              }
+          if (p3 > 0.02) {
+            for (let i = 0; i < sim.particles.length; i++) {
+              const p = sim.particles[i];
+              p.x += p.speed * speed * 1.15;
+              if (p.x > w + 10) p.x = -10;
+
+              const ribbon = p.waveIdx;
+              const baseOffset = (ribbon - 2) * 34 * p1;
+              const amp1 = h * 0.14 * p1;
+              const amp2 = 36 * p1;
+              const cursorPull = ptr.active
+                ? Math.exp(-Math.pow((p.x - ptr.x) / 220, 2)) * (ptr.y - h * 0.5) * 0.45 * reactivity
+                : 0;
+              const waveY = h * 0.5 + baseOffset
+                + Math.sin(p.x * 0.0045 + state.time * 1.15 * speed + ribbon * 0.85) * amp1
+                + Math.cos(p.x * 0.0095 - state.time * 0.75 * speed + ribbon * 0.4) * amp2
+                + cursorPull;
+
+              const py = waveY + p.offsetY * p1 + Math.sin(state.time * 2.5 + p.phase) * 8;
+              const sparkle = 0.35 + 0.65 * Math.sin(state.time * 5.2 + p.phase);
+              drawStarburst(p.x, py, p.size * 2.8 * size * p3 * glow, getArtColor(p.hue, 98, 76, sparkle, i), sparkle);
             }
-            if (p.x > w + 10) { p.x = -10; p.y = Math.random() * h; }
-            const sparkle = 0.4 + 0.6 * Math.sin(state.time * 5 + p.phase);
-            drawStarburst(p.x, p.y, p.size * 3.2 * size * glow, getArtColor(p.hue, 95, 72, sparkle, i), sparkle);
           }
           break;
         }
 
         // ------------------------------------------------------------------------
-        // #20: 【差し替え】ダイヤモンドのプリズム閃光
+        // #20: ダイヤモンドのプリズム閃光
         // ------------------------------------------------------------------------
         case 'diamond': {
-          const lightAngle = ptr.active ? Math.atan2(ptr.y - h * 0.5, ptr.x - w * 0.5) : state.time * 0.6;
-
           for (let i = 0; i < sim.items.length; i++) {
             const dm = sim.items[i];
-            dm.rot += dm.rotSpeed * speed;
-            const r = dm.r * size;
-            const align = Math.pow(0.5 + 0.5 * Math.cos(dm.rot * 2 - lightAngle + dm.phase), 3);
+            const rot = dm.rot + state.time * dm.rotSpeed * 20 * speed;
+            const r = dm.r * size * p1;
+            const angleToPtr = ptr.active ? Math.atan2(ptr.y - dm.y, ptr.x - dm.x) : state.time * 0.8;
+            const brilliance = Math.pow(0.5 + 0.5 * Math.cos(rot - angleToPtr + dm.phase), 2);
+            const fireHue = (dm.hue + state.time * 45 + brilliance * 140) % 360;
 
             ctx.save();
             ctx.translate(dm.x, dm.y);
-            ctx.rotate(dm.rot);
+            ctx.rotate(rot);
 
-            const sides = 8;
-            for (let s = 0; s < sides; s++) {
-              const a1 = (s / sides) * Math.PI * 2;
-              const a2 = ((s + 1) / sides) * Math.PI * 2;
-              const facetLight = 0.12 + 0.35 * Math.max(0, Math.cos(a1 + dm.rot - lightAngle));
-              ctx.fillStyle = getArtColor(dm.hue + s * 45, 92, 74, facetLight * glow, i + s);
-              ctx.beginPath();
-              ctx.moveTo(0, 0);
-              ctx.lineTo(Math.cos(a1) * r, Math.sin(a1) * r);
-              ctx.lineTo(Math.cos(a2) * r, Math.sin(a2) * r);
-              ctx.closePath();
-              ctx.fill();
-            }
-
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
-            ctx.lineWidth = 1;
+            ctx.fillStyle = getArtColor(fireHue, 85, 72, (0.22 + brilliance * 0.45) * glow * p2, i);
+            ctx.strokeStyle = getArtColor(fireHue + 30, 95, 86, (0.45 + brilliance * 0.55) * glow, i);
+            ctx.lineWidth = 1.3;
             ctx.beginPath();
-            for (let s = 0; s < sides; s++) {
-              const a = (s / sides) * Math.PI * 2;
-              if (s === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
-              else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+            for (let k = 0; k < 8; k++) {
+              const a = (k / 8) * Math.PI * 2;
+              const vx = Math.cos(a) * r;
+              const vy = Math.sin(a) * r;
+              if (k === 0) ctx.moveTo(vx, vy);
+              else ctx.lineTo(vx, vy);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            for (let k = 0; k < 8; k++) {
+              const a = (k / 8) * Math.PI * 2;
+              const vx = Math.cos(a) * r * 0.52;
+              const vy = Math.sin(a) * r * 0.52;
+              if (k === 0) ctx.moveTo(vx, vy);
+              else ctx.lineTo(vx, vy);
             }
             ctx.closePath();
             ctx.stroke();
             ctx.restore();
 
-            if (align > 0.25) {
-              drawStarburst(dm.x, dm.y, r * (1.2 + align * 1.8) * glow, getArtColor(dm.hue + state.time * 60, 98, 82, align, i), align);
+            if (brilliance > 0.65 && p3 > 0.05) {
+              drawStarburst(dm.x, dm.y, r * 1.5 * brilliance * glow * p3, getArtColor(fireHue, 100, 82, brilliance, i), brilliance);
             }
           }
 
           for (let i = 0; i < sim.particles.length; i++) {
             const p = sim.particles[i];
             const tw = Math.pow(0.5 + 0.5 * Math.sin(state.time * 4.5 + p.phase), 3);
-            if (tw > 0.2) {
-              drawStarburst(p.x, p.y, p.size * 3.2 * size * glow, getArtColor(p.hue, 96, 84, tw, i), tw);
+            if (tw > 0.4) {
+              drawStarburst(p.x, p.y, p.size * 2.5 * size * p3 * glow * tw, getArtColor(p.hue + state.time * 30, 95, 80, tw, i), tw);
             }
           }
           break;
@@ -2213,21 +2894,22 @@
           const fx = ptr.active ? ptr.x : w * 0.5 + Math.cos(state.time * 1.3 * speed) * (w * 0.25);
           const fy = ptr.active ? ptr.y : h * 0.5 + Math.sin(state.time * 1.9 * speed) * (h * 0.2);
 
-          drawStarburst(fx, fy, 32 * size * glow, getArtColor(state.time * 60, 95, 80, 0.95, 0), 0.95);
+          drawStarburst(fx, fy, 32 * size * p1 * glow, getArtColor(state.time * 60, 95, 80, 0.95, 0), 0.95);
 
-          for (let k = 0; k < Math.ceil(3 * density); k++) {
+          const spawnCount = Math.min(18, Math.ceil(3 * Math.max(0.2, density)));
+          for (let k = 0; k < spawnCount; k++) {
             sim.particles.push({
-              x: fx + (Math.random() - 0.5) * 16,
-              y: fy + (Math.random() - 0.5) * 16,
-              vx: (Math.random() - 0.5) * 2.5,
-              vy: (Math.random() - 0.5) * 2.5 + 0.4,
+              x: fx + (Math.random() - 0.5) * 16 * p3,
+              y: fy + (Math.random() - 0.5) * 16 * p3,
+              vx: (Math.random() - 0.5) * 2.5 * p3,
+              vy: (Math.random() - 0.5) * 2.5 * p3 + 0.4,
               size: 1.5 + Math.random() * 3,
               hue: (state.time * 80 + Math.random() * 90) % 360,
               phase: Math.random() * Math.PI * 2,
               life: 1.0
             });
           }
-          if (sim.particles.length > 350) sim.particles.splice(0, sim.particles.length - 350);
+          if (sim.particles.length > 500) sim.particles.splice(0, sim.particles.length - 500);
 
           for (let i = sim.particles.length - 1; i >= 0; i--) {
             const p = sim.particles[i];
@@ -2238,95 +2920,81 @@
               if (p.life <= 0) { sim.particles.splice(i, 1); continue; }
             }
             const a = p.life !== undefined ? p.life : (0.5 + 0.5 * Math.sin(state.time * 4 + p.phase));
-            drawStarburst(p.x, p.y, p.size * 2.6 * size * glow, getArtColor(p.hue, 92, 72, a, i), a);
+            drawStarburst(p.x, p.y, p.size * 2.6 * size * p2 * glow, getArtColor(p.hue, 92, 72, a, i), a);
           }
           break;
         }
 
         // ------------------------------------------------------------------------
-        // #22: 【差し替え】聖なる光の放射線・ゴッドレイ
+        // #22: 聖なる光の放射線・ゴッドレイ
         // ------------------------------------------------------------------------
         case 'radial_rays': {
-          const cx = ptr.active ? ptr.x : w * 0.5 + Math.cos(state.time * 0.4 * speed) * (w * 0.14);
-          const cy = ptr.active ? ptr.y : h * 0.46 + Math.sin(state.time * 0.5 * speed) * (h * 0.1);
-          const maxLen = Math.hypot(w, h) * 1.15;
+          const ox = ptr.active ? ptr.x : w * 0.5 + Math.cos(state.time * 0.4) * 50;
+          const oy = ptr.active ? ptr.y : h * 0.45 + Math.sin(state.time * 0.5) * 40;
+          const maxLen = Math.hypot(w, h) * 1.1;
 
           for (let i = 0; i < sim.items.length; i++) {
             const ray = sim.items[i];
             const ang = ray.angle + state.time * ray.speed * speed;
-            const pulse = 0.55 + 0.45 * Math.sin(state.time * 2.2 + ray.phase);
-            const spread = ray.width * size * pulse;
-
-            const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, maxLen * 0.85);
-            grad.addColorStop(0, getArtColor(ray.hue, 95, 82, 0.42 * glow * pulse, i));
-            grad.addColorStop(0.5, getArtColor(ray.hue + 25, 90, 62, 0.16 * glow * pulse, i));
+            const halfW = ray.width * size * p2 * (0.75 + 0.25 * Math.sin(state.time * 2 + ray.phase));
+            const grad = ctx.createLinearGradient(ox, oy, ox + Math.cos(ang) * maxLen, oy + Math.sin(ang) * maxLen);
+            grad.addColorStop(0, getArtColor(ray.hue, 95, 76, 0.34 * glow, i));
+            grad.addColorStop(0.55, getArtColor(ray.hue + 20, 88, 62, 0.12 * glow, i));
             grad.addColorStop(1, 'transparent');
 
             ctx.fillStyle = grad;
             ctx.beginPath();
-            ctx.moveTo(cx, cy);
-            ctx.lineTo(cx + Math.cos(ang - spread) * maxLen, cy + Math.sin(ang - spread) * maxLen);
-            ctx.lineTo(cx + Math.cos(ang + spread) * maxLen, cy + Math.sin(ang + spread) * maxLen);
+            ctx.moveTo(ox, oy);
+            ctx.lineTo(ox + Math.cos(ang - halfW) * maxLen, oy + Math.sin(ang - halfW) * maxLen);
+            ctx.lineTo(ox + Math.cos(ang + halfW) * maxLen, oy + Math.sin(ang + halfW) * maxLen);
             ctx.closePath();
             ctx.fill();
           }
 
-          drawStarburst(cx, cy, 65 * size * glow, getArtColor(45, 98, 86, 0.95, 0), 0.95);
+          const coreR = Math.max(4, 140 * size * p1 * glow);
+          const coreGrad = ctx.createRadialGradient(ox, oy, 2, ox, oy, coreR);
+          coreGrad.addColorStop(0, 'rgba(255, 255, 245, 0.98)');
+          coreGrad.addColorStop(0.3, getArtColor(45, 98, 72, 0.65, 0));
+          coreGrad.addColorStop(1, 'transparent');
+          ctx.fillStyle = coreGrad;
+          ctx.beginPath();
+          ctx.arc(ox, oy, coreR, 0, Math.PI * 2);
+          ctx.fill();
 
           for (let i = 0; i < sim.particles.length; i++) {
             const p = sim.particles[i];
-            p.dist += p.speed * dt * speed * 1.8;
-            if (p.dist > maxLen * 0.8) p.dist = 8;
-            const px = cx + Math.cos(p.angle) * p.dist;
-            const py = cy + Math.sin(p.angle) * p.dist;
-            ctx.fillStyle = getArtColor(p.hue, 95, 80, 0.75 * glow, i);
-            ctx.beginPath();
-            ctx.arc(px, py, p.size * size, 0, Math.PI * 2);
-            ctx.fill();
+            p.dist += p.speed * dt * speed;
+            if (p.dist > maxLen * 0.75) p.dist = 10;
+            const px = ox + Math.cos(p.angle) * p.dist;
+            const py = oy + Math.sin(p.angle) * p.dist;
+            drawStarburst(px, py, p.size * 2.4 * size * p3 * glow, getArtColor(p.hue, 95, 78, 0.8, i), 0.8);
           }
           break;
         }
 
         // ------------------------------------------------------------------------
-        // #23: 【差し替え】深淵のブラックホールと降着円盤
+        // #23: 深淵のブラックホールと降着円盤
         // ------------------------------------------------------------------------
         case 'blackhole': {
           const cx = w * 0.5 + (ptr.active ? (ptr.x - w * 0.5) * 0.18 * reactivity : 0);
           const cy = h * 0.5 + (ptr.active ? (ptr.y - h * 0.5) * 0.18 * reactivity : 0);
-          const bhR = Math.min(w, h) * 0.13 * size;
+          const bhR = Math.max(2, Math.min(w, h) * 0.13 * size * p1);
 
-          // 相対論的ジェット（上下のプラズマビーム）
-          const jetLen = h * 0.44 * size;
-          for (const dir of [-1, 1]) {
-            const jetGrad = ctx.createLinearGradient(cx, cy, cx, cy + dir * jetLen);
-            jetGrad.addColorStop(0, getArtColor(215, 95, 78, 0.42 * glow, dir));
-            jetGrad.addColorStop(1, 'transparent');
-            ctx.fillStyle = jetGrad;
-            ctx.beginPath();
-            ctx.moveTo(cx - bhR * 0.14, cy);
-            ctx.lineTo(cx + bhR * 0.14, cy);
-            ctx.lineTo(cx + bhR * 0.48, cy + dir * jetLen);
-            ctx.lineTo(cx - bhR * 0.48, cy + dir * jetLen);
-            ctx.closePath();
-            ctx.fill();
-          }
-
-          // 重力レンズ効果の光のハロー
-          const lensGrad = ctx.createRadialGradient(cx, cy, bhR * 0.95, cx, cy, bhR * 3.4 * glow);
+          const lensR = Math.max(4, bhR * 3.4 * glow * p3);
+          const lensGrad = ctx.createRadialGradient(cx, cy, bhR * 0.95, cx, cy, lensR);
           lensGrad.addColorStop(0, getArtColor(32, 98, 76, 0.92, 0));
           lensGrad.addColorStop(0.25, getArtColor(24, 95, 58, 0.45, 1));
           lensGrad.addColorStop(0.6, getArtColor(265, 80, 42, 0.16, 2));
           lensGrad.addColorStop(1, 'transparent');
           ctx.fillStyle = lensGrad;
           ctx.beginPath();
-          ctx.arc(cx, cy, bhR * 3.4 * glow, 0, Math.PI * 2);
+          ctx.arc(cx, cy, lensR, 0, Math.PI * 2);
           ctx.fill();
 
-          // 降着円盤の奥側＆重力レンズアーチ
           for (let i = 0; i < sim.particles.length; i++) {
             const p = sim.particles[i];
             p.angle += p.speed * dt * speed;
-            const r = bhR * p.orbitR;
+            const r = bhR * (1 + (p.orbitR - 1) * p2);
             const px = cx + Math.cos(p.angle) * r * 1.45;
             const sinA = Math.sin(p.angle);
             const py = sinA < 0
@@ -2341,27 +3009,24 @@
             }
           }
 
-          // 事象の地平面（漆黒のブラックホール本体）
           ctx.globalCompositeOperation = 'source-over';
           ctx.fillStyle = '#010103';
           ctx.beginPath();
           ctx.arc(cx, cy, bhR, 0, Math.PI * 2);
           ctx.fill();
 
-          // 光子球（フォトンリング）
           ctx.globalCompositeOperation = 'lighter';
-          ctx.strokeStyle = getArtColor(38, 100, 82, 0.9 * glow, 0);
-          ctx.lineWidth = 2.5 * size;
+          ctx.strokeStyle = getArtColor(38, 100, 82, 0.92 * glow * p3, 0);
+          ctx.lineWidth = Math.max(1, 2.5 * size * p3);
           ctx.beginPath();
           ctx.arc(cx, cy, bhR * 1.03, 0, Math.PI * 2);
           ctx.stroke();
 
-          // 降着円盤の手前側
           for (let i = 0; i < sim.particles.length; i++) {
             const p = sim.particles[i];
             const sinA = Math.sin(p.angle);
             if (sinA >= 0) {
-              const r = bhR * p.orbitR;
+              const r = bhR * (1 + (p.orbitR - 1) * p2);
               const px = cx + Math.cos(p.angle) * r * 1.45;
               const py = cy + sinA * r * 0.34;
               ctx.fillStyle = getArtColor(p.hue + 6, 98, 76, 0.9 * glow, i);
@@ -2379,7 +3044,7 @@
         case 'chandelier': {
           const cx = w * 0.5;
           const cy = h * 0.42;
-          const maxR = Math.min(w, h) * 0.38 * size;
+          const maxR = Math.min(w, h) * 0.38 * p2;
 
           for (let i = 0; i < sim.items.length; i++) {
             const c = sim.items[i];
@@ -2388,15 +3053,17 @@
             const rx = (c.ring / 4) * maxR;
             const ry = rx * 0.48;
             const px = cx + Math.cos(ang) * rx;
-            const py = cy + Math.sin(ang) * ry + c.ring * 18;
+            const py = cy + Math.sin(ang) * ry + c.ring * 18 * p2;
 
             const pulse = 0.5 + 0.5 * Math.sin(state.time * 4 + c.sparkle);
             const hue = (c.hue + state.time * 30 + (ptr.active ? ptr.x * 0.2 : 0)) % 360;
-            drawStarburst(px, py, c.size * (1.5 + pulse * 1.4) * glow, getArtColor(hue, 95, 78, 0.85, i), 0.85);
+            drawStarburst(px, py, c.size * size * p1 * (1.5 + pulse * 1.4) * glow * p3, getArtColor(hue, 95, 78, 0.85, i), 0.85);
           }
           break;
         }
       }
+
+      ctx.restore();
 
       ptr.justClicked = false;
       ptr.vx *= 0.85;
@@ -2459,10 +3126,13 @@
     function selectArtwork(index) {
       state.currentArtIndex = index;
       const art = ARTWORKS[index];
+      // 作品切替時はパーツ別パラメータを初期値（1.0）へ
+      state.params.parts = { p1: 1.0, p2: 1.0, p3: 1.0 };
       document.getElementById('hudCategoryBadge').textContent = art.catLabel;
       document.getElementById('hudArtTitle').textContent = `${art.num}. ${art.title}`;
       document.getElementById('hudArtHint').textContent = art.hint;
       initCurrentArtwork();
+      buildControlSliders();
       renderGalleryGrid();
     }
 
@@ -2484,34 +3154,6 @@
       } else {
         controlPanel.classList.add('translate-y-full', 'md:translate-x-[120%]');
       }
-    }
-
-    function syncParamUI() {
-      const p = state.params;
-      document.getElementById('paramHue').value = p.hueShift;
-      document.getElementById('valHue').textContent = `${p.hueShift}°`;
-
-      document.getElementById('paramDensity').value = Math.round(p.density * 100);
-      document.getElementById('valDensity').textContent = `${Math.round(p.density * 100)}%`;
-
-      document.getElementById('paramGlow').value = Math.round(p.glow * 100);
-      document.getElementById('valGlow').textContent = `${Math.round(p.glow * 100)}%`;
-
-      document.getElementById('paramSpeed').value = Math.round(p.speed * 100);
-      document.getElementById('valSpeed').textContent = `${p.speed.toFixed(1)}x`;
-
-      document.getElementById('paramSize').value = Math.round(p.size * 100);
-      document.getElementById('valSize').textContent = `${Math.round(p.size * 100)}%`;
-
-      document.getElementById('paramReact').value = Math.round(p.reactivity * 100);
-      document.getElementById('valReact').textContent = `${Math.round(p.reactivity * 100)}%`;
-
-      document.querySelectorAll('.palette-btn').forEach(btn => {
-        const active = btn.dataset.palette === p.palette;
-        btn.classList.toggle('bg-white/20', active);
-        btn.classList.toggle('border-white/40', active);
-        btn.classList.toggle('bg-white/5', !active);
-      });
     }
 
     // イベントバインド
@@ -2569,46 +3211,26 @@
     document.querySelectorAll('.palette-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         state.params.palette = btn.dataset.palette;
-        syncParamUI();
+        buildControlSliders();
       });
-    });
-
-    document.getElementById('paramHue').addEventListener('input', (e) => {
-      state.params.hueShift = Number(e.target.value);
-      syncParamUI();
-    });
-    document.getElementById('paramDensity').addEventListener('input', (e) => {
-      state.params.density = Number(e.target.value) / 100;
-      initCurrentArtwork();
-      syncParamUI();
-    });
-    document.getElementById('paramGlow').addEventListener('input', (e) => {
-      state.params.glow = Number(e.target.value) / 100;
-      syncParamUI();
-    });
-    document.getElementById('paramSpeed').addEventListener('input', (e) => {
-      state.params.speed = Number(e.target.value) / 100;
-      syncParamUI();
-    });
-    document.getElementById('paramSize').addEventListener('input', (e) => {
-      state.params.size = Number(e.target.value) / 100;
-      syncParamUI();
-    });
-    document.getElementById('paramReact').addEventListener('input', (e) => {
-      state.params.reactivity = Number(e.target.value) / 100;
-      syncParamUI();
     });
 
     document.getElementById('randomParamBtn').addEventListener('click', () => {
       const palKeys = Object.keys(PALETTES);
       state.params.palette = palKeys[Math.floor(Math.random() * palKeys.length)];
       state.params.hueShift = Math.floor(Math.random() * 360);
-      state.params.density = Number((0.6 + Math.random() * 1.1).toFixed(2));
-      state.params.glow = Number((0.7 + Math.random() * 1.0).toFixed(2));
-      state.params.speed = Number((0.5 + Math.random() * 1.5).toFixed(1));
-      state.params.size = Number((0.7 + Math.random() * 0.8).toFixed(2));
+      state.params.size = Number((0.6 + Math.random() * 1.4).toFixed(2));
+      state.params.scale = Number((0.7 + Math.random() * 0.8).toFixed(2));
+      state.params.density = Number((0.6 + Math.random() * 1.4).toFixed(2));
+      state.params.glow = Number((0.7 + Math.random() * 1.3).toFixed(2));
+      state.params.speed = Number((0.5 + Math.random() * 1.5).toFixed(2));
+      state.params.parts = {
+        p1: Number((0.6 + Math.random() * 1.4).toFixed(2)),
+        p2: Number((0.6 + Math.random() * 1.4).toFixed(2)),
+        p3: Number((0.6 + Math.random() * 1.4).toFixed(2))
+      };
       initCurrentArtwork();
-      syncParamUI();
+      buildControlSliders();
       showToast('光のパラメータをランダムに設定しました');
     });
 
@@ -2621,15 +3243,17 @@
       state.params = {
         palette: 'original',
         hueShift: 0,
+        size: 1.0,
+        scale: 1.0,
         density: 1.0,
         glow: 1.0,
         speed: 1.0,
-        size: 1.0,
-        reactivity: 1.0
+        reactivity: 1.0,
+        parts: { p1: 1.0, p2: 1.0, p3: 1.0 }
       };
       initCurrentArtwork();
-      syncParamUI();
-      showToast('パラメータを初期値に戻しました');
+      buildControlSliders();
+      showToast('パラメータを初期値（100%）に戻しました');
     });
 
     function updatePointer(x, y, isDown, clicked = false) {
@@ -2676,7 +3300,6 @@
     window.onload = function () {
       resizeCanvas();
       selectArtwork(0);
-      syncParamUI();
       openGalleryMenu();
       requestAnimationFrame(animate);
     };
